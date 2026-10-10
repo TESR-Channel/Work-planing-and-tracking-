@@ -68,7 +68,12 @@ function doPost(e) {
 const out_ = o => ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);
 
 /* ================= AUTH ================= */
-function hmac_(s) { return Utilities.base64EncodeWebSafe(Utilities.computeHmacSha256Signature(s, P().getProperty('SECRET'))); }
+function secret_() {
+  let k = P().getProperty('SECRET');
+  if (!k) { k = Utilities.getUuid() + Utilities.getUuid(); P().setProperty('SECRET', k); }
+  return k;
+}
+function hmac_(s) { return Utilities.base64EncodeWebSafe(Utilities.computeHmacSha256Signature(s, secret_())); }
 function sign_(o) { const p = Utilities.base64EncodeWebSafe(JSON.stringify(o), Utilities.Charset.UTF_8); return p + '.' + hmac_(p); }
 function verify_(t) {
   if (!t) return null;
@@ -148,7 +153,13 @@ function getStaff_(fresh) {
 }
 
 /* ================= DATA ================= */
-function sheet_(t) { if (!TABLES[t]) throw new Error('bad_table'); return SpreadsheetApp.openById(SHEET_ID).getSheetByName(TABLES[t].tab); }
+function sheet_(t) {
+  if (!TABLES[t]) throw new Error('bad_table');
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  let sh = ss.getSheetByName(TABLES[t].tab);
+  if (!sh) { setup(); sh = ss.getSheetByName(TABLES[t].tab); } // สร้างแท็บอัตโนมัติถ้ายังไม่ได้รัน setup
+  return sh;
+}
 function readTable_(t) {
   const sh = sheet_(t), n = sh.getLastRow();
   if (n < 2) return [];
