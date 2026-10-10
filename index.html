@@ -2,7 +2,7 @@
 <html lang="th" data-theme="dark">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>TESR Board</title>
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -390,6 +390,55 @@ th{font-size:12px;letter-spacing:.2px;font-weight:600}
 .fi b,.mini .t{font-weight:600}
 
 .howto{display:inline-block;margin-top:12px;font-size:13px;color:var(--gold);text-decoration:none;border:1px solid var(--edge);border-radius:20px;padding:4px 14px}.howto:hover{box-shadow:var(--neon)}
+
+/* ===== Responsive: desktop · tablet · phone ===== */
+.top{padding-top:calc(8px + env(safe-area-inset-top))}
+@media (min-width:1600px){.wrap{max-width:1640px}.list{flex-basis:320px}}
+@media (max-width:1100px) and (min-width:701px){
+  .brand .t small{display:none}
+  #search{width:130px}
+  .cgrid{grid-template-columns:minmax(0,1.3fr) minmax(0,1fr)}
+}
+@media (max-width:700px){
+  input,select,textarea{font-size:16px}              /* กัน iOS zoom ตอนแตะช่องกรอก */
+  .top{backdrop-filter:none;-webkit-backdrop-filter:none;background:linear-gradient(90deg,rgba(0,0,0,.96),rgba(18,10,12,.94))}
+  .cgrid>*,.grid2>*{min-width:0}
+  .grid2 input,.grid2 select{width:100%}
+  .row input{min-width:0}
+  .sheet{overflow-x:hidden}
+  .top{gap:6px;padding:calc(8px + env(safe-area-inset-top)) 10px 8px}
+  .brand{margin-right:0}.brand .t{display:none}.brand img{height:32px}
+  #boardSel{flex:1 1 auto;min-width:130px}
+  .spacer,#modeBadge,.who .n,.who .r{display:none}
+  #search{order:10;flex:1 1 55%;width:auto;min-width:0}
+  #memberFilter{order:11;flex:1 1 35%;min-width:0}
+  .tabs{position:fixed;left:0;right:0;bottom:0;z-index:45;border-radius:0;border:none;border-top:1px solid rgba(240,197,82,.45);
+    padding:6px 8px calc(6px + env(safe-area-inset-bottom));background:rgba(8,8,10,.94);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+  .tabs button{flex:1;padding:10px 0;font-size:14px;border-radius:10px}
+  main{padding-bottom:calc(66px + env(safe-area-inset-bottom))}
+  .board{scroll-snap-type:x mandatory;padding:12px 10px;gap:10px}
+  .list{flex-basis:86vw;scroll-snap-align:center;max-height:calc(100vh - 200px - env(safe-area-inset-bottom))}
+  .modal{padding:0;align-items:stretch}
+  .sheet,.sheet.wide{width:100%;min-height:100%;border-radius:0;clip-path:none;border:none;padding:0 14px calc(24px + env(safe-area-inset-bottom))}
+  .sheet::before{margin:0 -14px 0}
+  .mhead{position:sticky;top:0;z-index:5;margin:0 -14px 10px;padding:12px 14px;background:var(--glass);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--edge)}
+  .cover{margin:0 -14px 0;height:150px}
+  .mmeta{margin-left:0}
+  .grid2{grid-template-columns:1fr 1fr}
+  .ckitem select{max-width:96px}
+  .wrap{padding:12px 10px}
+  .toolbar h2{flex-basis:100%;font-size:18px}
+  .toolbar select,.toolbar>button{flex:1 1 40%}
+  .rng{flex-basis:100%}.rng input{flex:1}
+  .kpis{grid-template-columns:1fr 1fr;gap:8px}
+  .kpi b{font-size:24px}
+  .chartbox{height:250px}
+  .phead{flex-wrap:wrap}
+  .team{grid-template-columns:1fr}
+  #toast{bottom:calc(76px + env(safe-area-inset-bottom))}
+}
+@media (max-width:380px){.grid2{grid-template-columns:1fr}.kpi b{font-size:21px}}
+
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 
 @media (max-width:700px){
