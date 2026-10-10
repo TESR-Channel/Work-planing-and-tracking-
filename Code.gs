@@ -103,7 +103,7 @@ function login_(user, pass) {
       if (plain && pw === plain) me = { id: 'admin', role: 'admin' };
       else if (h.indexOf('$') > 0) {
         const salt = h.split('$')[0], hx = h.split('$')[1];
-        if ([salt + pw, pw + salt, salt + ':' + pw].some(x => sha_(x) === hx)) me = { id: 'admin', role: 'admin' };
+        if ([salt + '|' + pw, salt + pw, pw + salt, salt + ':' + pw].some(x => sha_(x) === hx)) me = { id: 'admin', role: 'admin' };
       }
     }
   }
@@ -122,7 +122,7 @@ function login_(user, pass) {
   cache.remove(fk);
   if (me.id === 'admin') {
     const m = readTable_('mrows').find(r => r.id === 'admin');
-    me.name = (m && m.name) || 'Admin'; me.email = u; me.position = 'Admin';
+    me.name = (m && m.name) || 'Anon'; me.email = u; me.position = 'CEO · Owner';
   }
   return { user: me, token: sign_({ id: me.id, role: me.role, exp: Date.now() + 30 * 864e5 }) };
 }

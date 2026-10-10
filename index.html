@@ -469,7 +469,7 @@ function renderMain(){
   $('#memberFilter').innerHTML=`<option value="">👥 ทุกคน</option><option value="me" ${ui.member==='me'?'selected':''}>⭐ งานของฉัน</option><option value="none" ${ui.member==='none'?'selected':''}>— ไม่มีผู้รับผิดชอบ</option>`+activeMembers().map(m=>`<option value="${m.id}" ${m.id===ui.member?'selected':''}>${esc(m.name)}</option>`).join('');
   $$('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.v===ui.view));
   const mb=$('#modeBadge');mb.className='mode '+(store.mode!=='local'?'sb':'lc');mb.textContent=store.mode!=='local'?'● Online':'● Demo';
-  const m=me();$('#whoBtn').innerHTML=`${avatar(m)}<span class="n">${esc(m.name.split(' ')[0])}</span>${isAdmin()?'<span class="r">ADMIN</span>':''}`;
+  const m=me();$('#whoBtn').innerHTML=`${avatar(m)}<span class="n">${esc(m.name.split(' ')[0])}</span>${session.id==='admin'?'<span class="r">OWNER</span>':isAdmin()?'<span class="r">ADMIN</span>':''}`;
   $('#boardMenu').classList.toggle('hidden',!isAdmin());
   charts.splice(0).forEach(c=>c.destroy());
   if(ui.view==='board')renderBoard();else if(ui.view==='team')renderTeam();else renderDash();
@@ -845,7 +845,7 @@ async function enterApp(){
   if(store.mode!=='local') Object.assign(S,await store.load());
   norm();
   if(store.mode!=='local'&&session.id==='admin'&&!S.mrows.some(r=>r.id==='admin')){
-    await store.upsert('mrows',{id:'admin',name:session.name||'Admin',email:session.email||'',role:'Admin',dept:'Management',color:'#d4a72c',active:true,board_role:'admin',created_at:now()});norm();
+    await store.upsert('mrows',{id:'admin',name:session.name||'Anon',email:session.email||'',role:'CEO · Owner',dept:'Management',color:'#d4a72c',active:true,board_role:'admin',created_at:now()});norm();
   }
   if(!S.boards.length) await createBoard('TESR งานหลัก');
   const saved=lsGet(LS_BOARD,'');ui.board=S.boards.some(b=>b.id===saved)?saved:S.boards.sort(byPos)[0].id;
