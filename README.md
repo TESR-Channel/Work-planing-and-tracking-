@@ -8,13 +8,19 @@
 | ฐานข้อมูล | Google Sheet **TESR Board DB** (แท็บ Members / Boards / Lists / Cards / Activity) |
 | ไฟล์แนบ | Google Drive โฟลเดอร์ **TESR Board / ไฟล์แนบ** |
 | API | Google Apps Script `Code.gs` (Web App) |
-| ล็อกอิน | อีเมล + เบอร์โทร จากระบบลงเวลา TESR Time Clock · Admin ใช้บัญชี admin ของระบบลงเวลา |
+| ล็อกอิน | อีเมล + เบอร์โทร จาก Sheet ระบบลงเวลา (Work tracking log › Employees) · Admin ใช้บัญชี admin ของระบบลงเวลา |
 
 ## ติดตั้ง
 1. เปิด Sheet *TESR Board DB* → Extensions → Apps Script → วางโค้ดจาก `Code.gs`
-2. Project Settings → Script Properties → เพิ่ม `SUPABASE_SERVICE_KEY` (service_role key ของ TESR Time Clock)
-   - สำรอง: `ADMIN_EMAIL` + `ADMIN_PASSWORD` ถ้าต้องการบัญชี admin แยก
-3. เลือกฟังก์ชัน `setup` → Run → อนุญาตสิทธิ์
-4. Deploy → New deployment → Web app · Execute as **Me** · Who has access **Anyone** → คัดลอก URL
-5. ใส่ URL ใน `CONFIG.API_URL` ของ `index.html` (หรือหน้า ⚙️ ขั้นสูง)
-6. GitHub → Settings → Pages → Branch `main` / root
+2. เลือกฟังก์ชัน `setup` → Run → อนุญาตสิทธิ์
+3. Deploy → New deployment → Web app · Execute as **Me** · Who has access **Anyone** → คัดลอก URL
+4. ใส่ URL ใน `CONFIG.API_URL` ของ `index.html`
+5. GitHub → Settings → Pages → Branch `main` / root
+
+## การ์ด 2 ประเภท
+- 📌 **งาน** — ต้องมีกำหนดส่ง · สี: 🟢 ตามแผน · 🟡 ใกล้กำหนด (≤2 วัน) · 🔴 เลยกำหนด · นับใน KPI
+- 📁 **ข้อมูล / ฝากไฟล์** — ไม่ต้องมีกำหนดส่ง · ไม่นับใน KPI
+
+## สิทธิ์
+- **พนักงาน / เด็กฝึกงาน** — เห็นแดชบอร์ดและหน้าทีมเฉพาะของตัวเอง
+- **Admin** — เห็นทั้งทีม และเลือกดูแดชบอร์ดรายบุคคลได้

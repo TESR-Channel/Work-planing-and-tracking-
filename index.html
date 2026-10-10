@@ -12,14 +12,14 @@
 <style>
 /* ===== TESR CI: Black · Gold · Red ===== */
 :root,[data-theme=dark]{
-  --bg:#0b0b0d;--bg2:#141417;--card:#1c1c21;--card2:#27262c;--line:#34302a;
+  --yel:#facc15;--yelbg:rgba(250,204,21,.16);--bg:#0b0b0d;--bg2:#141417;--card:#1c1c21;--card2:#27262c;--line:#34302a;
   --tx:#f1ede4;--mut:#a39d8f;--gold:#d4a72c;--gold2:#f0c552;--red:#d71f33;--red2:#ff3b4f;
   --ok:#2fbf71;--warn:#e7a218;--late:#ff4d5e;--shadow:0 4px 18px rgba(0,0,0,.45);
   --glow:radial-gradient(1200px 600px at 50% -10%,rgba(212,167,44,.12),transparent 60%);
   color-scheme:dark;
 }
 [data-theme=light]{
-  --bg:#f5f2ea;--bg2:#fffdf8;--card:#ffffff;--card2:#f1ecdf;--line:#e3dac4;
+  --yel:#a37800;--yelbg:rgba(234,179,8,.18);--bg:#f5f2ea;--bg2:#fffdf8;--card:#ffffff;--card2:#f1ecdf;--line:#e3dac4;
   --tx:#1b1a17;--mut:#6f6858;--gold:#b8891a;--gold2:#8f6a0f;--red:#c8102e;--red2:#e0213f;
   --ok:#1f9d5a;--warn:#b7790a;--late:#d42a3c;--shadow:0 3px 14px rgba(60,45,10,.10);
   --glow:radial-gradient(1200px 600px at 50% -10%,rgba(184,137,26,.14),transparent 60%);
@@ -94,8 +94,13 @@ main{flex:1;overflow:auto;min-height:0}
 .cards{padding:8px;overflow-y:auto;min-height:36px;display:flex;flex-direction:column;gap:8px}
 .card{background:var(--card);border:1px solid var(--line);border-left:3px solid transparent;border-radius:10px;padding:9px 10px;cursor:pointer;user-select:none;transition:border-color .15s,transform .15s}
 .card:hover{border-color:var(--gold);transform:translateY(-1px)}
-.card.p-high{border-left-color:var(--warn)}
-.card.p-urgent{border-left-color:var(--red)}
+.card.d-ok{border-left-color:var(--ok)}
+.card.d-soon{border-left-color:var(--yel)}
+.card.d-late{border-left-color:var(--late)}
+.card.d-done{border-left-color:var(--line)}
+.card.d-none{border-left-color:var(--warn);border-left-style:dashed}
+.card.note{border-left-color:#3b82f6}
+.kind{font-size:11px;color:#3b82f6;font-weight:600;margin-bottom:3px}
 .card.isdone .ctitle{color:var(--mut);text-decoration:line-through}
 .card.mine{box-shadow:0 0 0 1px rgba(212,167,44,.35) inset}
 .ctitle{font-weight:500;word-break:break-word}
@@ -103,9 +108,25 @@ main{flex:1;overflow:auto;min-height:0}
 .lb{font-size:11px;padding:1px 8px;border-radius:20px;color:#fff;font-weight:500}
 .meta{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:7px}
 .badge{font-size:11px;padding:1px 7px;border-radius:6px;background:var(--card2);color:var(--mut)}
-.badge.ok{color:var(--ok)}
-.badge.late{background:rgba(255,77,94,.14);color:var(--late)}
-.badge.soon{background:rgba(231,162,24,.15);color:var(--warn)}
+.badge.ok{background:rgba(47,191,113,.16);color:var(--ok);font-weight:600}
+.badge.late{background:rgba(255,77,94,.16);color:var(--late);font-weight:600}
+.badge.soon{background:var(--yelbg);color:var(--yel);font-weight:600}
+.badge.done{color:var(--mut)}
+.badge.none{background:transparent;border:1px dashed var(--warn);color:var(--warn)}
+.badge.pr-urgent{background:var(--red);color:#fff}
+.badge.pr-high{color:#f97316}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:middle}
+.seg{display:flex;gap:4px;background:var(--card2);padding:3px;border-radius:10px;border:1px solid var(--line)}
+.seg button{flex:1;border:none;background:transparent;padding:8px}
+.seg button.on{background:linear-gradient(180deg,var(--gold2),var(--gold));color:#16130b;font-weight:700}
+[data-theme=dark] .seg button.on{background:linear-gradient(180deg,#f0c552,#c99a22)}
+label.fl{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--mut);margin:12px 0}
+label.fl input{font-size:15px;padding:9px 11px}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--mut);margin:-4px 0 12px}
+.phead{display:flex;align-items:center;gap:12px;background:var(--bg2);border:1px solid var(--line);border-left:4px solid var(--gold);border-radius:12px;padding:12px 14px;margin-bottom:12px}
+.phead .nm{font-family:Kanit,sans-serif;font-size:18px;font-weight:600}
+tr.click{cursor:pointer}tr.click:hover td{background:var(--card)}
+.mtop .nm.link{cursor:pointer}.mtop .nm.link:hover{color:var(--gold)}
 .avs{margin-left:auto;display:flex}
 .av{width:24px;height:24px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;border:2px solid var(--card);margin-left:-6px;flex:none}
 .av.lg{width:40px;height:40px;font-size:14px;margin:0;border-color:var(--gold)}
@@ -177,6 +198,9 @@ main{flex:1;overflow:auto;min-height:0}
 .kpi{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:12px 14px;border-top:3px solid var(--gold);box-shadow:var(--shadow)}
 .kpi.r{border-top-color:var(--red)}
 .kpi.g{border-top-color:var(--ok)}
+.kpi.y{border-top-color:var(--yel)}
+.kpi.y b{color:var(--yel)}
+.kpi.r b{color:var(--late)}
 .kpi b{display:block;font-size:28px;line-height:1.2;font-family:Kanit,sans-serif;font-weight:600}
 .kpi span{font-size:12px;color:var(--mut)}
 .charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:12px}
@@ -380,14 +404,16 @@ function avatar(m,cls=''){if(!m)return '';return `<span class="av ${cls}" style=
 function labelColor(s){let h=0;for(const ch of s)h=(h*31+ch.charCodeAt(0))>>>0;return PALETTE[h%PALETTE.length]}
 function ckProgress(c){let t=0,d=0;c.checklists.forEach(cl=>cl.items.forEach(it=>{t++;if(it.done)d++}));return {total:t,done:d}}
 function dueInfo(c){
-  if(!c.due) return null;
-  const d=new Date(c.due+'T00:00:00'),diff=(d-today())/DAY;
-  if(isDone(c)) return {cls:'ok',text:fmtD(c.due)};
-  if(diff<0) return {cls:'late',text:fmtD(c.due)+' (เลย)'};
-  if(diff<=2) return {cls:'soon',text:fmtD(c.due)};
-  return {cls:'',text:fmtD(c.due)};
+  if(c.kind==='note') return null;
+  if(isDone(c)) return {k:'done',cls:'done',text:'✓ '+(c.due?fmtD(c.due):'เสร็จ')};
+  if(!c.due) return {k:'none',cls:'none',text:'⚠ ยังไม่ตั้งกำหนดส่ง'};
+  const diff=Math.round((new Date(c.due+'T00:00:00')-today())/DAY);
+  if(diff<0) return {k:'late',cls:'late',text:`${fmtD(c.due)} · เลย ${-diff} วัน`};
+  if(diff<=2) return {k:'soon',cls:'soon',text:`${fmtD(c.due)} · ${diff===0?'วันนี้':'อีก '+diff+' วัน'}`};
+  return {k:'ok',cls:'ok',text:fmtD(c.due)};
 }
-const isOverdue=c=>c.due&&!isDone(c)&&new Date(c.due+'T00:00:00')<today();
+const isTask=c=>c.kind!=='note';
+const isOverdue=c=>isTask(c)&&c.due&&!isDone(c)&&new Date(c.due+'T00:00:00')<today();
 function matches(c){
   if(ui.member&&!(ui.member==='none'?!c.assignees.length:ui.member==='me'?c.assignees.includes(session.id):c.assignees.includes(ui.member))) return false;
   if(ui.search){const q=ui.search.toLowerCase();if(!(`${c.title} ${c.description} ${c.labels.join(' ')}`.toLowerCase().includes(q)))return false}
@@ -427,6 +453,7 @@ function seedDemo(){
     C('ROS 2 Nav2 tuning บน Beary-X',doing,['e1','admin'],{labels:['Beary-X','ROS 2'],due:due(-2),s:9,links:[{url:'https://docs.nav2.org',title:'Nav2 docs'}]}),
     C('อัดคลิปคอร์ส ROS 2 Basic บทที่ 3',review,['e2'],{labels:['Academy'],due:due(1),s:4,ck:[['สคริปต์',true],['อัดวิดีโอ',true],['ตัดต่อ',false]]}),
     C('อัปเดตสินค้าใหม่บน tesrshop.com',todo,['e3'],{labels:['Shop'],due:due(7)}),
+    Object.assign(C('สเปก Motor + Datasheet Iron-X',todo,['e1'],{labels:['Iron-X'],links:[{url:'https://drive.google.com',title:'Datasheet folder'}]}),{kind:'note'}),
     C('จัดส่งชุดหุ่นยนต์ให้โรงเรียน',todo,['e4'],{labels:['Logistics'],prio:'urgent',due:due(2)}),
     C('ใบเสนอราคา AMR ลูกค้าโรงงาน',todo,[],{labels:['Sales'],prio:'high',due:due(-1)}),
     ...[['e1',20,14,12],['e2',18,12,9],['e3',15,10,6],['e1',12,8,4],['e4',10,6,3],['e2',9,5,2],['e3',6,4,1],['admin',14,9,8],['e1',30,25,20],['e4',28,22,18],['e1',3,2,0]]
@@ -449,17 +476,44 @@ function renderMain(){
 }
 
 function cardHTML(c){
-  const ck=ckProgress(c),due=dueInfo(c),nAtt=c.attachments.length+c.links.length;
-  return `<article class="card p-${c.priority||'normal'} ${isDone(c)?'isdone':''} ${c.assignees.includes(session.id)?'mine':''}" data-id="${c.id}" data-act="openCard">
+  const ck=ckProgress(c),due=dueInfo(c),nAtt=c.attachments.length+c.links.length,note=!isTask(c);
+  return `<article class="card ${note?'note':'d-'+due.k} ${isDone(c)?'isdone':''} ${c.assignees.includes(session.id)?'mine':''}" data-id="${c.id}" data-act="openCard">
+    ${note?'<div class="kind">📁 ข้อมูล / ไฟล์</div>':''}
     ${c.labels.length?`<div class="labels">${c.labels.map(l=>`<span class="lb" style="background:${labelColor(l)}">${esc(l)}</span>`).join('')}</div>`:''}
-    <div class="ctitle">${c.priority==='urgent'?'🔥 ':''}${esc(c.title)}</div>
+    <div class="ctitle">${esc(c.title)}</div>
     <div class="meta">
       ${due?`<span class="badge ${due.cls}">📅 ${due.text}</span>`:''}
+      ${c.priority==='urgent'&&!isDone(c)?'<span class="badge pr-urgent">🔥 ด่วน</span>':c.priority==='high'&&!isDone(c)?'<span class="badge pr-high">⬆ สูง</span>':''}
       ${ck.total?`<span class="badge ${ck.done===ck.total?'ok':''}">☑ ${ck.done}/${ck.total}</span>`:''}
       ${nAtt?`<span class="badge">📎 ${nAtt}</span>`:''}
       ${c.comments.length?`<span class="badge">💬 ${c.comments.length}</span>`:''}
       <span class="avs">${c.assignees.map(id=>avatar(member(id))).join('')}</span>
     </div></article>`;
+}
+function openNewCard(listId){
+  const l=list(listId);ui.openCard=null;
+  const def=new Date(Date.now()+3*DAY).toISOString().slice(0,10);
+  const pre=ui.member==='me'?session.id:(ui.member&&ui.member!=='none'?ui.member:session.id);
+  const sel=new Set([pre]);let kind='task';
+  $('#sheet').innerHTML=`<div class="mhead"><b class="kanit" style="flex:1;font-size:18px">+ การ์ดใหม่ · ${esc(l.name)}</b><button class="icon" data-act="closeModal">✕</button></div>
+    <div class="seg" id="nKind"><button type="button" class="on" data-k="task">📌 งาน · ต้องมีกำหนดส่ง</button><button type="button" data-k="note">📁 ข้อมูล / ฝากไฟล์</button></div>
+    <label class="fl">ชื่อการ์ด<input id="nTitle" placeholder="เช่น ออกแบบโครง Iron-X รุ่นใหม่" autocomplete="off"></label>
+    <div class="grid2"><label id="nDueWrap">กำหนดส่ง <span style="color:var(--late)">*</span><input type="date" id="nDue" value="${def}"></label>
+      <label>ความสำคัญ<select id="nPrio">${Object.entries(PRIO).map(([k,v])=>`<option value="${k}" ${k==='normal'?'selected':''}>${v}</option>`).join('')}</select></label></div>
+    <div class="sec"><h4>ผู้รับผิดชอบ</h4><div class="chips" id="nAss">${activeMembers().map(m=>`<button type="button" class="chip ${sel.has(m.id)?'on':''}" data-id="${m.id}">${avatar(m)}${esc(m.name)}</button>`).join('')}</div></div>
+    <div class="mfoot"><span class="lerr" id="nErr" style="margin:0"></span><button class="pri" id="nSave" style="min-width:140px">สร้างการ์ด</button></div>`;
+  showModal();setTimeout(()=>$('#nTitle').focus(),50);
+  $('#nKind').onclick=e=>{const b=e.target.closest('button');if(!b)return;kind=b.dataset.k;$$('#nKind button').forEach(x=>x.classList.toggle('on',x===b));$('#nDueWrap').style.display=kind==='task'?'':'none'};
+  $('#nAss').onclick=e=>{const b=e.target.closest('.chip');if(!b)return;const id=b.dataset.id;sel.has(id)?sel.delete(id):sel.add(id);b.classList.toggle('on',sel.has(id))};
+  const save=async()=>{
+    const t=$('#nTitle').value.trim(),due=$('#nDue').value;
+    if(!t){$('#nErr').textContent='กรุณาใส่ชื่อการ์ด';$('#nTitle').focus();return}
+    if(kind==='task'&&!due){$('#nErr').textContent='งานต้องมีกำหนดส่ง';$('#nDue').focus();return}
+    const nc={id:uid(),board_id:l.board_id,list_id:l.id,kind,title:t,description:'',assignees:[...sel],labels:[],priority:$('#nPrio').value,due:kind==='task'?due:null,
+      pos:Math.max(0,...S.cards.filter(x=>x.list_id===l.id).map(x=>x.pos||0))+1024,checklists:[],links:[],attachments:[],comments:[],created_by:session.id,created_at:now(),started_at:null,done_at:null,updated_at:now()};
+    applyListChange(nc,l);closeModal();await saveCard(nc,`สร้าง${kind==='task'?'งาน':'การ์ดข้อมูล'} "${t}" ใน ${l.name}`);
+  };
+  $('#nSave').onclick=save;$('#nTitle').onkeydown=e=>{if(e.key==='Enter')save()};
 }
 function renderBoard(){
   const lists=boardLists(ui.board);
@@ -506,9 +560,10 @@ function renderCardModal(){
   $('#sheet').innerHTML=`
   <div class="mhead"><input class="mtitle" id="cTitle" value="${esc(c.title)}"><button class="icon" data-act="closeModal">✕</button></div>
   <div class="grid2">
+    <label>ประเภท<select id="cKind"><option value="task" ${isTask(c)?'selected':''}>📌 งาน</option><option value="note" ${!isTask(c)?'selected':''}>📁 ข้อมูล / ไฟล์</option></select></label>
     <label>สถานะ<select id="cList">${lists.map(l=>`<option value="${l.id}" ${l.id===c.list_id?'selected':''}>${esc(l.name)}</option>`).join('')}</select></label>
     <label>ความสำคัญ<select id="cPrio">${Object.entries(PRIO).map(([k,v])=>`<option value="${k}" ${k===(c.priority||'normal')?'selected':''}>${v}</option>`).join('')}</select></label>
-    <label>กำหนดส่ง<input type="date" id="cDue" value="${c.due||''}"></label>
+    ${isTask(c)?`<label>กำหนดส่ง <span style="color:var(--late)">*</span><input type="date" id="cDue" value="${c.due||''}"></label>`:''}
     <label>Label (คั่นด้วย ,)<input id="cLabels" value="${esc(c.labels.join(', '))}"></label>
   </div>
   <div class="sec"><h4>ผู้รับผิดชอบ</h4><div class="chips">${S.members.filter(m=>m.active!==false||c.assignees.includes(m.id)).map(m=>`<button class="chip ${c.assignees.includes(m.id)?'on':''}" data-act="toggleAssignee" data-id="${m.id}">${avatar(m)}${esc(m.name)}</button>`).join('')}</div></div>
@@ -541,7 +596,8 @@ function renderCardModal(){
   $('#cTitle').onchange=e=>{const v=e.target.value.trim();if(v){c.title=v;saveCard(c,'แก้ชื่องาน')}};
   $('#cDesc').onchange=e=>{c.description=e.target.value;saveCard(c,'แก้รายละเอียด')};
   $('#cPrio').onchange=e=>{c.priority=e.target.value;saveCard(c,'ความสำคัญ → '+PRIO[c.priority])};
-  $('#cDue').onchange=e=>{c.due=e.target.value||null;saveCard(c,'กำหนดส่ง → '+(c.due?fmtD(c.due):'ไม่มี'))};
+  if($('#cDue'))$('#cDue').onchange=e=>{if(!e.target.value){toast('งานต้องมีกำหนดส่ง');e.target.value=c.due||'';return}c.due=e.target.value;saveCard(c,'กำหนดส่ง → '+fmtD(c.due)).then(renderCardModal)};
+  $('#cKind').onchange=e=>{c.kind=e.target.value;if(c.kind==='task'&&!c.due){c.due=new Date(Date.now()+3*DAY).toISOString().slice(0,10);toast('ตั้งกำหนดส่งเริ่มต้น +3 วัน แก้ได้')}saveCard(c,'ประเภท → '+(c.kind==='task'?'งาน':'ข้อมูล/ไฟล์')).then(renderCardModal)};
   $('#cLabels').onchange=e=>{c.labels=e.target.value.split(',').map(s=>s.trim()).filter(Boolean);saveCard(c)};
   $('#cList').onchange=e=>{const to=list(e.target.value),from=list(c.list_id);c.list_id=to.id;c.pos=Math.max(0,...S.cards.filter(x=>x.list_id===to.id).map(x=>x.pos||0))+1024;applyListChange(c,to);saveCard(c,`ย้ายจาก ${from.name} → ${to.name}`).then(renderCardModal)};
   $('#cFile').onchange=async e=>{
@@ -571,7 +627,7 @@ function scopeBar(title,extra=''){
 }
 function bindScope(){$('#scopeSel').onchange=e=>{ui.scope=e.target.value;renderMain()};$('#periodSel').onchange=e=>{ui.period=e.target.value;renderMain()}}
 function memberStats(id,cards){
-  const mine=cards.filter(c=>id===null?!c.assignees.length:c.assignees.includes(id));
+  const mine=cards.filter(c=>isTask(c)&&(id===null?!c.assignees.length:c.assignees.includes(id)));
   const open=mine.filter(c=>!isDone(c));
   const firstIds=new Set(S.boards.map(b=>boardLists(b.id)[0]?.id));
   const doing=open.filter(c=>!firstIds.has(c.list_id)), todo=open.filter(c=>firstIds.has(c.list_id));
@@ -582,86 +638,106 @@ function memberStats(id,cards){
   const cyc=doneP.filter(c=>c.started_at).map(c=>(new Date(c.done_at)-new Date(c.started_at))/DAY);
   let ckD=0,ckT=0;open.forEach(c=>{const p=ckProgress(c);ckD+=p.done;ckT+=p.total});
   const closed=doneP.length+open.length;
+  const dd={ok:0,soon:0,late:0,none:0};open.forEach(c=>{const d=dueInfo(c);if(d&&dd[d.k]!=null)dd[d.k]++});
   return {mine,open,doing,todo,doneP,overdue:open.filter(isOverdue),
     onTime:withDue.length?Math.round(onTime/withDue.length*100):null,
     cycle:cyc.length?cyc.reduce((a,b)=>a+b,0)/cyc.length:null,
     progress:ckT?Math.round(ckD/ckT*100):null,
-    success:closed?Math.round(doneP.length/closed*100):null};
+    success:closed?Math.round(doneP.length/closed*100):null,dd};
 }
 
-/* ===== TEAM ===== */
+/* ===== TEAM (Admin เห็นทุกคน · พนักงานเห็นเฉพาะตัวเอง) ===== */
 function renderTeam(){
-  const cards=scopeCards();
-  const people=[...activeMembers().map(m=>({m,id:m.id})),{m:{name:'ไม่มีผู้รับผิดชอบ',color:'#555',role:'',dept:''},id:null}];
+  const admin=isAdmin(),cards=scopeCards();
+  let people=admin?[...activeMembers().map(m=>({m,id:m.id})),{m:{name:'ไม่มีผู้รับผิดชอบ',color:'#555',role:'',dept:''},id:null}]:[{m:me(),id:session.id}];
   const maxOpen=Math.max(1,...people.map(p=>memberStats(p.id,cards).open.length));
   people.sort((a,b)=>(b.id===session.id)-(a.id===session.id));
-  $('#main').innerHTML=`<div class="wrap">${scopeBar('ใครทำอะไรอยู่')}<div class="team">${people.map(({m,id})=>{
+  $('#main').innerHTML=`<div class="wrap">${scopeBar(admin?'ใครทำอะไรอยู่':'งานของฉัน')}
+    <div class="legend"><span><i class="dot" style="background:var(--ok)"></i>ตามแผน</span><span><i class="dot" style="background:var(--yel)"></i>ใกล้กำหนด (≤2 วัน)</span><span><i class="dot" style="background:var(--late)"></i>เลยกำหนด</span></div>
+    <div class="team">${people.map(({m,id})=>{
     const s=memberStats(id,cards); if(id===null&&!s.open.length) return '';
-    const sorted=[...s.open].sort((a,b)=>(isOverdue(b)-isOverdue(a))||String(a.due||'9').localeCompare(String(b.due||'9')));
-    return `<div class="mcard ${id===session.id?'me':''}"><div class="mtop">${avatar(m,'lg')}<div><div class="nm">${esc(m.name)}${id===session.id?' <span class="muted">(ฉัน)</span>':''}</div><div class="muted">${esc([m.role,m.dept].filter(Boolean).join(' · '))}</div></div></div>
-      <div class="stats"><div class="stat gold"><b>${s.doing.length}</b><span>กำลังทำ</span></div><div class="stat"><b>${s.todo.length}</b><span>รอทำ</span></div><div class="stat green"><b>${s.doneP.length}</b><span>เสร็จ (${periodLabel()})</span></div><div class="stat red"><b>${s.overdue.length}</b><span>เลยกำหนด</span></div></div>
-      <div class="muted">ภาระงาน ${s.open.length} งาน${s.progress!=null?` · เช็คลิสต์คืบหน้า ${s.progress}%`:''}</div><div class="bar"><i style="width:${s.open.length/maxOpen*100}%"></i></div>
-      ${sorted.slice(0,8).map(c=>{const d=dueInfo(c);return `<div class="mini" data-act="openCard" data-id="${c.id}"><span class="t">${c.priority==='urgent'?'🔥 ':''}${esc(c.title)}</span><span class="pill">${esc(list(c.list_id).name)}</span>${d?`<span class="badge ${d.cls}">${d.text}</span>`:''}</div>`}).join('')||'<div class="muted">ว่าง ไม่มีงานค้าง</div>'}
+    const sorted=[...s.open].sort((a,b)=>String(a.due||'0').localeCompare(String(b.due||'0')));
+    return `<div class="mcard ${id===session.id?'me':''}"><div class="mtop">${avatar(m,'lg')}<div><div class="nm ${admin&&id?'link':''}" ${admin&&id?`data-act="dashPerson" data-id="${id}" title="ดูแดชบอร์ดรายบุคคล"`:''}>${esc(m.name)}${id===session.id?' <span class="muted">(ฉัน)</span>':''}</div><div class="muted">${esc([m.role,m.dept].filter(Boolean).join(' · '))}</div></div></div>
+      <div class="stats"><div class="stat green"><b>${s.dd.ok}</b><span>ตามแผน</span></div><div class="stat" style="--x:1"><b style="color:var(--yel)">${s.dd.soon}</b><span>ใกล้กำหนด</span></div><div class="stat red"><b>${s.dd.late}</b><span>เลยกำหนด</span></div><div class="stat gold"><b>${s.doneP.length}</b><span>เสร็จ (${periodLabel()})</span></div></div>
+      <div class="muted">งานค้าง ${s.open.length} งาน${s.progress!=null?` · เช็คลิสต์คืบหน้า ${s.progress}%`:''}</div><div class="bar"><i style="width:${s.open.length/maxOpen*100}%"></i></div>
+      ${sorted.slice(0,8).map(c=>{const d=dueInfo(c);return `<div class="mini" data-act="openCard" data-id="${c.id}"><span class="t">${esc(c.title)}</span><span class="pill">${esc(list(c.list_id).name)}</span>${d?`<span class="badge ${d.cls}">${d.text}</span>`:''}</div>`}).join('')||'<div class="muted">ว่าง ไม่มีงานค้าง 🎉</div>'}
       ${sorted.length>8?`<div class="muted">+ อีก ${sorted.length-8} งาน</div>`:''}</div>`}).join('')}</div></div>`;
   bindScope();
 }
 
-/* ===== DASHBOARD (Admin เห็นทั้งหมด · พนักงานเห็นผลของตัวเอง) ===== */
+/* ===== DASHBOARD (Admin: ทั้งทีม / รายบุคคล · พนักงาน: เฉพาะของตัวเอง) ===== */
 function renderDash(){
   const admin=isAdmin();
-  let cards=scopeCards();
+  if(!admin) ui.dashPerson=session.id;
+  const pid=ui.dashPerson||'';
+  const person=pid?(member(pid)||me()):null;
+  let cards=scopeCards().filter(isTask);
+  if(pid) cards=cards.filter(c=>c.assignees.includes(pid));
   const ps=periodStart();
-  if(!admin) cards=cards.filter(c=>c.assignees.includes(session.id));
   const open=cards.filter(c=>!isDone(c)), doneP=cards.filter(c=>isDone(c)&&c.done_at&&+new Date(c.done_at)>=ps);
   const created=cards.filter(c=>+new Date(c.created_at)>=ps);
   const wd=doneP.filter(c=>c.due), ot=wd.filter(c=>new Date(c.done_at)<=new Date(c.due+'T23:59:59')).length;
   const cyc=doneP.filter(c=>c.started_at).map(c=>(new Date(c.done_at)-new Date(c.started_at))/DAY);
-  const overdue=open.filter(isOverdue);
+  const dd={ok:0,soon:0,late:0,none:0};open.forEach(c=>{const d=dueInfo(c);if(d&&dd[d.k]!=null)dd[d.k]++});
   const succ=(doneP.length+open.length)?Math.round(doneP.length/(doneP.length+open.length)*100):null;
-  const people=admin?activeMembers():[me()];
-  const st=people.map(m=>({m,s:memberStats(m.id,cards)}));
-  const collab=cards.filter(c=>c.assignees.length>1).length;
-  $('#main').innerHTML=`<div class="wrap">${scopeBar(admin?'แดชบอร์ดวัดผลทีม':'ผลงานของฉัน',`<button class="sm" data-act="exportReport">⬇ รายงาน CSV</button>`)}
+  const people=pid?[person]:activeMembers();
+  const st=people.map(m=>({m,s:memberStats(m.id,scopeCards())}));
+  const title=!admin?'ผลงานของฉัน':pid?'แดชบอร์ดรายบุคคล':'แดชบอร์ดทั้งทีม';
+  const picker=admin?`<select id="personSel"><option value="">👥 ทั้งทีม</option>${activeMembers().map(m=>`<option value="${m.id}" ${m.id===pid?'selected':''}>${esc(m.name)}</option>`).join('')}</select>`:'';
+  const s1=person?st[0].s:null;
+  $('#main').innerHTML=`<div class="wrap">${scopeBar(title,picker+`<button class="sm" data-act="exportReport">⬇ รายงาน CSV</button>`)}
+    ${person?`<div class="phead">${avatar(person,'lg')}<div><div class="nm">${esc(person.name)}</div><div class="muted">${esc([person.code,person.role,person.dept].filter(Boolean).join(' · '))}</div></div><div class="spacer"></div>${admin?'<button class="sm" data-act="dashPerson" data-id="">← ทั้งทีม</button>':''}</div>`:''}
     <div class="kpis">
-      <div class="kpi"><b>${open.length}</b><span>งานค้าง</span></div>
+      <div class="kpi g"><b>${dd.ok}</b><span>🟢 ตามแผน</span></div>
+      <div class="kpi y"><b>${dd.soon}</b><span>🟡 ใกล้กำหนด (≤2 วัน)</span></div>
+      <div class="kpi r"><b>${dd.late}</b><span>🔴 เลยกำหนด</span></div>
       <div class="kpi g"><b>${doneP.length}</b><span>เสร็จ (${periodLabel()})</span></div>
-      <div class="kpi r"><b>${overdue.length}</b><span>เลยกำหนด</span></div>
-      <div class="kpi g"><b>${wd.length?Math.round(ot/wd.length*100)+'%':'-'}</b><span>ส่งตรงเวลา</span></div>
+      <div class="kpi"><b>${wd.length?Math.round(ot/wd.length*100)+'%':'-'}</b><span>ส่งตรงเวลา</span></div>
       <div class="kpi"><b>${succ==null?'-':succ+'%'}</b><span>อัตราสำเร็จ</span></div>
       <div class="kpi"><b>${cyc.length?(cyc.reduce((a,b)=>a+b,0)/cyc.length).toFixed(1):'-'}</b><span>Cycle time เฉลี่ย (วัน)</span></div>
       <div class="kpi"><b>${created.length}</b><span>งานใหม่ (${periodLabel()})</span></div>
-      ${admin?`<div class="kpi"><b>${collab}</b><span>งานที่ทำร่วมกัน (ทีมเวิร์ก)</span></div>`:''}
+      ${person&&s1.progress!=null?`<div class="kpi"><b>${s1.progress}%</b><span>เช็คลิสต์คืบหน้า</span></div>`:''}
+      ${!person?`<div class="kpi"><b>${cards.filter(c=>c.assignees.length>1).length}</b><span>งานที่ทำร่วมกัน</span></div>`:''}
     </div>
     <div class="charts">
-      <div class="chartbox"><h3>${admin?'ผลงานรายคน':'สถานะงานของฉัน'} (${periodLabel()})</h3><div class="cv"><canvas id="ch1"></canvas></div></div>
+      <div class="chartbox"><h3>${person?'สถานะกำหนดส่งของงานค้าง':'ผลงานรายคน ('+periodLabel()+')'}</h3><div class="cv"><canvas id="ch1"></canvas></div></div>
       <div class="chartbox"><h3>งานตามสถานะ</h3><div class="cv"><canvas id="ch2"></canvas></div></div>
       <div class="chartbox"><h3>แนวโน้ม 8 สัปดาห์: เสร็จ vs งานใหม่</h3><div class="cv"><canvas id="ch3"></canvas></div></div>
-      <div class="chartbox"><h3>ภาระงานค้าง (ตามความสำคัญ)</h3><div class="cv"><canvas id="ch4"></canvas></div></div>
+      <div class="chartbox"><h3>${person?'งานเสร็จรายเดือน (6 เดือน)':'สถานะกำหนดส่งรายคน'}</h3><div class="cv"><canvas id="ch4"></canvas></div></div>
     </div>
-    <div class="tblwrap"><table><thead><tr><th>พนักงาน</th><th>ตำแหน่ง</th><th>ค้าง</th><th>กำลังทำ</th><th>เสร็จ</th><th>สำเร็จ</th><th>ตรงเวลา</th><th>Cycle (วัน)</th><th>เช็คลิสต์</th><th>เลยกำหนด</th></tr></thead><tbody>
-      ${st.sort((a,b)=>b.s.doneP.length-a.s.doneP.length).map(({m,s})=>`<tr><td>${avatar(m)} ${esc(m.name)}</td><td>${esc(m.role||'')}</td><td>${s.open.length}</td><td>${s.doing.length}</td><td><b>${s.doneP.length}</b></td><td>${s.success==null?'-':s.success+'%'}</td><td>${s.onTime==null?'-':s.onTime+'%'}</td><td>${s.cycle==null?'-':s.cycle.toFixed(1)}</td><td>${s.progress==null?'-':s.progress+'%'}</td><td style="color:${s.overdue.length?'var(--late)':'inherit'}">${s.overdue.length}</td></tr>`).join('')}
-    </tbody></table></div></div>`;
+    ${person?`<div class="tblwrap"><table><thead><tr><th>งาน</th><th>สถานะ</th><th>กำหนดส่ง</th><th>ความสำคัญ</th><th>เช็คลิสต์</th><th>เสร็จเมื่อ</th></tr></thead><tbody>
+      ${[...cards].sort((a,b)=>(isDone(a)-isDone(b))||String(a.due||'').localeCompare(String(b.due||''))).map(c=>{const d=dueInfo(c),p=ckProgress(c);return `<tr class="click" data-act="openCard" data-id="${c.id}"><td>${esc(c.title)}</td><td>${esc(list(c.list_id).name)}</td><td>${d?`<span class="badge ${d.cls}">${d.text}</span>`:'-'}</td><td>${PRIO[c.priority||'normal']}</td><td>${p.total?Math.round(p.done/p.total*100)+'%':'-'}</td><td>${c.done_at?fmtD(c.done_at):'-'}</td></tr>`}).join('')||'<tr><td colspan="6" class="muted">ยังไม่มีงาน</td></tr>'}
+    </tbody></table></div>`
+    :`<div class="tblwrap"><table><thead><tr><th>พนักงาน</th><th>ตำแหน่ง</th><th>🟢</th><th>🟡</th><th>🔴</th><th>เสร็จ</th><th>สำเร็จ</th><th>ตรงเวลา</th><th>Cycle (วัน)</th><th>เช็คลิสต์</th></tr></thead><tbody>
+      ${[...st].sort((a,b)=>b.s.doneP.length-a.s.doneP.length).map(({m,s})=>`<tr class="click" data-act="dashPerson" data-id="${m.id}" title="ดูรายบุคคล"><td>${avatar(m)} ${esc(m.name)}</td><td>${esc(m.role||'')}</td><td>${s.dd.ok}</td><td>${s.dd.soon}</td><td style="color:${s.dd.late?'var(--late)':'inherit'}">${s.dd.late}</td><td><b>${s.doneP.length}</b></td><td>${s.success==null?'-':s.success+'%'}</td><td>${s.onTime==null?'-':s.onTime+'%'}</td><td>${s.cycle==null?'-':s.cycle.toFixed(1)}</td><td>${s.progress==null?'-':s.progress+'%'}</td></tr>`).join('')}
+    </tbody></table></div>`}</div>`;
   bindScope();
-  ui._report={st,period:periodLabel()};
-  const tx=cssv('--mut'),ln=cssv('--line'),gold=cssv('--gold'),red=cssv('--red'),ok=cssv('--ok'),bg2=cssv('--bg2');
+  const ps2=$('#personSel');if(ps2)ps2.onchange=e=>{ui.dashPerson=e.target.value;renderMain()};
+  ui._report=person
+    ?{name:person.name,rows:[['งาน','สถานะ','กำหนดส่ง','สถานะกำหนดส่ง','ความสำคัญ','เช็คลิสต์%','เริ่ม','เสร็จ']].concat(cards.map(c=>{const d=dueInfo(c),p=ckProgress(c);return [c.title,list(c.list_id).name,c.due||'',d?d.text:'',PRIO[c.priority||'normal'],p.total?Math.round(p.done/p.total*100):'',c.started_at?c.started_at.slice(0,10):'',c.done_at?c.done_at.slice(0,10):'']}))}
+    :{name:'ทั้งทีม',rows:[['พนักงาน','ตำแหน่ง','ตามแผน','ใกล้กำหนด','เลยกำหนด','เสร็จ','อัตราสำเร็จ%','ตรงเวลา%','Cycle(วัน)','เช็คลิสต์%']].concat(st.map(({m,s})=>[m.name,m.role||'',s.dd.ok,s.dd.soon,s.dd.late,s.doneP.length,s.success??'',s.onTime??'',s.cycle==null?'':s.cycle.toFixed(1),s.progress??'']))};
+  const tx=cssv('--mut'),ln=cssv('--line'),gold=cssv('--gold'),red=cssv('--late'),ok=cssv('--ok'),yel=cssv('--yel'),bg2=cssv('--bg2');
   Chart.defaults.color=tx;Chart.defaults.borderColor=ln;Chart.defaults.font.family='"IBM Plex Sans Thai",sans-serif';
   const base={responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{boxWidth:12}}}};
   const names=st.map(x=>x.m.name.split(' ')[0]);
-  charts.push(new Chart($('#ch1'),{type:'bar',data:{labels:names,datasets:[{label:'เสร็จ',data:st.map(x=>x.s.doneP.length),backgroundColor:ok},{label:'กำลังทำ',data:st.map(x=>x.s.doing.length),backgroundColor:gold},{label:'เลยกำหนด',data:st.map(x=>x.s.overdue.length),backgroundColor:red}]},options:{...base,scales:{y:{beginAtZero:true,ticks:{precision:0}}}}}));
+  if(person) charts.push(new Chart($('#ch1'),{type:'bar',data:{labels:['ตามแผน','ใกล้กำหนด','เลยกำหนด','ไม่มีกำหนด'],datasets:[{label:'งานค้าง',data:[dd.ok,dd.soon,dd.late,dd.none],backgroundColor:[ok,yel,red,'#64748b']}]},options:{...base,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}}}}}));
+  else charts.push(new Chart($('#ch1'),{type:'bar',data:{labels:names,datasets:[{label:'เสร็จ',data:st.map(x=>x.s.doneP.length),backgroundColor:gold},{label:'งานค้าง',data:st.map(x=>x.s.open.length),backgroundColor:'#64748b'}]},options:{...base,scales:{y:{beginAtZero:true,ticks:{precision:0}}}}}));
   const byStatus={};cards.forEach(c=>{const n=list(c.list_id).name;byStatus[n]=(byStatus[n]||0)+1});
-  charts.push(new Chart($('#ch2'),{type:'doughnut',data:{labels:Object.keys(byStatus),datasets:[{data:Object.values(byStatus),backgroundColor:[gold,red,'#3b82f6',ok,'#a855f7','#64748b'],borderColor:bg2}]},options:{...base,cutout:'60%'}}));
+  charts.push(new Chart($('#ch2'),{type:'doughnut',data:{labels:Object.keys(byStatus),datasets:[{data:Object.values(byStatus),backgroundColor:[gold,'#3b82f6',red,ok,'#a855f7','#64748b'],borderColor:bg2}]},options:{...base,cutout:'60%'}}));
   const wk=[...Array(8)].map((_,i)=>{const e=Date.now()-(7-i)*7*DAY;return {s:e-7*DAY,e,l:fmtD(new Date(e-6*DAY).toISOString())}});
   const inW=(iso,w)=>iso&&+new Date(iso)>=w.s&&+new Date(iso)<w.e;
   charts.push(new Chart($('#ch3'),{type:'line',data:{labels:wk.map(w=>w.l),datasets:[{label:'เสร็จ',data:wk.map(w=>cards.filter(c=>isDone(c)&&inW(c.done_at,w)).length),borderColor:ok,backgroundColor:'rgba(47,191,113,.15)',fill:true,tension:.3},{label:'งานใหม่',data:wk.map(w=>cards.filter(c=>inW(c.created_at,w)).length),borderColor:gold,tension:.3}]},options:{...base,scales:{y:{beginAtZero:true,ticks:{precision:0}}}}}));
-  const pc={urgent:red,high:'#f97316',normal:gold,low:'#64748b'};
-  charts.push(new Chart($('#ch4'),{type:'bar',data:{labels:names,datasets:Object.keys(pc).map(p=>({label:PRIO[p],data:st.map(x=>x.s.open.filter(c=>(c.priority||'normal')===p).length),backgroundColor:pc[p]}))},options:{...base,indexAxis:'y',scales:{x:{stacked:true,beginAtZero:true,ticks:{precision:0}},y:{stacked:true}}}}));
+  if(person){
+    const mo=[...Array(6)].map((_,i)=>{const d=new Date();d.setDate(1);d.setMonth(d.getMonth()-(5-i));return {y:d.getFullYear(),m:d.getMonth(),l:d.toLocaleDateString('th-TH',{month:'short'})}});
+    charts.push(new Chart($('#ch4'),{type:'bar',data:{labels:mo.map(x=>x.l),datasets:[{label:'เสร็จ',data:mo.map(x=>cards.filter(c=>isDone(c)&&c.done_at&&new Date(c.done_at).getFullYear()===x.y&&new Date(c.done_at).getMonth()===x.m).length),backgroundColor:gold}]},options:{...base,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}}}}}));
+  } else {
+    charts.push(new Chart($('#ch4'),{type:'bar',data:{labels:names,datasets:[['ok','ตามแผน',ok],['soon','ใกล้กำหนด',yel],['late','เลยกำหนด',red]].map(([k,l,c])=>({label:l,data:st.map(x=>x.s.dd[k]),backgroundColor:c}))},options:{...base,indexAxis:'y',scales:{x:{stacked:true,beginAtZero:true,ticks:{precision:0}},y:{stacked:true}}}}));
+  }
 }
 function exportReport(){
   const r=ui._report;if(!r)return;
-  const rows=[['พนักงาน','ตำแหน่ง','ค้าง','กำลังทำ','เสร็จ','อัตราสำเร็จ%','ตรงเวลา%','Cycle(วัน)','เช็คลิสต์%','เลยกำหนด']];
-  r.st.forEach(({m,s})=>rows.push([m.name,m.role||'',s.open.length,s.doing.length,s.doneP.length,s.success??'',s.onTime??'',s.cycle==null?'':s.cycle.toFixed(1),s.progress??'',s.overdue.length]));
-  const csv='﻿'+rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
-  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download=`TESR-Board-report-${r.period}-${new Date().toISOString().slice(0,10)}.csv`;a.click();
+  const csv='﻿'+r.rows.map(x=>x.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download=`TESR-Board-${r.name}-${periodLabel()}-${new Date().toISOString().slice(0,10)}.csv`;a.click();
 }
 
 /* ===== SETTINGS / ACCOUNT ===== */
@@ -699,11 +775,8 @@ async function act(a,d={}){
     case 'logout': localStorage.removeItem(LS_SES);location.reload();break;
     case 'demoLogin': await startDemo();break;
     case 'exportReport': exportReport();break;
-    case 'addCard':{const t=prompt('ชื่องาน');if(!t?.trim())return;const l=list(d.id);
-      const mf=ui.member==='me'?session.id:(ui.member&&ui.member!=='none'?ui.member:session.id);
-      const nc={id:uid(),board_id:l.board_id,list_id:l.id,title:t.trim(),description:'',assignees:[mf],labels:[],priority:'normal',due:null,
-        pos:Math.max(0,...S.cards.filter(x=>x.list_id===l.id).map(x=>x.pos||0))+1024,checklists:[],links:[],attachments:[],comments:[],created_by:session.id,created_at:now(),started_at:null,done_at:null,updated_at:now()};
-      applyListChange(nc,l);await saveCard(nc,`สร้างงาน "${nc.title}" ใน ${l.name}`);break}
+    case 'addCard': openNewCard(d.id);break;
+    case 'dashPerson': if(!isAdmin())return; closeModal(); ui.dashPerson=d.id||''; ui.view='dash'; renderMain(); window.scrollTo(0,0); break;
     case 'addList':{if(!isAdmin())return;const n=prompt('ชื่อลิสต์');if(!n?.trim())return;await store.upsert('lists',{id:uid(),board_id:ui.board,name:n.trim(),pos:Math.max(0,...boardLists(ui.board).map(l=>l.pos||0))+1024,is_done:false});scheduleRender();break}
     case 'listMenu':{const l=list(d.id);ui.openCard=null;
       $('#sheet').innerHTML=`<div class="mhead"><input class="mtitle" id="lName" value="${esc(l.name)}"><button class="icon" data-act="closeModal">✕</button></div>

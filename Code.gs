@@ -1,17 +1,16 @@
 /**
  * TESR Board — Backend API (Google Apps Script)
  * ฐานข้อมูล: Google Sheet "TESR Board DB" · ไฟล์แนบ: Google Drive "TESR Board/ไฟล์แนบ"
- * รายชื่อพนักงาน + ล็อกอิน: อ่านจากระบบลงเวลา TESR Time Clock (Supabase) ฝั่งเซิร์ฟเวอร์เท่านั้น
+ * รายชื่อพนักงาน + ล็อกอิน: อ่านจาก Sheet ระบบลงเวลา "Work tracking log" (แท็บ Employees / Settings) แบบอ่านอย่างเดียว
  *
  * ติดตั้ง:
- *  1) Project Settings → Script Properties → เพิ่ม SUPABASE_SERVICE_KEY (service_role key ของ TESR Time Clock)
- *  2) เลือกฟังก์ชัน setup → Run (อนุญาตสิทธิ์ครั้งแรก)
- *  3) Deploy → New deployment → Web app · Execute as: Me · Who has access: Anyone → คัดลอก URL
+ *  1) เลือกฟังก์ชัน setup → Run (อนุญาตสิทธิ์ครั้งแรก)
+ *  2) Deploy → New deployment → Web app · Execute as: Me · Who has access: Anyone → คัดลอก URL
  */
 
-const SHEET_ID  = '19vCSU0d3ZfhVSy2m8tik4qLZ88j6RN9FC8bsxg9S6gA';
-const FOLDER_ID = '1eowBXaR-4Hvpxpzic2LUQKVh64Mk78L2';
-const SUPABASE_URL = 'https://urwlybaqxfdzgxopcnpy.supabase.co';
+const SHEET_ID    = '19vCSU0d3ZfhVSy2m8tik4qLZ88j6RN9FC8bsxg9S6gA';   // TESR Board DB
+const FOLDER_ID   = '1eowBXaR-4Hvpxpzic2LUQKVh64Mk78L2';               // ไฟล์แนบ
+const HR_SHEET_ID = '1Ot4QQc60u71hoIy3K5XOsxOJof0I2I1PnrF79Pq51_I';   // Work tracking log (ระบบลงเวลา)
 
 const TABLES = {
   mrows:    { tab: 'Members',  show: ['name', 'email', 'role', 'dept', 'board_role', 'active'] },
@@ -37,18 +36,10 @@ function setup() {
     sh.setFrozenRows(1);
     sh.hideColumns(3); // คอลัมน์ json (ข้อมูลเต็ม) ซ่อนไว้
   });
-  let emp = ss.getSheetByName('Employees');
-  if (!emp) {
-    emp = ss.insertSheet('Employees');
-    emp.getRange('A:Z').setNumberFormat('@');
-    emp.getRange(1, 1, 1, 7).setValues([['id', 'code', 'name', 'position', 'email', 'phone', 'active']])
-      .setFontWeight('bold').setBackground('#111111').setFontColor('#d4a72c');
-    emp.getRange(2, 1).setNote('ใช้เมื่อไม่ได้ตั้ง SUPABASE_SERVICE_KEY เท่านั้น (สำรอง)');
-  }
   ['Sheet1', 'แผ่น1', 'แผ่นงาน1'].forEach(n => { const s = ss.getSheetByName(n); if (s && ss.getSheets().length > 1) ss.deleteSheet(s); });
   if (!P().getProperty('SECRET')) P().setProperty('SECRET', Utilities.getUuid() + Utilities.getUuid());
   const staff = getStaff_(true);
-  Logger.log('✅ Setup เสร็จ · พนักงานที่ดึงได้: ' + staff.length + ' คน · แหล่งข้อมูล: ' + (P().getProperty('SUPABASE_SERVICE_KEY') ? 'TESR Time Clock' : 'แท็บ Employees'));
+  Logger.log('✅ Setup เสร็จ · พนักงานที่ดึงได้: ' + staff.length + ' คน · ' + staff.map(x => x.name).join(', '));
 }
 
 /* ================= HTTP ================= */
@@ -88,7 +79,7 @@ function verify_(t) {
 }
 function isAdmin_(u) { return u.id === 'admin' || memberRole_(u.id) === 'admin'; }
 function memberRole_(id) { const m = readTable_('mrows').find(r => r.id === id); return m && m.board_role; }
-function normPhone_(p) { let d = String(p || '').replace(/\D/g, ''); if (/^66\d{9}$/.test(d)) d = '0' + d.slice(2); return d; }
+function normPhone_(p) { const d = String(p || '').replace(/\D/g, ''); return d.length >= 9 ? d.slice(-9) : ''; } // เทียบ 9 หลักท้าย (รองรับ 08x / +668x / เลข 0 หาย)
 function sha_(s) {
   return Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, s, Utilities.Charset.UTF_8)
     .map(b => ((b + 256) % 256).toString(16).padStart(2, '0')).join('');
@@ -104,24 +95,22 @@ function login_(user, pass) {
   // 1) Admin สำรอง (Script Properties: ADMIN_EMAIL + ADMIN_PASSWORD)
   const ae = String(P().getProperty('ADMIN_EMAIL') || '').toLowerCase(), ap = P().getProperty('ADMIN_PASSWORD');
   if (ae && ap && u === ae && pw === ap) me = { id: 'admin', role: 'admin' };
-  // 2) Admin ของระบบลงเวลา
+  // 2) Admin ของระบบลงเวลา (แท็บ Settings: adminUser + adminHash / adminPassword)
   if (!me) {
-    try {
-      const s = sb_('tbl=eq.Settings&key=in.(adminUser,adminHash)&select=key,data');
-      if (s) {
-        const m = {}; s.forEach(r => m[r.key] = r.data && r.data.v);
-        const h = String(m.adminHash || '');
-        if (m.adminUser && String(m.adminUser).toLowerCase() === u && h.indexOf('$') > 0) {
-          const salt = h.split('$')[0], hx = h.split('$')[1];
-          if ([salt + pw, pw + salt, salt + ':' + pw].some(x => sha_(x) === hx)) me = { id: 'admin', role: 'admin' };
-        }
+    const st = hrSettings_();
+    if (st.adminUser && String(st.adminUser).trim().toLowerCase() === u) {
+      const h = String(st.adminHash || ''), plain = String(st.adminPassword || '');
+      if (plain && pw === plain) me = { id: 'admin', role: 'admin' };
+      else if (h.indexOf('$') > 0) {
+        const salt = h.split('$')[0], hx = h.split('$')[1];
+        if ([salt + pw, pw + salt, salt + ':' + pw].some(x => sha_(x) === hx)) me = { id: 'admin', role: 'admin' };
       }
-    } catch (e) { /* ignore */ }
+    }
   }
   // 3) พนักงาน: อีเมล (หรือ username) + เบอร์โทร
   if (!me) {
     const e = employeesRaw_().find(d =>
-      (String(d.email || '').toLowerCase() === u || String(d.username || '').toLowerCase() === u) &&
+      (String(d.email || '').trim().toLowerCase() === u || String(d.username || '').trim().toLowerCase() === u) &&
       String(d.active).toUpperCase() !== 'FALSE' &&
       normPhone_(d.phone) && normPhone_(d.phone) === normPhone_(pw));
     if (e) {
@@ -138,29 +127,21 @@ function login_(user, pass) {
   return { user: me, token: sign_({ id: me.id, role: me.role, exp: Date.now() + 30 * 864e5 }) };
 }
 
-/* ================= EMPLOYEES (TESR Time Clock) ================= */
-function sb_(query) {
-  const key = P().getProperty('SUPABASE_SERVICE_KEY');
-  if (!key) return null;
-  const r = UrlFetchApp.fetch(SUPABASE_URL + '/rest/v1/tc_rows?' + query,
-    { headers: { apikey: key, Authorization: 'Bearer ' + key }, muteHttpExceptions: true });
-  if (r.getResponseCode() !== 200) throw new Error('Supabase ' + r.getResponseCode());
-  return JSON.parse(r.getContentText());
-}
-function employeesRaw_() {
-  const rows = sb_('tbl=eq.Employees&select=data');
-  if (rows) return rows.map(r => r.data || {});
-  const sh = SpreadsheetApp.openById(SHEET_ID).getSheetByName('Employees');
+/* ================= EMPLOYEES (Sheet ระบบลงเวลา · อ่านอย่างเดียว) ================= */
+function hrTab_(name) {
+  const sh = SpreadsheetApp.openById(HR_SHEET_ID).getSheetByName(name);
   if (!sh || sh.getLastRow() < 2) return [];
-  const v = sh.getDataRange().getValues(), h = v.shift().map(String);
-  return v.filter(r => r[2]).map(r => { const o = {}; h.forEach((k, i) => o[k] = r[i]); return o; });
+  const v = sh.getDataRange().getDisplayValues(), h = v.shift().map(x => String(x).trim());
+  return v.filter(r => r.join('') !== '').map(r => { const o = {}; h.forEach((k, i) => o[k] = r[i]); return o; });
 }
+function hrSettings_() { const o = {}; hrTab_('Settings').forEach(r => o[r.key] = r.value); return o; }
+function employeesRaw_() { return hrTab_('Employees').filter(d => d.name); }
 function getStaff_(fresh) {
   const c = CacheService.getScriptCache();
   if (!fresh) { const x = c.get('staff'); if (x) return JSON.parse(x); }
   const s = employeesRaw_().map(d => ({
     id: String(d.id || d.code || d.email), code: String(d.code || ''), name: d.name || '', position: d.position || '',
-    email: String(d.email || '').toLowerCase(), active: String(d.active).toUpperCase() !== 'FALSE'
+    email: String(d.email || '').trim().toLowerCase(), active: String(d.active).toUpperCase() !== 'FALSE'
   })).sort((a, b) => a.code.localeCompare(b.code));
   c.put('staff', JSON.stringify(s), 300);
   return s; // ไม่ส่งเบอร์โทร / รหัสผ่านออกไป
