@@ -1,0 +1,241 @@
+/**
+ * TESR Board — Backend API (Google Apps Script)
+ * ฐานข้อมูล: Google Sheet "TESR Board DB" · ไฟล์แนบ: Google Drive "TESR Board/ไฟล์แนบ"
+ * รายชื่อพนักงาน + ล็อกอิน: อ่านจากระบบลงเวลา TESR Time Clock (Supabase) ฝั่งเซิร์ฟเวอร์เท่านั้น
+ *
+ * ติดตั้ง:
+ *  1) Project Settings → Script Properties → เพิ่ม SUPABASE_SERVICE_KEY (service_role key ของ TESR Time Clock)
+ *  2) เลือกฟังก์ชัน setup → Run (อนุญาตสิทธิ์ครั้งแรก)
+ *  3) Deploy → New deployment → Web app · Execute as: Me · Who has access: Anyone → คัดลอก URL
+ */
+
+const SHEET_ID  = '19vCSU0d3ZfhVSy2m8tik4qLZ88j6RN9FC8bsxg9S6gA';
+const FOLDER_ID = '1eowBXaR-4Hvpxpzic2LUQKVh64Mk78L2';
+const SUPABASE_URL = 'https://urwlybaqxfdzgxopcnpy.supabase.co';
+
+const TABLES = {
+  mrows:    { tab: 'Members',  show: ['name', 'email', 'role', 'dept', 'board_role', 'active'] },
+  boards:   { tab: 'Boards',   show: ['name'] },
+  lists:    { tab: 'Lists',    show: ['name', 'board_id', 'is_done'] },
+  cards:    { tab: 'Cards',    show: ['title', 'list_id', 'assignees', 'priority', 'due', 'created_at', 'started_at', 'done_at'] },
+  activity: { tab: 'Activity', show: ['at', 'member', 'action', 'card_id'] }
+};
+const HEAD = ['id', 'updated_at', 'json'];
+const ADMIN_ONLY_WRITE = { mrows: 1, boards: 1, lists: 1 };
+const P = () => PropertiesService.getScriptProperties();
+
+/* ================= SETUP ================= */
+function setup() {
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  Object.keys(TABLES).forEach(k => {
+    const t = TABLES[k];
+    const sh = ss.getSheetByName(t.tab) || ss.insertSheet(t.tab);
+    const head = HEAD.concat(t.show);
+    sh.getRange('A:Z').setNumberFormat('@');
+    sh.getRange(1, 1, 1, head.length).setValues([head])
+      .setFontWeight('bold').setBackground('#111111').setFontColor('#d4a72c');
+    sh.setFrozenRows(1);
+    sh.hideColumns(3); // คอลัมน์ json (ข้อมูลเต็ม) ซ่อนไว้
+  });
+  let emp = ss.getSheetByName('Employees');
+  if (!emp) {
+    emp = ss.insertSheet('Employees');
+    emp.getRange('A:Z').setNumberFormat('@');
+    emp.getRange(1, 1, 1, 7).setValues([['id', 'code', 'name', 'position', 'email', 'phone', 'active']])
+      .setFontWeight('bold').setBackground('#111111').setFontColor('#d4a72c');
+    emp.getRange(2, 1).setNote('ใช้เมื่อไม่ได้ตั้ง SUPABASE_SERVICE_KEY เท่านั้น (สำรอง)');
+  }
+  ['Sheet1', 'แผ่น1', 'แผ่นงาน1'].forEach(n => { const s = ss.getSheetByName(n); if (s && ss.getSheets().length > 1) ss.deleteSheet(s); });
+  if (!P().getProperty('SECRET')) P().setProperty('SECRET', Utilities.getUuid() + Utilities.getUuid());
+  const staff = getStaff_(true);
+  Logger.log('✅ Setup เสร็จ · พนักงานที่ดึงได้: ' + staff.length + ' คน · แหล่งข้อมูล: ' + (P().getProperty('SUPABASE_SERVICE_KEY') ? 'TESR Time Clock' : 'แท็บ Employees'));
+}
+
+/* ================= HTTP ================= */
+function doGet() { return out_({ ok: true, app: 'TESR Board API', ver: ver_() }); }
+
+function doPost(e) {
+  let req;
+  try { req = JSON.parse(e.postData.contents); } catch (x) { return out_({ error: 'bad_request' }); }
+  try {
+    if (req.action === 'login') return out_(login_(req.user, req.pass));
+    const u = verify_(req.token);
+    if (!u) return out_({ error: 'auth' });
+    switch (req.action) {
+      case 'load':       return out_(loadAll_());
+      case 'ver':        return out_({ ver: ver_() });
+      case 'upsert':     return out_(upsert_(u, req.table, req.rows || []));
+      case 'remove':     return out_(remove_(u, req.table, req.ids || []));
+      case 'upload':     return out_(upload_(req));
+      case 'removeFile': return out_(removeFile_(req.id));
+    }
+    return out_({ error: 'unknown_action' });
+  } catch (err) {
+    return out_({ error: String(err && err.message || err) });
+  }
+}
+const out_ = o => ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);
+
+/* ================= AUTH ================= */
+function hmac_(s) { return Utilities.base64EncodeWebSafe(Utilities.computeHmacSha256Signature(s, P().getProperty('SECRET'))); }
+function sign_(o) { const p = Utilities.base64EncodeWebSafe(JSON.stringify(o), Utilities.Charset.UTF_8); return p + '.' + hmac_(p); }
+function verify_(t) {
+  if (!t) return null;
+  const parts = String(t).split('.');
+  if (parts.length !== 2 || hmac_(parts[0]) !== parts[1]) return null;
+  const o = JSON.parse(Utilities.newBlob(Utilities.base64DecodeWebSafe(parts[0])).getDataAsString('UTF-8'));
+  return o.exp > Date.now() ? o : null;
+}
+function isAdmin_(u) { return u.id === 'admin' || memberRole_(u.id) === 'admin'; }
+function memberRole_(id) { const m = readTable_('mrows').find(r => r.id === id); return m && m.board_role; }
+function normPhone_(p) { let d = String(p || '').replace(/\D/g, ''); if (/^66\d{9}$/.test(d)) d = '0' + d.slice(2); return d; }
+function sha_(s) {
+  return Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, s, Utilities.Charset.UTF_8)
+    .map(b => ((b + 256) % 256).toString(16).padStart(2, '0')).join('');
+}
+
+function login_(user, pass) {
+  const u = String(user || '').trim().toLowerCase(), pw = String(pass || '').trim();
+  if (!u || !pw) return { error: 'invalid' };
+  const cache = CacheService.getScriptCache(), fk = 'fail_' + u, fails = +(cache.get(fk) || 0);
+  if (fails >= 8) return { error: 'locked' };
+
+  let me = null;
+  // 1) Admin สำรอง (Script Properties: ADMIN_EMAIL + ADMIN_PASSWORD)
+  const ae = String(P().getProperty('ADMIN_EMAIL') || '').toLowerCase(), ap = P().getProperty('ADMIN_PASSWORD');
+  if (ae && ap && u === ae && pw === ap) me = { id: 'admin', role: 'admin' };
+  // 2) Admin ของระบบลงเวลา
+  if (!me) {
+    try {
+      const s = sb_('tbl=eq.Settings&key=in.(adminUser,adminHash)&select=key,data');
+      if (s) {
+        const m = {}; s.forEach(r => m[r.key] = r.data && r.data.v);
+        const h = String(m.adminHash || '');
+        if (m.adminUser && String(m.adminUser).toLowerCase() === u && h.indexOf('$') > 0) {
+          const salt = h.split('$')[0], hx = h.split('$')[1];
+          if ([salt + pw, pw + salt, salt + ':' + pw].some(x => sha_(x) === hx)) me = { id: 'admin', role: 'admin' };
+        }
+      }
+    } catch (e) { /* ignore */ }
+  }
+  // 3) พนักงาน: อีเมล (หรือ username) + เบอร์โทร
+  if (!me) {
+    const e = employeesRaw_().find(d =>
+      (String(d.email || '').toLowerCase() === u || String(d.username || '').toLowerCase() === u) &&
+      String(d.active).toUpperCase() !== 'FALSE' &&
+      normPhone_(d.phone) && normPhone_(d.phone) === normPhone_(pw));
+    if (e) {
+      me = { id: String(e.id || e.code || e.email), code: String(e.code || ''), name: e.name || '', position: e.position || '', email: u };
+      me.role = memberRole_(me.id) || 'member';
+    }
+  }
+  if (!me) { cache.put(fk, String(fails + 1), 900); return { error: 'invalid' }; }
+  cache.remove(fk);
+  if (me.id === 'admin') {
+    const m = readTable_('mrows').find(r => r.id === 'admin');
+    me.name = (m && m.name) || 'Admin'; me.email = u; me.position = 'Admin';
+  }
+  return { user: me, token: sign_({ id: me.id, role: me.role, exp: Date.now() + 30 * 864e5 }) };
+}
+
+/* ================= EMPLOYEES (TESR Time Clock) ================= */
+function sb_(query) {
+  const key = P().getProperty('SUPABASE_SERVICE_KEY');
+  if (!key) return null;
+  const r = UrlFetchApp.fetch(SUPABASE_URL + '/rest/v1/tc_rows?' + query,
+    { headers: { apikey: key, Authorization: 'Bearer ' + key }, muteHttpExceptions: true });
+  if (r.getResponseCode() !== 200) throw new Error('Supabase ' + r.getResponseCode());
+  return JSON.parse(r.getContentText());
+}
+function employeesRaw_() {
+  const rows = sb_('tbl=eq.Employees&select=data');
+  if (rows) return rows.map(r => r.data || {});
+  const sh = SpreadsheetApp.openById(SHEET_ID).getSheetByName('Employees');
+  if (!sh || sh.getLastRow() < 2) return [];
+  const v = sh.getDataRange().getValues(), h = v.shift().map(String);
+  return v.filter(r => r[2]).map(r => { const o = {}; h.forEach((k, i) => o[k] = r[i]); return o; });
+}
+function getStaff_(fresh) {
+  const c = CacheService.getScriptCache();
+  if (!fresh) { const x = c.get('staff'); if (x) return JSON.parse(x); }
+  const s = employeesRaw_().map(d => ({
+    id: String(d.id || d.code || d.email), code: String(d.code || ''), name: d.name || '', position: d.position || '',
+    email: String(d.email || '').toLowerCase(), active: String(d.active).toUpperCase() !== 'FALSE'
+  })).sort((a, b) => a.code.localeCompare(b.code));
+  c.put('staff', JSON.stringify(s), 300);
+  return s; // ไม่ส่งเบอร์โทร / รหัสผ่านออกไป
+}
+
+/* ================= DATA ================= */
+function sheet_(t) { if (!TABLES[t]) throw new Error('bad_table'); return SpreadsheetApp.openById(SHEET_ID).getSheetByName(TABLES[t].tab); }
+function readTable_(t) {
+  const sh = sheet_(t), n = sh.getLastRow();
+  if (n < 2) return [];
+  return sh.getRange(2, 3, n - 1, 1).getValues()
+    .map(r => { try { return JSON.parse(r[0]); } catch (e) { return null; } }).filter(Boolean);
+}
+function ver_() { return P().getProperty('VER') || '0'; }
+function bump_() { const v = String(Date.now()); P().setProperty('VER', v); return v; }
+function loadAll_() {
+  const o = { ver: ver_(), staff: getStaff_() };
+  Object.keys(TABLES).forEach(t => o[t] = readTable_(t));
+  o.activity = o.activity.slice(-2000);
+  return o;
+}
+function safe_(v) { v = String(v); return /^[=+\-@]/.test(v) ? "'" + v : v; }
+function rowOf_(t, o, names) {
+  const show = TABLES[t].show.map(k => {
+    let v = o[k];
+    if (k === 'assignees' && Array.isArray(v)) v = v.map(id => names[id] || id).join(', ');
+    else if (k === 'list_id' || k === 'board_id') v = names[v] || v;
+    else if (Array.isArray(v)) v = v.join(', ');
+    else if (v && typeof v === 'object') v = JSON.stringify(v);
+    return v == null ? '' : safe_(v);
+  });
+  return [o.id, new Date().toISOString(), JSON.stringify(o)].concat(show);
+}
+function upsert_(u, t, rows) {
+  if (ADMIN_ONLY_WRITE[t] && !isAdmin_(u)) throw new Error('forbidden');
+  const names = {}; getStaff_().forEach(s => names[s.id] = s.name); names.admin = 'Admin';
+  if (t === 'cards' || t === 'lists') readTable_('lists').concat(readTable_('boards')).forEach(x => names[x.id] = x.name);
+  const lock = LockService.getScriptLock(); lock.waitLock(20000);
+  try {
+    const sh = sheet_(t), n = sh.getLastRow(), idx = {};
+    if (n > 1) sh.getRange(2, 1, n - 1, 1).getValues().forEach((r, i) => idx[String(r[0])] = i + 2);
+    const add = [];
+    rows.forEach(o => {
+      if (!o || !o.id) return;
+      const r = rowOf_(t, o, names);
+      if (idx[o.id]) sh.getRange(idx[o.id], 1, 1, r.length).setValues([r]); else add.push(r);
+    });
+    if (add.length) sh.getRange(sh.getLastRow() + 1, 1, add.length, add[0].length).setValues(add);
+    if (t === 'activity' && sh.getLastRow() > 6000) sh.deleteRows(2, 1000);
+    return { ok: true, ver: bump_() };
+  } finally { lock.releaseLock(); }
+}
+function remove_(u, t, ids) {
+  if (ADMIN_ONLY_WRITE[t] && !isAdmin_(u)) throw new Error('forbidden');
+  if (t === 'cards' && !isAdmin_(u)) {
+    const own = readTable_('cards').filter(c => ids.indexOf(c.id) >= 0 && c.created_by !== u.id);
+    if (own.length) throw new Error('forbidden');
+  }
+  const lock = LockService.getScriptLock(); lock.waitLock(20000);
+  try {
+    const sh = sheet_(t), n = sh.getLastRow();
+    if (n > 1) {
+      const v = sh.getRange(2, 1, n - 1, 1).getValues();
+      for (let i = v.length - 1; i >= 0; i--) if (ids.indexOf(String(v[i][0])) >= 0) sh.deleteRow(i + 2);
+    }
+    return { ok: true, ver: bump_() };
+  } finally { lock.releaseLock(); }
+}
+
+/* ================= FILES (Google Drive) ================= */
+function upload_(r) {
+  const blob = Utilities.newBlob(Utilities.base64Decode(r.data), r.type || 'application/octet-stream', r.name || 'file');
+  const f = DriveApp.getFolderById(FOLDER_ID).createFile(blob);
+  try { f.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch (e) { /* นโยบายองค์กรอาจไม่อนุญาต */ }
+  const id = f.getId();
+  return { id: id, url: 'https://drive.google.com/file/d/' + id + '/view', thumb: 'https://drive.google.com/thumbnail?id=' + id + '&sz=w400' };
+}
+function removeFile_(id) { try { DriveApp.getFileById(id).setTrashed(true); } catch (e) {} return { ok: true }; }

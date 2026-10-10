@@ -9,7 +9,6 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Kanit:wght@500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 /* ===== TESR CI: Black · Gold · Red ===== */
 :root,[data-theme=dark]{
@@ -250,12 +249,8 @@ th{color:var(--gold);font-weight:600;background:var(--card)}
 <div id="toast"></div>
 
 <script>
-/* ===== CONFIG (Supabase: TESR Time Clock — ตาราง tb_* แยกจากข้อมูลลงเวลา) ===== */
-const CONFIG = {
-  SUPABASE_URL: 'https://urwlybaqxfdzgxopcnpy.supabase.co',
-  SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVyd2x5YmFxeGZkemd4b3BjbnB5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE0NTUxMDMsImV4cCI6MjEwNzAzMTEwM30.5QT6EtfbtinHqyJYipTj8k-jXrgOMOqbDwrVv-5lmxo',
-  BUCKET: 'tb-attachments'
-};
+/* ===== CONFIG: วาง URL ของ Apps Script Web App ตรงนี้ (หรือใส่ผ่าน ⚙️ ขั้นสูง) ===== */
+const CONFIG = { API_URL: '' };
 
 const T = { mrows:'tb_members', boards:'tb_boards', lists:'tb_lists', cards:'tb_cards', activity:'tb_activity' };
 const KEYS = Object.keys(T);
@@ -306,45 +301,53 @@ const LocalStore={
   async login(){return null},
   subscribe(){}
 };
-function makeSupabaseStore(url,key){
-  const sb=supabase.createClient(url,key);
-  const err=e=>{console.error(e);toast('บันทึกไม่สำเร็จ: '+(e.message||e))};
+function makeGasStore(url){
+  let q=Promise.resolve(), ver=null, inflight=0;
+  async function call(action,body={}){
+    const r=await fetch(url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action,token:session?.token,...body})});
+    const j=await r.json();
+    if(j.error==='auth'){toast('เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่');setTimeout(()=>act('logout'),1500);throw new Error('auth')}
+    if(j.error) throw new Error(j.error==='forbidden'?'ไม่มีสิทธิ์ทำรายการนี้':j.error);
+    return j;
+  }
+  function enqueue(fn){inflight++;setSync(true);q=q.then(fn).then(j=>{if(j&&j.ver)ver=j.ver}).catch(e=>{console.error(e);if(e.message!=='auth')toast('บันทึกไม่สำเร็จ: '+e.message)}).finally(()=>{if(--inflight===0)setSync(false)});return q}
+  const put=(k,row)=>{const a=S[k];const i=a.findIndex(x=>x.id===row.id);if(i>=0)a[i]=row;else a.push(row)};
   return {
-    mode:'supabase',sb,
-    async load(){
-      const out={};
-      for(const k of KEYS){
-        let q=sb.from(T[k]).select('*');
-        if(k==='activity') q=q.order('at',{ascending:false}).limit(3000);
-        const {data,error}=await q; if(error) throw error; out[k]=data||[];
-      }
-      out.staff=await this.staff();
-      return out;
+    mode:'sheet',
+    async load(){const d=await call('load');ver=d.ver;return {staff:d.staff||[],mrows:d.mrows||[],boards:d.boards||[],lists:d.lists||[],cards:d.cards||[],activity:d.activity||[]}},
+    async login(user,pass){
+      const r=await fetch(url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'login',user,pass})});
+      const j=await r.json();
+      if(j.error==='invalid') return null;
+      if(j.error==='locked') throw new Error('ใส่รหัสผิดหลายครั้ง กรุณารอ 15 นาที');
+      if(j.error) throw new Error(j.error);
+      return {...j.user,token:j.token};
     },
-    async staff(){const {data,error}=await sb.rpc('tb_staff');if(error)throw error;return data||[]},
-    async login(user,pass){const {data,error}=await sb.rpc('tb_login',{p_user:user,p_pass:pass});if(error)throw error;return data},
-    async upsert(k,row){const a=S[k];const i=a.findIndex(x=>x.id===row.id);if(i>=0)a[i]=row;else a.push(row);const {error}=await sb.from(T[k]).upsert(row);if(error)err(error)},
-    async upsertMany(k,rows){rows.forEach(r=>{const i=S[k].findIndex(x=>x.id===r.id);if(i>=0)S[k][i]=r;else S[k].push(r)});if(!rows.length)return;const {error}=await sb.from(T[k]).upsert(rows);if(error)err(error)},
-    async remove(k,id){S[k]=S[k].filter(x=>x.id!==id);const {error}=await sb.from(T[k]).delete().eq('id',id);if(error)err(error)},
+    async upsert(k,row){put(k,row);enqueue(()=>call('upsert',{table:k,rows:[row]}))},
+    async upsertMany(k,rows){rows.forEach(r=>put(k,r));if(rows.length)enqueue(()=>call('upsert',{table:k,rows}))},
+    async remove(k,id){S[k]=S[k].filter(x=>x.id!==id);enqueue(()=>call('remove',{table:k,ids:[id]}))},
     async upload(file){
-      const ext=(file.name.split('.').pop()||'bin').replace(/[^\w]/g,'');
-      const path=`${new Date().toISOString().slice(0,10)}/${uid()}.${ext}`;
-      const {error}=await sb.storage.from(CONFIG.BUCKET).upload(path,file,{contentType:file.type||undefined});
-      if(error) throw error;
-      return {url:sb.storage.from(CONFIG.BUCKET).getPublicUrl(path).data.publicUrl,path};
+      if(file.size>20e6) throw new Error('ไฟล์ใหญ่เกิน 20MB — แนะนำแปะเป็นลิงก์ Google Drive แทน');
+      const data=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(',')[1]);r.onerror=rej;r.readAsDataURL(file)});
+      await q; const j=await call('upload',{name:file.name,type:file.type,data});
+      return {url:j.url,path:j.id,thumb:j.thumb};
     },
-    async removeFile(path){if(path) await sb.storage.from(CONFIG.BUCKET).remove([path])},
+    async removeFile(id){if(id)enqueue(()=>call('removeFile',{id}))},
     subscribe(cb){
-      const rev=Object.fromEntries(KEYS.map(k=>[T[k],k]));
-      sb.channel('tesrboard').on('postgres_changes',{event:'*',schema:'public'},p=>{
-        const k=rev[p.table]; if(!k) return;
-        if(p.eventType==='DELETE'){S[k]=S[k].filter(x=>x.id!==p.old.id)}
-        else{const r=p.new;const i=S[k].findIndex(x=>x.id===r.id);if(i>=0)S[k][i]=r;else S[k].push(r)}
-        norm(); cb(k);
-      }).subscribe();
+      const check=async()=>{
+        if(!session||document.hidden||ui.dragging||inflight) return;
+        try{
+          const j=await call('ver'); if(j.ver===ver) return;
+          const d=await this.load(); if(inflight||ui.dragging) return;
+          Object.assign(S,d); norm(); cb();
+        }catch(e){console.warn(e)}
+      };
+      setInterval(check,30000);
+      document.addEventListener('visibilitychange',()=>{if(!document.hidden)check()});
     }
   };
 }
+function setSync(on){const b=$('#modeBadge');if(b&&store?.mode!=='local'){b.textContent=on?'⟳ กำลังบันทึก':'● Online'}}
 
 /* ===== MEMBERS: พนักงานจาก HR (Time Clock) + ค่าเฉพาะบอร์ด (สี/ฝ่าย/สิทธิ์) ===== */
 function buildMembers(){
@@ -438,7 +441,7 @@ function renderMain(){
   const bs=$('#boardSel');bs.innerHTML=S.boards.sort(byPos).map(b=>`<option value="${b.id}" ${b.id===ui.board?'selected':''}>${esc(b.name)}</option>`).join('');
   $('#memberFilter').innerHTML=`<option value="">👥 ทุกคน</option><option value="me" ${ui.member==='me'?'selected':''}>⭐ งานของฉัน</option><option value="none" ${ui.member==='none'?'selected':''}>— ไม่มีผู้รับผิดชอบ</option>`+activeMembers().map(m=>`<option value="${m.id}" ${m.id===ui.member?'selected':''}>${esc(m.name)}</option>`).join('');
   $$('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.v===ui.view));
-  const mb=$('#modeBadge');mb.className='mode '+(store.mode==='supabase'?'sb':'lc');mb.textContent=store.mode==='supabase'?'● Online':'● Demo';
+  const mb=$('#modeBadge');mb.className='mode '+(store.mode!=='local'?'sb':'lc');mb.textContent=store.mode!=='local'?'● Online':'● Demo';
   const m=me();$('#whoBtn').innerHTML=`${avatar(m)}<span class="n">${esc(m.name.split(' ')[0])}</span>${isAdmin()?'<span class="r">ADMIN</span>':''}`;
   $('#boardMenu').classList.toggle('hidden',!isAdmin());
   charts.splice(0).forEach(c=>c.destroy());
@@ -525,7 +528,7 @@ function renderCardModal(){
     <div class="row"><input id="lnkUrl" placeholder="https://drive / github / canva ..."><input id="lnkTitle" placeholder="ชื่อลิงก์ (ไม่บังคับ)"><button class="sm" data-act="addLink">เพิ่ม</button></div>
   </div>
   <div class="sec"><h4>ไฟล์แนบ</h4>
-    ${c.attachments.map((a,i)=>`<div class="att">${/^image\//.test(a.type||'')?`<img src="${esc(a.url)}" alt="">`:'📄'}<a href="${esc(a.url)}" target="_blank" rel="noopener" download="${esc(a.name)}">${esc(a.name)}</a><span class="muted">${((a.size||0)/1024).toFixed(0)} KB</span><button class="icon sm" data-act="delAtt" data-i="${i}">✕</button></div>`).join('')}
+    ${c.attachments.map((a,i)=>`<div class="att">${/^image\//.test(a.type||'')?`<img src="${esc(a.thumb||a.url)}" alt="" referrerpolicy="no-referrer">`:'📄'}<a href="${esc(a.url)}" target="_blank" rel="noopener" download="${esc(a.name)}">${esc(a.name)}</a><span class="muted">${((a.size||0)/1024).toFixed(0)} KB</span><button class="icon sm" data-act="delAtt" data-i="${i}">✕</button></div>`).join('')}
     <label class="upl">+ แนบไฟล์<input type="file" id="cFile" multiple hidden></label>
   </div>
   <div class="sec"><h4>คอมเมนต์</h4>
@@ -543,7 +546,7 @@ function renderCardModal(){
   $('#cList').onchange=e=>{const to=list(e.target.value),from=list(c.list_id);c.list_id=to.id;c.pos=Math.max(0,...S.cards.filter(x=>x.list_id===to.id).map(x=>x.pos||0))+1024;applyListChange(c,to);saveCard(c,`ย้ายจาก ${from.name} → ${to.name}`).then(renderCardModal)};
   $('#cFile').onchange=async e=>{
     for(const f of e.target.files){
-      try{toast('กำลังอัปโหลด '+f.name);const r=await store.upload(f);c.attachments.push({name:f.name,url:r.url,path:r.path,size:f.size,type:f.type,at:now(),by:session.id});await saveCard(c,'แนบไฟล์ '+f.name)}
+      try{toast('กำลังอัปโหลด '+f.name);const r=await store.upload(f);c.attachments.push({name:f.name,url:r.url,path:r.path,thumb:r.thumb||null,size:f.size,type:f.type,at:now(),by:session.id});await saveCard(c,'แนบไฟล์ '+f.name)}
       catch(err){toast(err.message||'อัปโหลดไม่สำเร็จ')}
     }
     renderCardModal();
@@ -667,7 +670,7 @@ function renderSettings(){
   $('#sheet').innerHTML=`<div class="mhead"><b style="flex:1;font-size:18px" class="kanit">⚙️ บัญชีและตั้งค่า</b><button class="icon" data-act="closeModal">✕</button></div>
   <div class="mtop">${avatar(m,'lg')}<div><div class="nm"><b>${esc(m.name)}</b> ${admin?'<span class="mode sb">ADMIN</span>':''}</div><div class="muted">${esc(session.email||'')} ${m.role?'· '+esc(m.role):''}</div></div><div class="spacer"></div><button data-act="toggleTheme">🌓 Dark / Light</button><button class="danger" data-act="logout">ออกจากระบบ</button></div>
   ${admin?`
-  <div class="sec"><h4>พนักงาน (${S.members.length}) <span class="muted">ดึงจากระบบลงเวลา TESR · แก้ชื่อ/อีเมล/เบอร์ที่ระบบลงเวลา</span></h4>
+  <div class="sec"><h4>พนักงาน (${S.members.length}) <span class="muted">ดึงจากระบบลงเวลา TESR · แก้ชื่อ/อีเมล/เบอร์ได้ที่ระบบลงเวลา</span></h4>
     ${S.members.map(x=>`<div class="mem" data-mid="${x.id}">${avatar(x)}<div class="nm">${esc(x.name)}<small>${esc([x.code,x.role].filter(Boolean).join(' · '))}</small></div>
       <input class="hm" data-f="dept" value="${esc(x.dept||'')}" placeholder="ฝ่าย">${x.id==='admin'?`<input class="hm" data-f="name" value="${esc(x.name)}" placeholder="ชื่อที่แสดง">`:'<span class="hm"></span>'}
       <select data-f="board_role" ${x.id==='admin'?'disabled':''}><option value="member" ${x.board_role!=='admin'?'selected':''}>พนักงาน</option><option value="admin" ${x.board_role==='admin'?'selected':''}>Admin</option></select>
@@ -676,14 +679,15 @@ function renderSettings(){
   </div>
   <div class="sec"><h4>สำรองข้อมูล</h4>
     <div class="row"><button data-act="exportAll">⬇ Export JSON</button><label class="upl">⬆ Import JSON<input type="file" id="impAll" accept=".json" hidden></label>${store.mode==='local'?'<button class="danger" data-act="resetDemo">ล้างข้อมูลเดโม</button>':''}</div></div>
-  <details class="sec"><summary class="muted">ขั้นสูง: Supabase</summary>
-    <div class="grid2" style="margin-top:8px"><label>Project URL<input id="sbUrl" value="${esc(getCfg().url)}"></label><label>Anon key<input id="sbKey" value="${esc(getCfg().key)}"></label></div>
-    <div class="row"><button data-act="saveCfg">บันทึก</button><button data-act="clearCfg">ใช้ค่าเริ่มต้น</button></div></details>`:''}`;
+  <details class="sec"><summary class="muted">ขั้นสูง: เชื่อมต่อ API</summary>
+    <label class="muted" style="display:block;margin-top:8px">Apps Script Web App URL<input id="apiUrl" style="width:100%" value="${esc(getCfg().url)}"></label>
+    <div class="row"><button data-act="saveCfg">บันทึก</button><button data-act="clearCfg">ใช้ค่าเริ่มต้น</button></div>
+    <div class="muted" style="margin-top:6px">ข้อมูลเก็บที่ Google Sheet "TESR Board DB" · ไฟล์แนบใน Google Drive</div></details>`:''}`;
   $$('.mem [data-f]').forEach(i=>i.onchange=async()=>{const x=member(i.closest('.mem').dataset.mid);x[i.dataset.f]=i.value;await store.upsert('mrows',memberRow(x));buildMembers();scheduleRender()});
   const ia=$('#impAll');if(ia)ia.onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const d=JSON.parse(await f.text());for(const k of KEYS)if(Array.isArray(d[k]))await store.upsertMany(k,d[k]);norm();toast('นำเข้าเรียบร้อย');renderSettings();renderMain()}catch(err){toast('ไฟล์ไม่ถูกต้อง')}};
   showModal();
 }
-function getCfg(){const c=lsGet(LS_CFG,{});return {url:c.url||CONFIG.SUPABASE_URL||'',key:c.key||CONFIG.SUPABASE_ANON_KEY||''}}
+function getCfg(){const c=lsGet(LS_CFG,{});return {url:c.url||CONFIG.API_URL||''}}
 
 /* ===== ACTIONS ===== */
 async function act(a,d={}){
@@ -720,7 +724,7 @@ async function act(a,d={}){
     case 'addComment':{const t=$('#cmt').value.trim();if(!t)return;c.comments.push({id:uid(),member:session.id,text:t,at:now()});await saveCard(c,'คอมเมนต์');renderCardModal();break}
     case 'deleteCard':{if(!canDeleteCard(c)||!confirm('ลบการ์ดนี้?'))return;for(const x of c.attachments)await store.removeFile(x.path);await store.remove('cards',c.id);log(null,`ลบงาน "${c.title}"`);closeModal();scheduleRender();break}
     case 'toggleActive':{const x=member(d.id);x.active=x.active===false;await store.upsert('mrows',memberRow(x));buildMembers();renderSettings();scheduleRender();break}
-    case 'saveCfg':{lsSet(LS_CFG,{url:$('#sbUrl').value.trim(),key:$('#sbKey').value.trim()});location.reload();break}
+    case 'saveCfg':{lsSet(LS_CFG,{url:$('#apiUrl').value.trim()});localStorage.removeItem(LS_SES);location.reload();break}
     case 'clearCfg':{localStorage.removeItem(LS_CFG);location.reload();break}
     case 'exportAll':{const {members,...data}=S;const b=new Blob([JSON.stringify(data,null,1)],{type:'application/json'});const a2=document.createElement('a');a2.href=URL.createObjectURL(b);a2.download=`tesr-board-${new Date().toISOString().slice(0,10)}.json`;a2.click();break}
     case 'resetDemo':{if(!confirm('ล้างข้อมูลเดโมทั้งหมดในเครื่องนี้?'))return;localStorage.removeItem(LS_DATA);localStorage.removeItem(LS_SES);location.reload();break}
@@ -751,12 +755,12 @@ $('#boardMenu').onclick=async()=>{
 /* ===== LOGIN & BOOT ===== */
 function showLogin(msg=''){ $('#login').classList.remove('hidden');$('#topbar').classList.add('hidden');$('#main').innerHTML='';$('#lErr').textContent=msg; }
 $('#loginForm').onsubmit=async e=>{
-  e.preventDefault();const btn=$('#lBtn');btn.disabled=true;btn.textContent='กำลังตรวจสอบ...';$('#lErr').textContent='';
+  e.preventDefault();if(store.mode==='local'){$('#lErr').textContent='ยังไม่ได้เชื่อมต่อ API — กดทดลองโหมดเดโมด้านล่าง';$('#demoBtn').classList.remove('hidden');return}const btn=$('#lBtn');btn.disabled=true;btn.textContent='กำลังตรวจสอบ...';$('#lErr').textContent='';
   try{
     const u=await store.login($('#lUser').value.trim(),$('#lPass').value.trim());
     if(!u){$('#lErr').textContent='อีเมลหรือเบอร์โทรไม่ถูกต้อง';return}
     session={...u,at:Date.now()};lsSet(LS_SES,session);await enterApp();
-  }catch(err){console.error(err);$('#lErr').textContent='เชื่อมต่อระบบไม่ได้: '+(err.message||err);$('#demoBtn').classList.remove('hidden')}
+  }catch(err){console.error(err);$('#lErr').textContent=(store.mode==='local'?'ยังไม่ได้เชื่อมต่อ API':'เข้าสู่ระบบไม่ได้: '+(err.message||err));$('#demoBtn').classList.remove('hidden')}
   finally{btn.disabled=false;btn.textContent='เข้าสู่ระบบ'}
 };
 async function startDemo(){
@@ -765,9 +769,9 @@ async function startDemo(){
   await enterApp();
 }
 async function enterApp(){
-  if(store.mode==='supabase') Object.assign(S,await store.load());
+  if(store.mode!=='local') Object.assign(S,await store.load());
   norm();
-  if(store.mode==='supabase'&&session.id==='admin'&&!S.mrows.some(r=>r.id==='admin')){
+  if(store.mode!=='local'&&session.id==='admin'&&!S.mrows.some(r=>r.id==='admin')){
     await store.upsert('mrows',{id:'admin',name:session.name||'Admin',email:session.email||'',role:'Admin',dept:'Management',color:'#d4a72c',active:true,board_role:'admin',created_at:now()});norm();
   }
   if(!S.boards.length) await createBoard('TESR งานหลัก');
@@ -780,14 +784,14 @@ async function enterApp(){
 }
 (async function boot(){
   const cfg=getCfg();
-  store=(cfg.url&&cfg.key&&window.supabase)?makeSupabaseStore(cfg.url,cfg.key):LocalStore;
-  if(store===LocalStore) $('#demoBtn').classList.remove('hidden');
+  store=cfg.url?makeGasStore(cfg.url):LocalStore;
+  if(store===LocalStore){$('#demoBtn').classList.remove('hidden');$('#lErr').textContent='ยังไม่ได้เชื่อมต่อ API — ทดลองโหมดเดโมได้'}
   const s=lsGet(LS_SES,null);
   if(s&&Date.now()-s.at<30*DAY){
     session=s;
     try{
       if(s.demo){await startDemo();return}
-      if(store.mode!=='supabase') throw new Error('offline');
+      if(store.mode==='local') throw new Error('offline');
       await enterApp();return;
     }catch(e){console.error(e);session=null;localStorage.removeItem(LS_SES);showLogin('กรุณาเข้าสู่ระบบอีกครั้ง');$('#demoBtn').classList.remove('hidden');return}
   }
