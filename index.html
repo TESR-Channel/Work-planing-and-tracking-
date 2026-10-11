@@ -551,7 +551,7 @@ button.howto{background:transparent;font:inherit}
     <button class="pri" type="submit" id="lBtn">เข้าสู่ระบบ</button>
     <div class="lerr" id="lErr"></div>
     <button type="button" class="icon sm hidden" id="demoBtn" data-act="demoLogin">ทดลองใช้โหมดเดโม →</button>
-    <button type="button" class="howto" data-act="howto">▶ ดูวิดีโอสอนใช้งาน <span class="muted">(v2 · 4 นาที)</span></button>
+    <button type="button" class="howto" data-act="howto">▶ ดูวิดีโอสอนใช้งาน <span class="muted">(🔊 มีเสียงพากย์ · 4 นาที)</span></button>
     <div class="boot"><i></i>SYSTEM ONLINE · WORK TRACKING v1</div>
   </form>
 </div>
@@ -1473,7 +1473,7 @@ function renderSettings(){
 function getCfg(){const c=lsGet(LS_CFG,{});return {url:c.url||CONFIG.API_URL||''}}
 
 /* ===== วิดีโอสอนใช้งาน ===== */
-const TUTORIAL={src:['tutorial.mp4?v=2','tutorial.webm?v=2'],chapters:[[0, "แนะนำ"], [5.0, "1. เข้าสู่ระบบ"], [12.3, "2. หน้าบอร์ด & สีกำหนดส่ง"], [27.0, "3. สร้างงานใหม่ (ขนาด + หมวดผลงาน)"], [49.8, "4. ลากไฟล์มาวาง"], [59.6, "5. ส่งต่องานให้เพื่อน"], [77.4, "6. ในการ์ด: เช็คลิสต์ · ลากจัดลำดับ · คอมเมนต์"], [114.9, "7. ปิดงาน & ได้แต้ม"], [127.7, "8. ตีกลับให้แก้ไข"], [138.9, "9. 🙏 ขอบคุณเพื่อน"], [152.7, "10. หน้าทีม"], [160.2, "11. แดชบอร์ด & KPI Score"], [175.8, "12. 📖 KPI วัดอะไรบ้าง"], [191.9, "13. Scorecard รายบุคคล"], [200.9, "14. มุมมองพนักงาน"]]};
+const TUTORIAL={src:['tutorial.mp4?v=3','tutorial.webm?v=3'],chapters:[[0, "แนะนำ"], [5.0, "1. เข้าสู่ระบบ"], [12.3, "2. หน้าบอร์ด & สีกำหนดส่ง"], [27.0, "3. สร้างงานใหม่ (ขนาด + หมวดผลงาน)"], [49.8, "4. ลากไฟล์มาวาง"], [59.6, "5. ส่งต่องานให้เพื่อน"], [77.4, "6. ในการ์ด: เช็คลิสต์ · ลากจัดลำดับ · คอมเมนต์"], [114.9, "7. ปิดงาน & ได้แต้ม"], [127.7, "8. ตีกลับให้แก้ไข"], [138.9, "9. 🙏 ขอบคุณเพื่อน"], [152.7, "10. หน้าทีม"], [160.2, "11. แดชบอร์ด & KPI Score"], [175.8, "12. 📖 KPI วัดอะไรบ้าง"], [191.9, "13. Scorecard รายบุคคล"], [200.9, "14. มุมมองพนักงาน"]]};
 const fmtT=t=>Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0');
 function openHowto(){
   const v=$('#vplayer'); if(!v.querySelector('source')){v.innerHTML=`<source src="${TUTORIAL.src[0]}" type="video/mp4"><source src="${TUTORIAL.src[1]}" type="video/webm">`;v.load()}
