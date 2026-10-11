@@ -439,6 +439,23 @@ th{font-size:12px;letter-spacing:.2px;font-weight:600}
 }
 @media (max-width:380px){.grid2{grid-template-columns:1fr}.kpi b{font-size:21px}}
 
+
+/* ===== Drag & drop ===== */
+.grip{cursor:grab;color:var(--mut);opacity:.45;font-size:12px;letter-spacing:-2px;padding:0 4px 0 0;user-select:none;touch-action:none;flex:none}
+.grip:hover{opacity:1;color:var(--gold)}
+.ckitem span.grip,.att span.grip,.file span.grip{flex:0 0 auto}
+.ckitem:hover .grip,.file:hover .grip,.att:hover .grip,.ckhead:hover .grip{opacity:.9}
+.ckhead b{cursor:grab}
+.ckitem.ghost,.file.ghost,.att.ghost,.ck.ghost{opacity:.35;outline:1px dashed var(--gold)}
+.dropping{outline:2px dashed var(--gold)!important;outline-offset:3px;box-shadow:0 0 0 6px rgba(240,197,82,.12),var(--neon)!important}
+.list.dropping{background-color:rgba(240,197,82,.08)}
+.sheet.dropping{outline-offset:-6px}
+#dropHint{position:fixed;z-index:200;pointer-events:none;padding:7px 12px;border-radius:8px;background:rgba(10,10,12,.94);color:#f0c552;border:1px solid #6b5520;font-size:13px;font-weight:600;
+  box-shadow:0 8px 24px rgba(0,0,0,.45);opacity:0;transform:translateY(4px);transition:opacity .12s,transform .12s;max-width:320px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#dropHint.on{opacity:1;transform:none}
+.dz{font-size:11.5px;font-weight:400;color:var(--mut)}
+@media (hover:none){.dz{display:none}.grip{opacity:.7}}
+
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 
 @media (max-width:700px){
@@ -577,8 +594,9 @@ function makeGasStore(url){
     async upload(file){
       if(file.size>20e6) throw new Error('ไฟล์ใหญ่เกิน 20MB — แนะนำแปะเป็นลิงก์ Google Drive แทน');
       const data=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(',')[1]);r.onerror=rej;r.readAsDataURL(file)});
-      await q; const j=await call('upload',{name:file.name,type:file.type,data});
-      return {url:j.url,path:j.id,thumb:j.thumb};
+      inflight++;setSync(true);
+      try{await q; const j=await call('upload',{name:file.name,type:file.type,data});return {url:j.url,path:j.id,thumb:j.thumb}}
+      finally{if(--inflight===0)setSync(false)}
     },
     async removeFile(id){if(id)enqueue(()=>call('removeFile',{id}))},
     subscribe(cb){
@@ -780,6 +798,55 @@ function showModal(){$('#modal').classList.remove('hidden');if(!ui.openCard)$('#
 function closeModal(){$('#modal').classList.add('hidden');ui.openCard=null;$('#sheet').innerHTML='';$('#sheet').classList.remove('wide')}
 function openCard(id){ui.openCard=id;renderCardModal();showModal()}
 function memberOpts(sel,empty='—'){return `<option value="">${empty}</option>`+S.members.filter(m=>m.active!==false||m.id===sel).map(m=>`<option value="${m.id}" ${m.id===sel?'selected':''}>${esc(m.name)}</option>`).join('')}
+/* ===== Upload / Drag & Drop ===== */
+async function uploadFiles(cardId,files){
+  files=[...files].filter(f=>f&&f.size>0); if(!files.length) return;
+  let ok=0,last='';
+  for(const [i,f] of files.entries()){
+    try{
+      toast(`⬆ กำลังอัปโหลด ${files.length>1?`(${i+1}/${files.length}) `:''}${f.name}`);
+      const r=await store.upload(f), c=card(cardId); if(!c) return;
+      c.attachments.push({name:f.name||('pasted-'+Date.now()+'.png'),url:r.url,path:r.path,thumb:r.thumb||null,size:f.size,type:f.type,at:now(),by:session.id});
+      await store.upsert('cards',{...c,updated_at:now()}); ok++; last=f.name;
+      if(ui.openCard===cardId&&!$('#sheet').contains(document.activeElement)) renderCardModal(); else scheduleRender();
+    }catch(err){toast('อัปโหลดไม่สำเร็จ: '+(err.message||err))}
+  }
+  const c=card(cardId);
+  if(ok&&c){log(c,ok===1?'แนบไฟล์ '+last:`แนบไฟล์ ${ok} ไฟล์`);toast(`✅ แนบ ${ok} ไฟล์แล้ว`)}
+  if(ui.openCard===cardId) renderCardModal(); scheduleRender();
+}
+async function addLinks(cardId,urls){
+  const c=card(cardId); if(!c||!urls.length) return;
+  urls.forEach(u=>{let t='';try{t=new URL(u).hostname.replace(/^www\./,'')}catch(e){}c.links.push({url:u,title:t,at:now(),by:session.id})});
+  await saveCard(c,urls.length===1?'แนบลิงก์ '+urls[0]:`แนบลิงก์ ${urls.length} รายการ`);
+  if(ui.openCard===cardId) renderCardModal();
+}
+async function dropToList(l,files,urls){
+  const base=n=>String(n||'').replace(/\.[^.]+$/,'');
+  const title=files.length?(files.length>1?`${base(files[0].name)} +${files.length-1} ไฟล์`:base(files[0].name)):(()=>{try{return new URL(urls[0]).hostname}catch(e){return urls[0]}})();
+  const nc={id:uid(),board_id:l.board_id,list_id:l.id,kind:'note',title,description:'',assignees:[session.id],labels:[],priority:'normal',due:null,
+    pos:Math.max(0,...S.cards.filter(x=>x.list_id===l.id).map(x=>x.pos||0))+1024,checklists:[],links:[],attachments:[],comments:[],created_by:session.id,created_at:now(),started_at:null,done_at:null,updated_at:now()};
+  applyListChange(nc,l); await saveCard(nc,`สร้างการ์ดจากการลากวาง "${title}" ใน ${l.name}`);
+  if(urls.length) await addLinks(nc.id,urls);
+  if(files.length) await uploadFiles(nc.id,files);
+}
+function initModalSort(c){
+  const opt={animation:150,delay:150,delayOnTouchOnly:true,ghostClass:'ghost',chosenClass:'chosen',onStart:()=>ui.dragging=true};
+  const done=async(msg)=>{ui.dragging=false;c.updated_at=now();await store.upsert('cards',c);if(msg)log(c,msg);renderCardModal();scheduleRender()};
+  const byIdx=(el,arr)=>[...el.children].map(x=>arr[+x.dataset.i]).filter(Boolean);
+  const f=$('#sFiles'); if(f&&c.attachments.length>1) Sortable.create(f,{...opt,handle:'.grip,.file img,.file .ph',onEnd:e=>{if(e.oldIndex===e.newIndex){ui.dragging=false;return}c.attachments=byIdx(f,c.attachments);done('จัดลำดับไฟล์แนบ')}});
+  const lk=$('#sLinks'); if(lk&&c.links.length>1) Sortable.create(lk,{...opt,handle:'.grip',onEnd:e=>{if(e.oldIndex===e.newIndex){ui.dragging=false;return}c.links=byIdx(lk,c.links);done()}});
+  const cks=$('#sCks'); if(cks&&c.checklists.length>1) Sortable.create(cks,{...opt,handle:'.ckgrip,.ckhead b',draggable:'.ck',onEnd:e=>{if(e.oldIndex===e.newIndex){ui.dragging=false;return}
+    const m=Object.fromEntries(c.checklists.map(x=>[x.id,x]));c.checklists=[...cks.querySelectorAll(':scope>.ck')].map(x=>m[x.dataset.cl]).filter(Boolean);done('จัดลำดับเช็คลิสต์')}});
+  $$('.ckitems').forEach(el=>Sortable.create(el,{...opt,group:'ckitems-'+c.id,handle:'.igrip,.ckitem>span:not(.grip)',onEnd:e=>{
+    if(e.from===e.to&&e.oldIndex===e.newIndex){ui.dragging=false;return}
+    const all={},home={};c.checklists.forEach(cl=>cl.items.forEach(it=>{all[it.id]=it;home[it.id]=cl.id}));
+    const shown=new Set();
+    c.checklists.forEach(cl=>{const box=$(`.ckitems[data-cl="${cl.id}"]`);cl._dom=box?[...box.children].map(x=>x.dataset.it).filter(Boolean):[];cl._dom.forEach(id=>shown.add(id))});
+    c.checklists.forEach(cl=>{cl.items=cl._dom.map(id=>all[id]).concat(cl.items.filter(it=>!shown.has(it.id)));delete cl._dom});
+    const moved=e.item.dataset.it, to=c.checklists.find(cl=>cl.items.some(it=>it.id===moved));
+    done(e.from!==e.to&&all[moved]?`ย้าย "${all[moved].text}" ไปเช็คลิสต์ "${to?.title||''}"`:null)}}));
+}
 function renderCardModal(){
   const c=card(ui.openCard); if(!c) return closeModal();
   const lists=boardLists(c.board_id), ck=ckProgress(c), pct=ck.total?Math.round(ck.done/ck.total*100):null, cv=cover(c), d=dueInfo(c);
@@ -803,26 +870,26 @@ function renderCardModal(){
     </div>
     <div class="sec"><h4>👥 ผู้รับผิดชอบ</h4><div class="chips">${S.members.filter(m=>m.active!==false||c.assignees.includes(m.id)).map(m=>`<button class="chip ${c.assignees.includes(m.id)?'on':''}" data-act="toggleAssignee" data-id="${m.id}">${avatar(m)}${esc(m.name)}</button>`).join('')}</div></div>
     <div class="sec"><h4>📝 รายละเอียด</h4><textarea id="cDesc" rows="3" placeholder="อธิบายงาน...">${esc(c.description)}</textarea></div>
-    <div class="sec"><h4>📎 ไฟล์แนบ <label class="upl sm">+ แนบไฟล์<input type="file" id="cFile" multiple hidden></label></h4>
-      <div class="files">${c.attachments.map((a,i)=>`<div class="file">${/^image\//.test(a.type||'')?`<img src="${esc(a.thumb||a.url)}" alt="" referrerpolicy="no-referrer">`:`<span class="ph">${esc((a.name.split('.').pop()||'FILE').slice(0,4).toUpperCase())}</span>`}
+    <div class="sec"><h4>📎 ไฟล์แนบ <label class="upl sm">+ แนบไฟล์<input type="file" id="cFile" multiple hidden></label><span class="dz">หรือลากไฟล์มาวาง · Ctrl+V วางรูป</span></h4>
+      <div class="files" id="sFiles">${c.attachments.map((a,i)=>`<div class="file" data-i="${i}"><span class="grip" title="ลากเพื่อจัดลำดับ (อันแรกที่เป็นรูป = ภาพปก)">⋮⋮</span>${/^image\//.test(a.type||'')?`<img src="${esc(a.thumb||a.url)}" alt="" referrerpolicy="no-referrer">`:`<span class="ph">${esc((a.name.split('.').pop()||'FILE').slice(0,4).toUpperCase())}</span>`}
         <div class="nm"><a href="${esc(a.url)}" target="_blank" rel="noopener">${esc(a.name)}</a><span class="muted">เพิ่มเมื่อ ${fmtDT(a.at)}${a.by?' · '+esc(nm(a.by)):''}</span></div>
         <a class="icon" href="${esc(a.url)}" target="_blank" rel="noopener" title="เปิด">↗</a><button class="icon sm" data-act="delAtt" data-i="${i}" title="ลบ">✕</button></div>`).join('')||'<div class="muted">ยังไม่มีไฟล์</div>'}</div>
     </div>
     <div class="sec"><h4>🔗 ลิงก์</h4>
-      ${c.links.map((l,i)=>`<div class="att">🔗<a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.title||l.url)}</a><button class="icon sm" data-act="delLink" data-i="${i}">✕</button></div>`).join('')}
+      <div id="sLinks">${c.links.map((l,i)=>`<div class="att" data-i="${i}"><span class="grip" title="ลากเพื่อจัดลำดับ">⋮⋮</span>🔗<a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.title||l.url)}</a><button class="icon sm" data-act="delLink" data-i="${i}">✕</button></div>`).join('')}</div>
       <div class="row"><input id="lnkUrl" placeholder="https://drive / github / canva ..."><input id="lnkTitle" placeholder="ชื่อลิงก์ (ไม่บังคับ)"><button class="sm" data-act="addLink">เพิ่ม</button></div>
     </div>
     <div class="sec"><h4>☑ เช็คลิสต์ / Checkpoint <button class="sm" data-act="addChecklist">+ เพิ่มเช็คลิสต์</button>${ck.done?`<button class="sm" data-act="toggleHideChecked">${ui.hideChecked?'แสดงที่ทำแล้ว ('+ck.done+')':'ซ่อนที่ทำแล้ว'}</button>`:''}</h4>
-      ${c.checklists.map(cl=>{const dn=cl.items.filter(i=>i.done).length,t=cl.items.length,p=t?Math.round(dn/t*100):0;
-        return `<div class="ck"><div class="ckhead"><b>${esc(cl.title)}</b><button class="icon sm" data-act="delChecklist" data-cl="${cl.id}" title="ลบเช็คลิสต์">🗑</button></div>
+      <div id="sCks">${c.checklists.map(cl=>{const dn=cl.items.filter(i=>i.done).length,t=cl.items.length,p=t?Math.round(dn/t*100):0;
+        return `<div class="ck" data-cl="${cl.id}"><div class="ckhead"><span class="grip ckgrip" title="ลากเพื่อย้ายทั้งเช็คลิสต์">⋮⋮</span><b>${esc(cl.title)}</b><button class="icon sm" data-act="delChecklist" data-cl="${cl.id}" title="ลบเช็คลิสต์">🗑</button></div>
         <div class="prog sm"><span class="muted">${p}%</span><div class="bar"><i style="width:${p}%"></i></div><span class="muted">${dn}/${t}</span></div>
-        ${cl.items.filter(it=>!(ui.hideChecked&&it.done)).map(it=>{const st=it.done?'done':!it.due?'':(new Date(it.due+'T00:00:00')<today()?'late':(new Date(it.due+'T00:00:00')-today())/DAY<=2?'soon':'ok');
-          return `<div class="ckitem"><input type="checkbox" data-act="toggleItem" data-cl="${cl.id}" data-it="${it.id}" ${it.done?'checked':''}>
+        <div class="ckitems" data-cl="${cl.id}">${cl.items.filter(it=>!(ui.hideChecked&&it.done)).map(it=>{const st=it.done?'done':!it.due?'':(new Date(it.due+'T00:00:00')<today()?'late':(new Date(it.due+'T00:00:00')-today())/DAY<=2?'soon':'ok');
+          return `<div class="ckitem" data-it="${it.id}"><span class="grip igrip" title="ลากเพื่อจัดลำดับ">⋮⋮</span><input type="checkbox" data-act="toggleItem" data-cl="${cl.id}" data-it="${it.id}" ${it.done?'checked':''}>
           <span class="${it.done?'strike':''}">${esc(it.text)}${it.done&&it.by?` <i class="muted">· ${esc(nm(it.by))}</i>`:''}</span>
           <input type="date" class="itdue ${st}" data-itdue data-cl="${cl.id}" data-it="${it.id}" value="${it.due||''}" title="Checkpoint / กำหนดของข้อนี้">
           <select data-itemassign data-cl="${cl.id}" data-it="${it.id}">${memberOpts(it.assignee,'ใครทำ?')}</select>
-          <button class="icon sm" data-act="delItem" data-cl="${cl.id}" data-it="${it.id}">✕</button></div>`}).join('')}
-        <div class="row"><input placeholder="เพิ่มรายการ แล้วกด Enter" data-additem="${cl.id}"><button class="sm" data-act="addItem" data-cl="${cl.id}">+</button></div></div>`}).join('')||'<div class="muted">ยังไม่มีเช็คลิสต์ — กด "+ เพิ่มเช็คลิสต์"</div>'}
+          <button class="icon sm" data-act="delItem" data-cl="${cl.id}" data-it="${it.id}">✕</button></div>`}).join('')}</div>
+        <div class="row"><input placeholder="เพิ่มรายการ แล้วกด Enter" data-additem="${cl.id}"><button class="sm" data-act="addItem" data-cl="${cl.id}">+</button></div></div>`}).join('')||'<div class="muted">ยังไม่มีเช็คลิสต์ — กด "+ เพิ่มเช็คลิสต์"</div>'}</div>
     </div>
    </div>
    <div class="cright">
@@ -844,13 +911,8 @@ function renderCardModal(){
   $('#cKind').onchange=e=>{c.kind=e.target.value;if(c.kind==='task'&&!c.due){c.due=new Date(Date.now()+3*DAY).toISOString().slice(0,10);toast('ตั้งกำหนดส่งเริ่มต้น +3 วัน แก้ได้')}saveCard(c,'เปลี่ยนประเภทเป็น '+(c.kind==='task'?'งาน':'ข้อมูล/ไฟล์')).then(renderCardModal)};
   $('#cLabels').onchange=e=>{c.labels=e.target.value.split(',').map(s=>s.trim()).filter(Boolean);saveCard(c)};
   $('#cList').onchange=e=>{const to=list(e.target.value),from=list(c.list_id);c.list_id=to.id;c.pos=Math.max(0,...S.cards.filter(x=>x.list_id===to.id).map(x=>x.pos||0))+1024;applyListChange(c,to);saveCard(c,`ย้ายการ์ดจาก ${from.name} → ${to.name}`).then(renderCardModal)};
-  $('#cFile').onchange=async e=>{
-    for(const f of e.target.files){
-      try{toast('กำลังอัปโหลด '+f.name);const r=await store.upload(f);c.attachments.push({name:f.name,url:r.url,path:r.path,thumb:r.thumb||null,size:f.size,type:f.type,at:now(),by:session.id});await saveCard(c,'แนบไฟล์ '+f.name)}
-      catch(err){toast(err.message||'อัปโหลดไม่สำเร็จ')}
-    }
-    renderCardModal();
-  };
+  $('#cFile').onchange=e=>uploadFiles(c.id,[...e.target.files]);
+  initModalSort(c);
   $('#cmt').onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();act('addComment')}};
   $$('[data-additem]').forEach(i=>i.onkeydown=e=>{if(e.key==='Enter')act('addItem',{cl:i.dataset.additem})});
   const itemOf=el=>c.checklists.find(x=>x.id===el.dataset.cl)?.items.find(x=>x.id===el.dataset.it);
@@ -1080,6 +1142,48 @@ async function act(a,d={}){
     case 'resetDemo':{if(!confirm('ล้างข้อมูลเดโมทั้งหมดในเครื่องนี้?'))return;localStorage.removeItem(LS_DATA);localStorage.removeItem(LS_SES);location.reload();break}
   }
 }
+/* ----- ลากไฟล์/ลิงก์จากภายนอกมาวาง: การ์ด · ลิสต์ · หน้าการ์ดที่เปิดอยู่ ----- */
+(function(){
+  const hint=document.createElement('div');hint.id='dropHint';document.body.appendChild(hint);
+  let localDrag=false,lastEl=null;
+  document.addEventListener('dragstart',()=>localDrag=true,true);
+  document.addEventListener('dragend',()=>{localDrag=false;clear()},true);
+  const ext=e=>{if(localDrag||!session)return false;const t=[...(e.dataTransfer?.types||[])];return t.includes('Files')||t.includes('text/uri-list')};
+  const target=e=>{
+    const el=e.target&&e.target.closest?e.target:e.target?.parentElement; if(!el) return null;
+    if(ui.openCard&&el.closest('#modal')) return {t:'modal',el:$('#sheet'),id:ui.openCard,label:'📎 วางเพื่อแนบเข้าการ์ดนี้'};
+    if(!$('#modal').classList.contains('hidden')) return null;
+    const cd=el.closest('.card[data-id]'); if(cd){const c=card(cd.dataset.id);return c&&{t:'card',el:cd,id:c.id,label:'📎 แนบเข้า: '+c.title}}
+    const ls=el.closest('.list[data-id]'); if(ls){const l=list(ls.dataset.id);return l&&{t:'list',el:ls,id:l.id,label:'➕ สร้างการ์ดใหม่ใน: '+l.name}}
+    return null;
+  };
+  function clear(){if(lastEl)lastEl.classList.remove('dropping');lastEl=null;hint.classList.remove('on')}
+  document.addEventListener('dragover',e=>{
+    if(!ext(e))return; e.preventDefault();
+    const d=target(e); e.dataTransfer.dropEffect=d?'copy':'none';
+    if(!d){clear();return}
+    if(lastEl!==d.el){clear();lastEl=d.el;d.el.classList.add('dropping')}
+    hint.textContent=d.label;hint.classList.add('on');
+    hint.style.left=Math.min(e.clientX+16,innerWidth-hint.offsetWidth-8)+'px';hint.style.top=(e.clientY+18)+'px';
+  });
+  document.addEventListener('dragleave',e=>{if(!e.relatedTarget)clear()});
+  document.addEventListener('drop',async e=>{
+    if(!ext(e))return; e.preventDefault();
+    const d=target(e); clear(); if(!d) return;
+    const files=[...(e.dataTransfer.files||[])];
+    const urls=files.length?[]:(e.dataTransfer.getData('text/uri-list')||'').split(/\r?\n/).map(x=>x.trim()).filter(x=>/^https?:\/\//i.test(x));
+    if(!files.length&&!urls.length) return;
+    if(d.t==='list') return dropToList(list(d.id),files,urls);
+    if(urls.length) return addLinks(d.id,urls);
+    uploadFiles(d.id,files);
+  });
+  document.addEventListener('paste',e=>{
+    if(!ui.openCard||$('#modal').classList.contains('hidden'))return;
+    const files=[...(e.clipboardData?.files||[])]; if(!files.length)return;
+    e.preventDefault();
+    uploadFiles(ui.openCard,files.map((f,i)=>f.name&&f.name!=='image.png'?f:new File([f],`pasted-${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}${i?'-'+i:''}.${(f.type.split('/')[1]||'png')}`,{type:f.type})));
+  });
+})();
 document.addEventListener('click',e=>{
   const el=e.target.closest('[data-act]');if(!el)return;
   if(el.tagName==='INPUT'&&el.type==='checkbox'){e.preventDefault()}
