@@ -477,6 +477,12 @@ button.ring:hover{border-color:var(--ok);box-shadow:0 0 10px rgba(47,191,113,.5)
 .ptsv{color:var(--gold);font-family:Orbitron,Inter,sans-serif}
 .rule{padding:6px 0;border-bottom:1px dashed var(--line);font-size:13.5px}
 
+
+.badge.imp{color:#c4b5fd;background:rgba(168,85,247,.16);font-weight:700}
+.kpi.grow::before{background:linear-gradient(90deg,#a855f7,#3b82f6)}
+.kpi.grow b{color:#c4b5fd;text-shadow:0 0 14px rgba(168,85,247,.45)}
+[data-theme=light] .kpi.grow b,[data-theme=light] .badge.imp{color:#7c3aed}
+
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 
 @media (max-width:700px){
@@ -544,7 +550,14 @@ const PALETTE=['#d71f33','#d4a72c','#2fbf71','#3b82f6','#a855f7','#ec4899','#14b
 const PRIO={low:'ต่ำ',normal:'ปกติ',high:'สูง',urgent:'ด่วนมาก'};
 /* ===== KPI POINTS (ปรับตัวเลขได้ตรงนี้) ===== */
 const SIZES={s:{label:'งานทั่วไป',pts:1,icon:'●'},m:{label:'งานกลาง',pts:3,icon:'◆'},l:{label:'โปรเจกต์ / งานใหญ่-ยาก',pts:5,icon:'⭐'}};
-const SCORE={solo:1.0, team:0.6, onTime:1.0, late:0.5};  // เดี่ยว 100% · ทีม คนละ 60% · ส่งช้า ×0.5
+const SCORE={solo:1.0, team:0.6, onTime:1.0, late:0.5, initiator:1};  // เดี่ยว 100% · ทีม คนละ 60% · ส่งช้า ×0.5 · ผู้ริเริ่ม +1
+/* หมวดผลงาน: งานที่ช่วยให้บริษัทก้าวไปข้างหน้าได้ตัวคูณพิเศษ */
+const IMPACT={
+  op:  {label:'งานประจำ / Operation',icon:'🔧',mult:1,  hint:'เสนอราคา, จัดส่ง, งานบริการ, งานเอกสาร'},
+  rd:  {label:'พัฒนาผลิตภัณฑ์ / R&D',icon:'🧪',mult:1.5,hint:'อัปเกรด Iron-X, ปรับปรุงสินค้า/คอร์สเดิม'},
+  new: {label:'ริเริ่มผลิตภัณฑ์ / ไอเดียใหม่',icon:'💡',mult:2,hint:'สินค้าใหม่, คอร์สใหม่, บริการใหม่'},
+  grow:{label:'พัฒนาองค์กร / ขยายธุรกิจ',icon:'📈',mult:2,hint:'ใบรับรอง/มาตรฐาน, BOI, Marketplace ใหม่, ตลาด/พาร์ทเนอร์ใหม่'}
+};
 const PERIODS=[['today','วันนี้'],['7','7 วัน'],['month','เดือนนี้'],['30','30 วัน'],['90','90 วัน'],['365','1 ปี'],['custom','📅 ช่วงวันที่…'],['cmonth','🗓 ช่วงเดือน…']];
 
 let S={staff:[],mrows:[],members:[],boards:[],lists:[],cards:[],activity:[]};
@@ -752,6 +765,7 @@ function cardHTML(c){
     <div class="ctitle">${esc(c.title)}</div>
     <div class="meta">
       ${due?`<span class="badge ${due.cls}">📅 ${due.text}</span>`:''}
+      ${isTask(c)&&c.impact&&c.impact!=='op'?`<span class="badge imp" title="${IMPACT[c.impact].label} · แต้ม ×${IMPACT[c.impact].mult}">${IMPACT[c.impact].icon} ×${IMPACT[c.impact].mult}</span>`:''}
       ${isTask(c)&&c.size&&c.size!=='s'?`<span class="badge sz-${c.size}" title="${SIZES[c.size].label}">${SIZES[c.size].icon} ${SIZES[c.size].pts}</span>`:''}
       ${trailOf(c).filter(t=>t.t==='handoff').length?`<span class="badge" title="ส่งต่อกัน ${trailOf(c).filter(t=>t.t==='handoff').length} ครั้ง">🔁 ${trailOf(c).filter(t=>t.t==='handoff').length}</span>`:''}
       ${c.priority==='urgent'&&!isDone(c)?'<span class="badge pr-urgent">🔥 ด่วน</span>':c.priority==='high'&&!isDone(c)?'<span class="badge pr-high">⬆ สูง</span>':''}
@@ -771,17 +785,21 @@ function openNewCard(listId){
     <label class="fl">ชื่อการ์ด<input id="nTitle" placeholder="เช่น ออกแบบโครง Iron-X รุ่นใหม่" autocomplete="off"></label>
     <div class="grid2"><label id="nDueWrap">กำหนดส่ง <span style="color:var(--late)">*</span><input type="date" id="nDue" value="${def}"></label>
       <label>ความสำคัญ<select id="nPrio">${Object.entries(PRIO).map(([k,v])=>`<option value="${k}" ${k==='normal'?'selected':''}>${v}</option>`).join('')}</select></label>
-      <label id="nSizeWrap">ขนาดงาน (แต้ม KPI)<select id="nSize">${Object.entries(SIZES).map(([k,v])=>`<option value="${k}">${v.icon} ${v.label} · ${v.pts} แต้ม</option>`).join('')}</select></label></div>
+      <label id="nSizeWrap">ขนาดงาน (แต้ม KPI)<select id="nSize">${Object.entries(SIZES).map(([k,v])=>`<option value="${k}">${v.icon} ${v.label} · ${v.pts} แต้ม</option>`).join('')}</select></label>
+      <label id="nImpWrap">หมวดผลงาน<select id="nImp">${Object.entries(IMPACT).map(([k,v])=>`<option value="${k}">${v.icon} ${v.label}${v.mult>1?' · ×'+v.mult:''}</option>`).join('')}</select></label></div>
+    <div class="muted" id="nImpHint" style="margin-top:6px"></div>
     <div class="sec"><h4>ผู้รับผิดชอบ</h4><div class="chips" id="nAss">${activeMembers().map(m=>`<button type="button" class="chip ${sel.has(m.id)?'on':''}" data-id="${m.id}">${avatar(m)}${esc(m.name)}</button>`).join('')}</div></div>
     <div class="mfoot"><span class="lerr" id="nErr" style="margin:0"></span><button class="pri" id="nSave" style="min-width:140px">สร้างการ์ด</button></div>`;
   showModal();setTimeout(()=>$('#nTitle').focus(),50);
-  $('#nKind').onclick=e=>{const b=e.target.closest('button');if(!b)return;kind=b.dataset.k;$$('#nKind button').forEach(x=>x.classList.toggle('on',x===b));$('#nDueWrap').style.display=$('#nSizeWrap').style.display=kind==='task'?'':'none'};
+  $('#nKind').onclick=e=>{const b=e.target.closest('button');if(!b)return;kind=b.dataset.k;$$('#nKind button').forEach(x=>x.classList.toggle('on',x===b));$('#nDueWrap').style.display=$('#nSizeWrap').style.display=$('#nImpWrap').style.display=$('#nImpHint').style.display=kind==='task'?'':'none'};
+  const impHint=()=>{const v=IMPACT[$('#nImp').value];$('#nImpHint').innerHTML=`${v.icon} ${v.hint}${v.mult>1?` — <b style="color:var(--gold)">แต้ม ×${v.mult}</b> + ผู้ริเริ่ม <b style="color:var(--gold)">+${SCORE.initiator}</b>`:''}`};
+  $('#nImp').onchange=impHint; impHint();
   $('#nAss').onclick=e=>{const b=e.target.closest('.chip');if(!b)return;const id=b.dataset.id;sel.has(id)?sel.delete(id):sel.add(id);b.classList.toggle('on',sel.has(id))};
   const save=async()=>{
     const t=$('#nTitle').value.trim(),due=$('#nDue').value;
     if(!t){$('#nErr').textContent='กรุณาใส่ชื่อการ์ด';$('#nTitle').focus();return}
     if(kind==='task'&&!due){$('#nErr').textContent='งานต้องมีกำหนดส่ง';$('#nDue').focus();return}
-    const nc={id:uid(),board_id:l.board_id,list_id:l.id,kind,title:t,description:'',assignees:[...sel],labels:[],priority:$('#nPrio').value,due:kind==='task'?due:null,size:kind==='task'?$('#nSize').value:null,
+    const nc={id:uid(),board_id:l.board_id,list_id:l.id,kind,title:t,description:'',assignees:[...sel],labels:[],priority:$('#nPrio').value,due:kind==='task'?due:null,size:kind==='task'?$('#nSize').value:null,impact:kind==='task'?$('#nImp').value:null,
       trail:[{t:'start',at:now(),by:session.id,list:l.name,list_id:l.id,to:[...sel]}],
       pos:Math.max(0,...S.cards.filter(x=>x.list_id===l.id).map(x=>x.pos||0))+1024,checklists:[],links:[],attachments:[],comments:[],created_by:session.id,created_at:now(),started_at:null,done_at:null,updated_at:now()};
     applyListChange(nc,l);closeModal();await saveCard(nc,`สร้าง${kind==='task'?'งาน':'การ์ดข้อมูล'} "${t}" ใน ${l.name}`);
@@ -876,18 +894,21 @@ function contributors(c){
 }
 function cardScore(c){
   // คืนค่า {each, base, mult, team, people[]}  (คิดเฉพาะงานที่เสร็จแล้ว)
-  const people=contributors(c), base=SIZES[c.size||'s'].pts, team=people.length>1;
+  const people=contributors(c), base=SIZES[c.size||'s'].pts, team=people.length>1, imp=IMPACT[c.impact||'op']||IMPACT.op;
   const late=c.due&&c.done_at&&new Date(c.done_at)>new Date(c.due+'T23:59:59');
-  const mult=(team?SCORE.team:SCORE.solo)*(late?SCORE.late:SCORE.onTime);
-  return {each:Math.round(base*mult*100)/100,base,mult,team,late,people};
+  const mult=imp.mult*(team?SCORE.team:SCORE.solo)*(late?SCORE.late:SCORE.onTime);
+  const starters=imp.mult>1?(trailOf(c)[0]?.to||[]).filter(id=>people.includes(id)):[];
+  return {each:Math.round(base*mult*100)/100,base,mult,team,late,people,imp,starters,bonus:SCORE.initiator};
 }
+const ptsOf=(sc,id)=>sc.people.includes(id)?sc.each+(sc.starters.includes(id)?sc.bonus:0):0;
 function pointsFor(id,cards){
-  let pts=0,solo=0,team=0,soloN=0,teamN=0;
+  let pts=0,solo=0,team=0,soloN=0,teamN=0,grow=0,growN=0,initN=0;
   cards.forEach(c=>{ if(!isTask(c)||!isDone(c)||!inPeriod(c.done_at)) return;
     const sc=cardScore(c); if(!sc.people.includes(id)) return;
-    pts+=sc.each; if(sc.team){team+=sc.each;teamN++} else {solo+=sc.each;soloN++} });
+    const v=ptsOf(sc,id); pts+=v; if(sc.team){team+=v;teamN++} else {solo+=v;soloN++}
+    if(sc.imp.mult>1){grow+=v;growN++} if(sc.starters.includes(id)) initN++; });
   const r=x=>Math.round(x*10)/10;
-  return {pts:r(pts),solo:r(solo),team:r(team),soloN,teamN};
+  return {pts:r(pts),solo:r(solo),team:r(team),soloN,teamN,grow:r(grow),growN,initN};
 }
 const fmtPts=x=>(Math.round(x*10)/10).toLocaleString('th-TH',{maximumFractionDigits:1});
 function pushTrail(c,e){c.trail=trailOf(c).slice();c.trail.push({at:now(),by:session.id,...e})}
@@ -943,7 +964,7 @@ async function toggleDone(c){
     const to=doneList(c.board_id); if(!to) return toast('บอร์ดนี้ยังไม่มีคอลัมน์ "เสร็จ" — ตั้งได้ที่ ⋯ ของคอลัมน์');
     c.pos=Math.max(0,...S.cards.filter(x=>x.list_id===to.id).map(x=>x.pos||0))+1024;
     await moveCard(c,to,{ask:false});
-    const sc=cardScore(card(c.id)||c); if(isTask(c)) toast(`🏆 ปิดงานแล้ว · ${sc.people.length} คน ได้คนละ ${fmtPts(sc.each)} แต้ม`);
+    const sc=cardScore(card(c.id)||c); if(isTask(c)) toast(`🏆 ปิดงานแล้ว · ${sc.people.length} คน ได้คนละ ${fmtPts(sc.each)} แต้ม${sc.starters.length?' · ผู้ริเริ่ม +'+sc.bonus:''}`);
   }
   if(ui.openCard===c.id) renderCardModal();
 }
@@ -954,6 +975,10 @@ function scoreHelp(){
    <tr><td>${SIZES.s.icon} ${SIZES.s.label}</td><td><b>${SIZES.s.pts}</b></td><td>เสนอราคา, ตอบลูกค้า, จัดส่งของ</td></tr>
    <tr><td>${SIZES.m.icon} ${SIZES.m.label}</td><td><b>${SIZES.m.pts}</b></td><td>ทำคลิปสอน, ติดตั้งหน้างาน, เตรียม PO</td></tr>
    <tr><td>${SIZES.l.icon} ${SIZES.l.label}</td><td><b>${SIZES.l.pts}</b></td><td>พัฒนา Iron-X Gen II, โปรเจกต์ลูกค้า AMR</td></tr></tbody></table></div>
+  <div class="sec"><h4>หมวดผลงาน (ตัวคูณพิเศษ)</h4>
+   <div class="tblwrap"><table><thead><tr><th>หมวด</th><th>ตัวคูณ</th><th>ตัวอย่าง</th></tr></thead><tbody>
+   ${Object.values(IMPACT).map(v=>`<tr><td>${v.icon} ${v.label}</td><td><b>×${v.mult}</b></td><td>${v.hint}</td></tr>`).join('')}</tbody></table></div>
+   <div class="rule">💡 <b>ผู้ริเริ่ม</b> (คนที่เริ่มงานในหมวด R&D / ไอเดียใหม่ / พัฒนาองค์กร) ได้โบนัสเพิ่ม <b>+${SCORE.initiator} แต้ม</b></div></div>
   <div class="sec"><h4>ตัวคูณ</h4>
    <div class="rule">👤 <b>ทำคนเดียว</b> — ได้เต็ม <b>${SCORE.solo*100}%</b></div>
    <div class="rule">👥 <b>ทำเป็นทีม / ส่งต่อกันหลายขั้น</b> — ทุกคนที่มีส่วนร่วมได้ <b>คนละ ${SCORE.team*100}%</b> (รวมทั้งทีมได้มากกว่าทำคนเดียว)</div>
@@ -961,7 +986,9 @@ function scoreHelp(){
    <div class="rule">✅ ได้แต้มเมื่อ <b>ปิดงาน</b> (ย้ายเข้าคอลัมน์เสร็จ หรือกดวงกลม ✓ ในการ์ด)</div>
    <div class="rule">🔁 "มีส่วนร่วม" = เคยเป็นผู้รับผิดชอบในขั้นใดขั้นหนึ่ง หรือเป็นคนปิดงาน</div>
    <div class="rule">🛡 Admin / Owner ที่แค่ตรวจรับแล้วกดปิด ไม่นับเป็นสมาชิกทีม — แต้มเต็มยังเป็นของคนทำ</div></div>
-  <div class="sec"><h4>ตัวอย่าง</h4><div class="rule">เสนอราคา (ปิ๊ก) → จัดซื้อ (มานี) → ส่งมอบ (ก้อง) · งานกลาง 3 แต้ม · ตรงเวลา<br>→ 3 คน ได้คนละ 3 × 60% = <b>1.8 แต้ม</b> (ทีมรวม 5.4)</div></div>`;
+  <div class="sec"><h4>ตัวอย่าง</h4><div class="rule">🔧 เสนอราคา → จัดซื้อ → ส่งมอบ · งานกลาง 3 แต้ม · 3 คน · ตรงเวลา<br>→ คนละ 3 × 60% = <b>1.8 แต้ม</b></div>
+   <div class="rule">📈 ขอใบรับรอง CE ให้ Iron-X · โปรเจกต์ 5 แต้ม · ทำคนเดียว<br>→ 5 × 2 × 100% = <b>10 แต้ม</b> + ผู้ริเริ่ม 1 = <b>11 แต้ม</b></div>
+   <div class="rule">💡 เปิดร้านบน Marketplace ใหม่ · งานกลาง 3 · 2 คน (คนเริ่ม + คนช่วย)<br>→ คนละ 3 × 2 × 60% = <b>3.6</b> · คนเริ่มได้ <b>4.6 แต้ม</b></div></div>`;
   showModal();
 }
 function initModalSort(c){
@@ -988,8 +1015,9 @@ function workflowHTML(c){
   return `<div class="sec"><h4>🔁 เส้นทางงาน & คะแนน <button class="sm" data-act="scoreHelp">ℹ️ วิธีคิดแต้ม</button></h4>
     <div class="trail">${tr.map(t=>`<div class="tstep ${t.t}"><span class="tdot">${ic[t.t]||'•'}</span><div><b>${tx[t.t]||t.t}</b>${t.list?` · ${esc(t.list)}`:''} <span class="muted">${fmtDT(t.at)}</span>
       <div class="muted">${t.t==='done'?'โดย ':''}${t.t==='done'?esc(nm(t.by)):`${esc(nm(t.by))}${(t.to||[]).length?' → '+t.to.map(id=>`<span class="who2">${avatar(member(id))}${esc(nm(id))}</span>`).join(' '):''}`}${t.note?` · “${esc(t.note)}”`:''}</div></div></div>`).join('')}</div>
-    ${sc?`<div class="scorebox ${isDone(c)?'got':''}">${isDone(c)?'🏆 ได้แต้มแล้ว':'🎯 แต้มเมื่อปิดงาน'} · ${SIZES[c.size||'s'].icon} ${SIZES[c.size||'s'].label} ${sc.base} แต้ม × ${sc.team?'ทีม '+SCORE.team*100+'%':'เดี่ยว 100%'}${sc.late?' × ส่งช้า '+SCORE.late:''}
-      = <b>คนละ ${fmtPts(sc.each)} แต้ม</b><div class="ppl">${ppl.map(id=>`<span class="who2">${avatar(member(id))}${esc(nm(id))}</span>`).join('')}</div></div>`:''}
+    ${sc?`<div class="scorebox ${isDone(c)?'got':''}">${isDone(c)?'🏆 ได้แต้มแล้ว':'🎯 แต้มเมื่อปิดงาน'} · ${SIZES[c.size||'s'].icon} ${SIZES[c.size||'s'].label} ${sc.base} แต้ม${sc.imp.mult>1?` × ${sc.imp.icon} ${sc.imp.label.split(' /')[0]} ×${sc.imp.mult}`:''} × ${sc.team?'ทีม '+SCORE.team*100+'%':'เดี่ยว 100%'}${sc.late?' × ส่งช้า '+SCORE.late:''}
+      = <b>คนละ ${fmtPts(sc.each)} แต้ม</b>${sc.starters.length?` <span class="muted">· 💡 ผู้ริเริ่ม +${sc.bonus}</span>`:''}
+      <div class="ppl">${ppl.map(id=>`<span class="who2">${avatar(member(id))}${esc(nm(id))}${sc.starters.includes(id)?' 💡':''} <b>${fmtPts(ptsOf(sc,id))}</b></span>`).join('')}</div></div>`:''}
   </div>`;
 }
 function renderCardModal(){
@@ -1009,6 +1037,7 @@ function renderCardModal(){
     <div class="grid2">
       <label>ประเภท<select id="cKind"><option value="task" ${isTask(c)?'selected':''}>📌 งาน</option><option value="note" ${!isTask(c)?'selected':''}>📁 ข้อมูล / ไฟล์</option></select></label>
       <label>สถานะ<select id="cList">${lists.map(l=>`<option value="${l.id}" ${l.id===c.list_id?'selected':''}>${esc(l.name)}</option>`).join('')}</select></label>
+      ${isTask(c)?`<label>หมวดผลงาน<select id="cImp">${Object.entries(IMPACT).map(([k,v])=>`<option value="${k}" ${k===(c.impact||'op')?'selected':''}>${v.icon} ${v.label}${v.mult>1?' ×'+v.mult:''}</option>`).join('')}</select></label>`:''}
       ${isTask(c)?`<label>ขนาดงาน (แต้ม)<select id="cSize">${Object.entries(SIZES).map(([k,v])=>`<option value="${k}" ${k===(c.size||'s')?'selected':''}>${v.icon} ${v.label} · ${v.pts}</option>`).join('')}</select></label>`:''}
       <label>ความสำคัญ<select id="cPrio">${Object.entries(PRIO).map(([k,v])=>`<option value="${k}" ${k===(c.priority||'normal')?'selected':''}>${v}</option>`).join('')}</select></label>
       ${isTask(c)?`<label>กำหนดส่ง <span style="color:var(--late)">*</span><input type="date" id="cDue" value="${c.due||''}"></label>`:''}
@@ -1058,6 +1087,7 @@ function renderCardModal(){
   $('#cKind').onchange=e=>{c.kind=e.target.value;if(c.kind==='task'&&!c.due){c.due=new Date(Date.now()+3*DAY).toISOString().slice(0,10);toast('ตั้งกำหนดส่งเริ่มต้น +3 วัน แก้ได้')}saveCard(c,'เปลี่ยนประเภทเป็น '+(c.kind==='task'?'งาน':'ข้อมูล/ไฟล์')).then(renderCardModal)};
   $('#cLabels').onchange=e=>{c.labels=e.target.value.split(',').map(s=>s.trim()).filter(Boolean);saveCard(c)};
   $('#cList').onchange=e=>{const to=list(e.target.value);c.pos=Math.max(0,...S.cards.filter(x=>x.list_id===to.id).map(x=>x.pos||0))+1024;moveCard(c,to,{reopen:true})};
+  if($('#cImp'))$('#cImp').onchange=e=>{c.impact=e.target.value;const v=IMPACT[c.impact];saveCard(c,'หมวดผลงาน → '+v.icon+' '+v.label+(v.mult>1?' (×'+v.mult+')':'')).then(renderCardModal)};
   if($('#cSize'))$('#cSize').onchange=e=>{c.size=e.target.value;saveCard(c,'ขนาดงาน → '+SIZES[c.size].label+' ('+SIZES[c.size].pts+' แต้ม)').then(renderCardModal)};
   $('#cFile').onchange=e=>uploadFiles(c.id,[...e.target.files]);
   initModalSort(c);
@@ -1117,7 +1147,7 @@ function memberStats(id,cards){
   const ps=periodStart();
   const contrib=id===null?mine:cards.filter(c=>isTask(c)&&contributors(c).includes(id));
   const doneP=contrib.filter(c=>isDone(c)&&inPeriod(c.done_at));
-  const P=id===null?{pts:0,solo:0,team:0,soloN:0,teamN:0}:pointsFor(id,cards);
+  const P=id===null?{pts:0,solo:0,team:0,soloN:0,teamN:0,grow:0,growN:0,initN:0}:pointsFor(id,cards);
   const handoffs=id===null?0:cards.reduce((n,c)=>n+trailOf(c).filter(t=>t.t==='handoff'&&t.by===id&&inPeriod(t.at)).length,0);
   const withDue=doneP.filter(c=>c.due);
   const onTime=withDue.filter(c=>new Date(c.done_at)<=new Date(c.due+'T23:59:59')).length;
@@ -1177,8 +1207,10 @@ function renderDash(){
     <div class="kpis">
       ${person?`<div class="kpi pts"><b>${fmtPts(s1.P.pts)}</b><span>🏆 แต้ม KPI (${periodLabel()})</span></div>
         <div class="kpi"><b>${s1.P.soloN} / ${s1.P.teamN}</b><span>งานเดี่ยว / งานทีม</span></div>
-        <div class="kpi"><b>${s1.handoffs}</b><span>🔁 ส่งต่องาน</span></div>`
-      :`<div class="kpi pts"><b>${fmtPts(st.reduce((a,x)=>a+x.s.P.pts,0))}</b><span>🏆 แต้มรวมทีม (${periodLabel()})</span></div>`}
+        <div class="kpi"><b>${s1.handoffs}</b><span>🔁 ส่งต่องาน</span></div>
+        <div class="kpi grow"><b>${fmtPts(s1.P.grow)}</b><span>🚀 แต้มพัฒนาบริษัท (${s1.P.growN} งาน · ริเริ่ม ${s1.P.initN})</span></div>`
+      :`<div class="kpi pts"><b>${fmtPts(st.reduce((a,x)=>a+x.s.P.pts,0))}</b><span>🏆 แต้มรวมทีม (${periodLabel()})</span></div>
+        <div class="kpi grow"><b>${cards.filter(c=>isDone(c)&&inPeriod(c.done_at)&&(IMPACT[c.impact||'op']?.mult||1)>1).length}</b><span>🚀 งานพัฒนาบริษัทที่ปิดได้</span></div>`}
       <div class="kpi g"><b>${dd.ok}</b><span>🟢 ตามแผน</span></div>
       <div class="kpi y"><b>${dd.soon}</b><span>🟡 ใกล้กำหนด (≤2 วัน)</span></div>
       <div class="kpi r"><b>${dd.late}</b><span>🔴 เลยกำหนด</span></div>
@@ -1197,17 +1229,17 @@ function renderDash(){
       <div class="chartbox"><h3>${person?'แต้ม KPI รายเดือน (6 เดือน)':'สถานะกำหนดส่งรายคน'}</h3><div class="cv"><canvas id="ch4"></canvas></div></div>
     </div>
     ${person?`<div class="tblwrap"><table><thead><tr><th>งาน</th><th>สถานะ</th><th>กำหนดส่ง</th><th>ขนาด</th><th>บทบาท</th><th>แต้ม</th><th>เสร็จเมื่อ</th></tr></thead><tbody>
-      ${[...cards].sort((a,b)=>(isDone(a)-isDone(b))||String(a.due||'').localeCompare(String(b.due||''))).map(c=>{const d=dueInfo(c),p=ckProgress(c);const sc=cardScore(c),tr=trailOf(c),role=[tr[0]&&(tr[0].to||[]).includes(pid)?'เริ่มงาน':'',tr.some((t,i)=>i>0&&t.t==='handoff'&&(t.to||[]).includes(pid))?'รับช่วง':'',c.done_by===pid?'ปิดงาน':''].filter(Boolean).join(' · ')||(c.assignees.includes(pid)?'ผู้รับผิดชอบ':'-');
-        return `<tr class="click" data-act="openCard" data-id="${c.id}"><td>${esc(c.title)}</td><td>${esc(list(c.list_id).name)}</td><td>${d?`<span class="badge ${d.cls}">${d.text}</span>`:'-'}</td><td>${SIZES[c.size||'s'].icon} ${SIZES[c.size||'s'].pts}</td><td>${role}${sc.team?' <span class="muted">(ทีม)</span>':''}</td><td><b>${isDone(c)&&sc.people.includes(pid)?fmtPts(sc.each):'-'}</b></td><td>${c.done_at?fmtD(c.done_at):'-'}</td></tr>`}).join('')||'<tr><td colspan="7" class="muted">ยังไม่มีงาน</td></tr>'}
+      ${[...cards].sort((a,b)=>(isDone(a)-isDone(b))||String(a.due||'').localeCompare(String(b.due||''))).map(c=>{const d=dueInfo(c),p=ckProgress(c);const sc=cardScore(c),tr=trailOf(c),role=[tr[0]&&(tr[0].to||[]).includes(pid)?(sc.starters.includes(pid)?'💡 ผู้ริเริ่ม':'เริ่มงาน'):'',tr.some((t,i)=>i>0&&t.t==='handoff'&&(t.to||[]).includes(pid))?'รับช่วง':'',c.done_by===pid?'ปิดงาน':''].filter(Boolean).join(' · ')||(c.assignees.includes(pid)?'ผู้รับผิดชอบ':'-');
+        return `<tr class="click" data-act="openCard" data-id="${c.id}"><td>${esc(c.title)}</td><td>${esc(list(c.list_id).name)}</td><td>${d?`<span class="badge ${d.cls}">${d.text}</span>`:'-'}</td><td>${SIZES[c.size||'s'].icon} ${SIZES[c.size||'s'].pts}${(c.impact&&c.impact!=='op')?` ${IMPACT[c.impact].icon}×${IMPACT[c.impact].mult}`:''}</td><td>${role}${sc.team?' <span class="muted">(ทีม)</span>':''}</td><td><b>${isDone(c)&&sc.people.includes(pid)?fmtPts(ptsOf(sc,pid)):'-'}</b></td><td>${c.done_at?fmtD(c.done_at):'-'}</td></tr>`}).join('')||'<tr><td colspan="7" class="muted">ยังไม่มีงาน</td></tr>'}
     </tbody></table></div>`
-    :`<div class="tblwrap"><table><thead><tr><th>พนักงาน</th><th>ตำแหน่ง</th><th>🏆 แต้ม</th><th>เดี่ยว/ทีม</th><th>🔁 ส่งต่อ</th><th>🟢</th><th>🟡</th><th>🔴</th><th>เสร็จ</th><th>สำเร็จ</th><th>ตรงเวลา</th><th>Cycle (วัน)</th><th>เช็คลิสต์</th></tr></thead><tbody>
-      ${[...st].sort((a,b)=>b.s.P.pts-a.s.P.pts||b.s.doneP.length-a.s.doneP.length).map(({m,s},i)=>`<tr class="click" data-act="dashPerson" data-id="${m.id}" title="ดูรายบุคคล"><td>${['🥇','🥈','🥉'][i]||''} ${avatar(m)} ${esc(m.name)}</td><td>${esc(m.role||'')}</td><td><b class="ptsv">${fmtPts(s.P.pts)}</b></td><td>${s.P.soloN} / ${s.P.teamN}</td><td>${s.handoffs}</td><td>${s.dd.ok}</td><td>${s.dd.soon}</td><td style="color:${s.dd.late?'var(--late)':'inherit'}">${s.dd.late}</td><td><b>${s.doneP.length}</b></td><td>${s.success==null?'-':s.success+'%'}</td><td>${s.onTime==null?'-':s.onTime+'%'}</td><td>${s.cycle==null?'-':s.cycle.toFixed(1)}</td><td>${s.progress==null?'-':s.progress+'%'}</td></tr>`).join('')}
+    :`<div class="tblwrap"><table><thead><tr><th>พนักงาน</th><th>ตำแหน่ง</th><th>🏆 แต้ม</th><th>🚀 พัฒนา</th><th>เดี่ยว/ทีม</th><th>🔁 ส่งต่อ</th><th>🟢</th><th>🟡</th><th>🔴</th><th>เสร็จ</th><th>สำเร็จ</th><th>ตรงเวลา</th><th>Cycle (วัน)</th><th>เช็คลิสต์</th></tr></thead><tbody>
+      ${[...st].sort((a,b)=>b.s.P.pts-a.s.P.pts||b.s.doneP.length-a.s.doneP.length).map(({m,s},i)=>`<tr class="click" data-act="dashPerson" data-id="${m.id}" title="ดูรายบุคคล"><td>${['🥇','🥈','🥉'][i]||''} ${avatar(m)} ${esc(m.name)}</td><td>${esc(m.role||'')}</td><td><b class="ptsv">${fmtPts(s.P.pts)}</b></td><td>${s.P.grow?fmtPts(s.P.grow)+(s.P.initN?` <span class="muted">💡${s.P.initN}</span>`:''):'-'}</td><td>${s.P.soloN} / ${s.P.teamN}</td><td>${s.handoffs}</td><td>${s.dd.ok}</td><td>${s.dd.soon}</td><td style="color:${s.dd.late?'var(--late)':'inherit'}">${s.dd.late}</td><td><b>${s.doneP.length}</b></td><td>${s.success==null?'-':s.success+'%'}</td><td>${s.onTime==null?'-':s.onTime+'%'}</td><td>${s.cycle==null?'-':s.cycle.toFixed(1)}</td><td>${s.progress==null?'-':s.progress+'%'}</td></tr>`).join('')}
     </tbody></table></div>`}</div>`;
   bindScope();
   const ps2=$('#personSel');if(ps2)ps2.onchange=e=>{ui.dashPerson=e.target.value;renderMain()};
   ui._report=person
-    ?{name:person.name,rows:[['งาน','สถานะ','กำหนดส่ง','สถานะกำหนดส่ง','ขนาด','แต้มฐาน','ทีม/เดี่ยว','แต้มที่ได้','เช็คลิสต์%','เริ่ม','เสร็จ']].concat(cards.map(c=>{const d=dueInfo(c),p=ckProgress(c),sc=cardScore(c);return [c.title,list(c.list_id).name,c.due||'',d?d.text:'',SIZES[c.size||'s'].label,sc.base,sc.team?'ทีม':'เดี่ยว',isDone(c)&&sc.people.includes(pid)?sc.each:'',p.total?Math.round(p.done/p.total*100):'',c.started_at?c.started_at.slice(0,10):'',c.done_at?c.done_at.slice(0,10):'']}))}
-    :{name:'ทั้งทีม',rows:[['พนักงาน','ตำแหน่ง','แต้ม KPI','แต้มเดี่ยว','แต้มทีม','งานเดี่ยว','งานทีม','ส่งต่อ','ตามแผน','ใกล้กำหนด','เลยกำหนด','เสร็จ','อัตราสำเร็จ%','ตรงเวลา%','Cycle(วัน)','เช็คลิสต์%']].concat(st.map(({m,s})=>[m.name,m.role||'',s.P.pts,s.P.solo,s.P.team,s.P.soloN,s.P.teamN,s.handoffs,s.dd.ok,s.dd.soon,s.dd.late,s.doneP.length,s.success??'',s.onTime??'',s.cycle==null?'':s.cycle.toFixed(1),s.progress??'']))};
+    ?{name:person.name,rows:[['งาน','สถานะ','กำหนดส่ง','สถานะกำหนดส่ง','ขนาด','แต้มฐาน','หมวดผลงาน','ทีม/เดี่ยว','แต้มที่ได้','เช็คลิสต์%','เริ่ม','เสร็จ']].concat(cards.map(c=>{const d=dueInfo(c),p=ckProgress(c),sc=cardScore(c);return [c.title,list(c.list_id).name,c.due||'',d?d.text:'',SIZES[c.size||'s'].label,sc.base,sc.imp.label,sc.team?'ทีม':'เดี่ยว',isDone(c)&&sc.people.includes(pid)?ptsOf(sc,pid):'',p.total?Math.round(p.done/p.total*100):'',c.started_at?c.started_at.slice(0,10):'',c.done_at?c.done_at.slice(0,10):'']}))}
+    :{name:'ทั้งทีม',rows:[['พนักงาน','ตำแหน่ง','แต้ม KPI','แต้มเดี่ยว','แต้มทีม','แต้มพัฒนาบริษัท','งานริเริ่ม','งานเดี่ยว','งานทีม','ส่งต่อ','ตามแผน','ใกล้กำหนด','เลยกำหนด','เสร็จ','อัตราสำเร็จ%','ตรงเวลา%','Cycle(วัน)','เช็คลิสต์%']].concat(st.map(({m,s})=>[m.name,m.role||'',s.P.pts,s.P.solo,s.P.team,s.P.grow,s.P.initN,s.P.soloN,s.P.teamN,s.handoffs,s.dd.ok,s.dd.soon,s.dd.late,s.doneP.length,s.success??'',s.onTime??'',s.cycle==null?'':s.cycle.toFixed(1),s.progress??'']))};
   const tx=cssv('--mut'),ln=cssv('--line'),gold=cssv('--gold'),red=cssv('--late'),ok=cssv('--ok'),yel=cssv('--yel'),bg2=cssv('--bg2');
   Chart.defaults.color=tx;Chart.defaults.borderColor=ln;Chart.defaults.font.family='"IBM Plex Sans Thai",sans-serif';
   const base={responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{boxWidth:12}}}};
@@ -1223,7 +1255,7 @@ function renderDash(){
   if(person){
     const mo=[...Array(6)].map((_,i)=>{const d=new Date();d.setDate(1);d.setMonth(d.getMonth()-(5-i));return {y:d.getFullYear(),m:d.getMonth(),l:d.toLocaleDateString('th-TH',{month:'short'})}});
     const inM=(c,x)=>isDone(c)&&c.done_at&&new Date(c.done_at).getFullYear()===x.y&&new Date(c.done_at).getMonth()===x.m;
-    const ptsM=(x,team)=>Math.round(cards.filter(c=>inM(c,x)).reduce((a,c)=>{const sc=cardScore(c);return a+(sc.people.includes(pid)&&sc.team===team?sc.each:0)},0)*10)/10;
+    const ptsM=(x,team)=>Math.round(cards.filter(c=>inM(c,x)).reduce((a,c)=>{const sc=cardScore(c);return a+(sc.team===team?ptsOf(sc,pid):0)},0)*10)/10;
     charts.push(new Chart($('#ch4'),{type:'bar',data:{labels:mo.map(x=>x.l),datasets:[{label:'แต้มเดี่ยว',data:mo.map(x=>ptsM(x,false)),backgroundColor:gold},{label:'แต้มทีม',data:mo.map(x=>ptsM(x,true)),backgroundColor:'#3b82f6'}]},options:{...base,scales:{x:{stacked:true},y:{stacked:true,beginAtZero:true}}}}));
   } else {
     charts.push(new Chart($('#ch4'),{type:'bar',data:{labels:names,datasets:[['ok','ตามแผน',ok],['soon','ใกล้กำหนด',yel],['late','เลยกำหนด',red]].map(([k,l,c])=>({label:l,data:st.map(x=>x.s.dd[k]),backgroundColor:c}))},options:{...base,indexAxis:'y',scales:{x:{stacked:true,beginAtZero:true,ticks:{precision:0}},y:{stacked:true}}}}));
