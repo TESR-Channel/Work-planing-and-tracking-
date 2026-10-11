@@ -1,6 +1,6 @@
 # TESR Board — Work Planning & Tracking
 
-🔗 ใช้งาน: https://tesr-channel.github.io/Work-planing-and-tracking-/  ·  ▶ [วิดีโอสอนใช้](tutorial.mp4)
+🔗 ใช้งาน: https://tesr-channel.github.io/Work-planing-and-tracking-/  ·  ▶ [วิดีโอสอนใช้ v2](tutorial.mp4)
 
 ระบบติดตามงานแบบการ์ด (สไตล์ Trello) + แดชบอร์ดวัดผลทีม ของ TESR Co., Ltd.
 

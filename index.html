@@ -506,6 +506,21 @@ button.ring:hover{border-color:var(--ok);box-shadow:0 0 10px rgba(47,191,113,.5)
 .kdef .ki{font-size:20px}.kdef .kw{font-size:11px;color:var(--gold);border:1px solid var(--edge);border-radius:10px;padding:0 6px;margin-left:4px}
 @media (max-width:700px){.sct th:nth-child(5),.sct td:nth-child(5){display:none}.sc-big b{font-size:32px}}
 
+
+/* ===== tutorial player ===== */
+.vid{position:fixed;inset:0;z-index:300;background:rgba(3,3,6,.82);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:16px}
+.vbox{width:min(1180px,100%);max-height:100%;display:flex;flex-direction:column;background:#0d0d10;border:1px solid rgba(240,197,82,.4);border-radius:10px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+.vhead{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid rgba(240,197,82,.25);color:#f1ede4}
+.vhead b{font-family:Kanit,Inter,sans-serif;color:#f0c552}
+.vbody{display:grid;grid-template-columns:minmax(0,1fr) 270px;min-height:0}
+.vbody video{width:100%;max-height:calc(100vh - 120px);background:#000;display:block}
+.vch{overflow:auto;max-height:calc(100vh - 120px);border-left:1px solid rgba(240,197,82,.2);padding:6px}
+.vc{display:flex;gap:8px;width:100%;text-align:left;background:transparent;border:none;border-radius:6px;padding:7px 8px;color:#e8e4da;font-size:13px}
+.vc span{font:600 11px Orbitron,monospace;color:#a39d8f;min-width:36px;padding-top:2px}
+.vc:hover{background:rgba(240,197,82,.1)}.vc.on{background:rgba(215,31,51,.25);color:#fff}.vc.on span{color:#f0c552}
+button.howto{background:transparent;font:inherit}
+@media (max-width:760px){.vbody{display:flex;flex-direction:column;flex:1;min-height:0}.vch{border-left:none;border-top:1px solid rgba(240,197,82,.2);max-height:none;flex:1}.vid{padding:0}.vbox{border-radius:0;height:100%}}
+
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 
 @media (max-width:700px){
@@ -536,7 +551,7 @@ button.ring:hover{border-color:var(--ok);box-shadow:0 0 10px rgba(47,191,113,.5)
     <button class="pri" type="submit" id="lBtn">เข้าสู่ระบบ</button>
     <div class="lerr" id="lErr"></div>
     <button type="button" class="icon sm hidden" id="demoBtn" data-act="demoLogin">ทดลองใช้โหมดเดโม →</button>
-    <a class="howto" href="tutorial.mp4" target="_blank" rel="noopener">▶ ดูวิดีโอแนะนำการใช้งาน</a>
+    <button type="button" class="howto" data-act="howto">▶ ดูวิดีโอสอนใช้งาน <span class="muted">(v2 · 4 นาที)</span></button>
     <div class="boot"><i></i>SYSTEM ONLINE · WORK TRACKING v1</div>
   </form>
 </div>
@@ -562,6 +577,10 @@ button.ring:hover{border-color:var(--ok);box-shadow:0 0 10px rgba(47,191,113,.5)
 <main id="main"></main>
 <div id="modal" class="modal hidden"><div class="sheet" id="sheet"></div></div>
 <div id="toast"></div>
+<div id="vid" class="vid hidden"><div class="vbox">
+  <div class="vhead"><b>▶ วิธีใช้งาน TESR Board</b><span class="muted">เวอร์ชันล่าสุด</span><div class="spacer"></div><button class="icon" data-act="closeHowto" title="ปิด">✕</button></div>
+  <div class="vbody"><video id="vplayer" controls playsinline preload="metadata"></video><div class="vch" id="vch"></div></div>
+</div></div>
 
 <script>
 /* ===== CONFIG: วาง URL ของ Apps Script Web App ตรงนี้ (หรือใส่ผ่าน ⚙️ ขั้นสูง) ===== */
@@ -1431,7 +1450,7 @@ function exportReport(){
 function renderSettings(){
   ui.openCard=null;const m=me(),admin=isAdmin();
   $('#sheet').innerHTML=`<div class="mhead"><b style="flex:1;font-size:18px" class="kanit">⚙️ บัญชีและตั้งค่า</b><button class="icon" data-act="closeModal">✕</button></div>
-  <div class="mtop">${avatar(m,'lg')}<div><div class="nm"><b>${esc(m.name)}</b> ${admin?'<span class="mode sb">ADMIN</span>':''}</div><div class="muted">${esc(session.email||'')} ${m.role?'· '+esc(m.role):''}</div></div><div class="spacer"></div><a class="howto" href="tutorial.mp4" target="_blank" rel="noopener" style="margin:0 6px">▶ วิดีโอสอนใช้</a><button data-act="toggleTheme">🌓 Dark / Light</button><button class="danger" data-act="logout">ออกจากระบบ</button></div>
+  <div class="mtop">${avatar(m,'lg')}<div><div class="nm"><b>${esc(m.name)}</b> ${admin?'<span class="mode sb">ADMIN</span>':''}</div><div class="muted">${esc(session.email||'')} ${m.role?'· '+esc(m.role):''}</div></div><div class="spacer"></div><button class="howto" data-act="howto" style="margin:0 6px">▶ วิดีโอสอนใช้</button><button data-act="toggleTheme">🌓 Dark / Light</button><button class="danger" data-act="logout">ออกจากระบบ</button></div>
   ${admin?`
   <div class="sec"><h4>พนักงาน (${S.members.length}) <span class="muted">ดึงจากระบบลงเวลา TESR · ช่องตัวเลข = เป้าแต้ม KPI/เดือน (ว่าง = ${DEFAULT_TARGET})</span></h4>
     ${S.members.map(x=>`<div class="mem" data-mid="${x.id}">${avatar(x)}<div class="nm">${esc(x.name)}<small>${esc([x.code,x.role].filter(Boolean).join(' · '))}</small></div>
@@ -1453,6 +1472,19 @@ function renderSettings(){
 }
 function getCfg(){const c=lsGet(LS_CFG,{});return {url:c.url||CONFIG.API_URL||''}}
 
+/* ===== วิดีโอสอนใช้งาน ===== */
+const TUTORIAL={src:['tutorial.mp4?v=2','tutorial.webm?v=2'],chapters:[[0, "แนะนำ"], [5.0, "1. เข้าสู่ระบบ"], [12.3, "2. หน้าบอร์ด & สีกำหนดส่ง"], [27.0, "3. สร้างงานใหม่ (ขนาด + หมวดผลงาน)"], [49.8, "4. ลากไฟล์มาวาง"], [59.6, "5. ส่งต่องานให้เพื่อน"], [77.4, "6. ในการ์ด: เช็คลิสต์ · ลากจัดลำดับ · คอมเมนต์"], [114.9, "7. ปิดงาน & ได้แต้ม"], [127.7, "8. ตีกลับให้แก้ไข"], [138.9, "9. 🙏 ขอบคุณเพื่อน"], [152.7, "10. หน้าทีม"], [160.2, "11. แดชบอร์ด & KPI Score"], [175.8, "12. 📖 KPI วัดอะไรบ้าง"], [191.9, "13. Scorecard รายบุคคล"], [200.9, "14. มุมมองพนักงาน"]]};
+const fmtT=t=>Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0');
+function openHowto(){
+  const v=$('#vplayer'); if(!v.querySelector('source')){v.innerHTML=`<source src="${TUTORIAL.src[0]}" type="video/mp4"><source src="${TUTORIAL.src[1]}" type="video/webm">`;v.load()}
+  $('#vch').innerHTML='<div class="muted" style="padding:4px 8px">บทในวิดีโอ — กดเพื่อข้ามไป</div>'+TUTORIAL.chapters.map(([t,n],i)=>`<button class="vc" data-t="${t}"><span>${fmtT(t)}</span>${esc(n)}</button>`).join('');
+  $('#vch').onclick=e=>{const b=e.target.closest('.vc');if(!b)return;v.currentTime=+b.dataset.t;v.play()};
+  v.ontimeupdate=()=>{const t=v.currentTime;let k=0;TUTORIAL.chapters.forEach(([s],i)=>{if(t>=s)k=i});$$('#vch .vc').forEach((b,i)=>b.classList.toggle('on',i===k))};
+  $('#vid').classList.remove('hidden'); v.play().catch(()=>{});
+}
+function closeHowto(){const v=$('#vplayer');v.pause();$('#vid').classList.add('hidden')}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#vid').classList.contains('hidden'))closeHowto()});
+$('#vid').addEventListener('mousedown',e=>{if(e.target.id==='vid')closeHowto()});
 /* ===== ACTIONS ===== */
 async function act(a,d={}){
   const c=card(ui.openCard);
@@ -1481,6 +1513,8 @@ async function act(a,d={}){
     case 'toggleDone': toggleDone(c); break;
     case 'scoreHelp': scoreHelp(); break;
     case 'kpiHelp': kpiHelp(); break;
+    case 'howto': openHowto(); break;
+    case 'closeHowto': closeHowto(); break;
     case 'kudos': kudosModal(d.id); break;
     case 'safetyLog': safetyLog(d.id); break;
     case 'delKudos':{if(!confirm('ลบรายการนี้?'))return;await store.remove('kudos',d.id);renderMain();break}
