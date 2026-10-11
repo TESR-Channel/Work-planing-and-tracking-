@@ -17,7 +17,8 @@ const TABLES = {
   boards:   { tab: 'Boards',   show: ['name'] },
   lists:    { tab: 'Lists',    show: ['name', 'board_id', 'is_done'] },
   cards:    { tab: 'Cards',    show: ['title', 'list_id', 'assignees', 'priority', 'due', 'created_at', 'started_at', 'done_at'] },
-  activity: { tab: 'Activity', show: ['at', 'member', 'action', 'card_id'] }
+  activity: { tab: 'Activity', show: ['at', 'member', 'action', 'card_id'] },
+  kudos:    { tab: 'Kudos',    show: ['at', 'type', 'from', 'to', 'text'] }
 };
 const HEAD = ['id', 'updated_at', 'json'];
 const ADMIN_ONLY_WRITE = { mrows: 1, boards: 1, lists: 1 };
@@ -180,6 +181,7 @@ function rowOf_(t, o, names) {
     let v = o[k];
     if (k === 'assignees' && Array.isArray(v)) v = v.map(id => names[id] || id).join(', ');
     else if (k === 'list_id' || k === 'board_id') v = names[v] || v;
+    else if (k === 'from' || k === 'to') v = names[v] || v;
     else if (Array.isArray(v)) v = v.join(', ');
     else if (v && typeof v === 'object') v = JSON.stringify(v);
     return v == null ? '' : safe_(v);
@@ -188,6 +190,9 @@ function rowOf_(t, o, names) {
 }
 function upsert_(u, t, rows) {
   if (ADMIN_ONLY_WRITE[t] && !isAdmin_(u)) throw new Error('forbidden');
+  if (t === 'kudos') rows.forEach(r => {   // 🙏 ส่งในนามตัวเองเท่านั้น · บันทึก Safety ได้เฉพาะ Admin
+    if (r.type === 'safety' ? !isAdmin_(u) : (r.from !== u.id || r.to === u.id)) throw new Error('forbidden');
+  });
   const names = {}; getStaff_().forEach(s => names[s.id] = s.name); names.admin = 'Admin';
   if (t === 'cards' || t === 'lists') readTable_('lists').concat(readTable_('boards')).forEach(x => names[x.id] = x.name);
   const lock = LockService.getScriptLock(); lock.waitLock(20000);
@@ -207,6 +212,10 @@ function upsert_(u, t, rows) {
 }
 function remove_(u, t, ids) {
   if (ADMIN_ONLY_WRITE[t] && !isAdmin_(u)) throw new Error('forbidden');
+  if (t === 'kudos' && !isAdmin_(u)) {
+    const bad = readTable_('kudos').filter(k => ids.indexOf(k.id) >= 0 && k.from !== u.id);
+    if (bad.length) throw new Error('forbidden');
+  }
   if (t === 'cards' && !isAdmin_(u)) {
     const own = readTable_('cards').filter(c => ids.indexOf(c.id) >= 0 && c.created_by !== u.id);
     if (own.length) throw new Error('forbidden');

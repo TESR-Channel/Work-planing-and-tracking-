@@ -220,7 +220,7 @@ th{color:var(--gold);font-weight:600;background:var(--card)}
 .tblwrap{overflow-x:auto}
 
 /* ===== settings ===== */
-.mem{display:grid;grid-template-columns:28px 1.4fr 1fr 1fr 110px 44px 30px;gap:6px;align-items:center;margin-bottom:6px}
+.mem{display:grid;grid-template-columns:28px 1.4fr 1fr 1fr 110px 74px 44px 30px;gap:6px;align-items:center;margin-bottom:6px}
 .mem input[type=color]{padding:0;height:30px;width:44px}
 .mem .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mem .nm small{display:block;color:var(--mut);font-size:11px}
@@ -483,6 +483,29 @@ button.ring:hover{border-color:var(--ok);box-shadow:0 0 10px rgba(47,191,113,.5)
 .kpi.grow b{color:#c4b5fd;text-shadow:0 0 14px rgba(168,85,247,.45)}
 [data-theme=light] .kpi.grow b,[data-theme=light] .badge.imp{color:#7c3aed}
 
+
+/* ===== KPI scorecard / kudos ===== */
+.badge.rw{color:#fb923c;background:rgba(249,115,22,.14)}
+.kbtn{font-size:16px}
+.kd{display:flex;gap:8px;padding:7px 0;border-bottom:1px dashed var(--line);font-size:13px}.kd .av{margin:0;flex:none}
+.kfeed .kscroll{flex:1;overflow:auto;min-height:0}
+.kfeed h3{display:flex;justify-content:space-between;align-items:center}
+.scard{background:var(--glass);border:1px solid var(--edge);border-radius:10px;padding:14px;margin-bottom:12px;backdrop-filter:blur(10px)}
+.sc-head{display:flex;flex-wrap:wrap;align-items:center;gap:14px;margin-bottom:10px}
+.sc-big{display:flex;flex-direction:column;align-items:center;min-width:92px}
+.sc-big b{font:700 40px/1 Orbitron,sans-serif}.sc-big span{font-size:11px;color:var(--mut);letter-spacing:1px}
+.sc-grade{width:52px;height:52px;border-radius:12px;display:flex;align-items:center;justify-content:center;font:800 28px Orbitron,sans-serif;border:2px solid currentColor}
+.grade-A{color:var(--ok)}.grade-B{color:#60a5fa}.grade-C{color:var(--yel)}.grade-D{color:var(--late)}
+.sc-big.grade-A b,.sc-big.grade-B b,.sc-big.grade-C b,.sc-big.grade-D b{text-shadow:0 0 16px currentColor}
+.gr{display:inline-block;min-width:20px;text-align:center;font:700 11px Orbitron,sans-serif;border:1px solid currentColor;border-radius:4px;padding:0 3px}
+.sct td{vertical-align:middle;white-space:normal}.sct .kv{font-weight:700;white-space:nowrap}.sct .kwt{white-space:nowrap;color:var(--gold)}
+.sct .bar{margin:0}
+.kscore-eq{background:linear-gradient(90deg,rgba(212,167,44,.12),transparent);border:1px solid var(--edge);border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:13.5px}
+.kdefs{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:8px}
+.kdef{display:flex;gap:10px;padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:var(--glass2)}
+.kdef .ki{font-size:20px}.kdef .kw{font-size:11px;color:var(--gold);border:1px solid var(--edge);border-radius:10px;padding:0 6px;margin-left:4px}
+@media (max-width:700px){.sct th:nth-child(5),.sct td:nth-child(5){display:none}.sc-big b{font-size:32px}}
+
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 
 @media (max-width:700px){
@@ -532,6 +555,7 @@ button.ring:hover{border-color:var(--ok);box-shadow:0 0 10px rgba(47,191,113,.5)
   <input id="search" placeholder="🔍 ค้นหางาน">
   <select id="memberFilter" title="กรองตามคน"></select>
   <span id="modeBadge" class="mode"></span>
+  <button class="icon kbtn" data-act="kudos" title="🙏 ขอบคุณเพื่อน">🙏</button>
   <button class="icon" data-act="toggleTheme" title="สลับธีม Dark / Light">🌓</button>
   <div class="who" id="whoBtn" title="บัญชีและตั้งค่า"></div>
 </header>
@@ -543,7 +567,7 @@ button.ring:hover{border-color:var(--ok);box-shadow:0 0 10px rgba(47,191,113,.5)
 /* ===== CONFIG: วาง URL ของ Apps Script Web App ตรงนี้ (หรือใส่ผ่าน ⚙️ ขั้นสูง) ===== */
 const CONFIG = { API_URL: 'https://script.google.com/macros/s/AKfycbwKGxHAZ2inWEdPmK7eY7GvLL5cE_CN7kzVWKxXFeHL8X63Vu4Afg1bH4dokXhcTDmQsw/exec' };
 
-const T = { mrows:'tb_members', boards:'tb_boards', lists:'tb_lists', cards:'tb_cards', activity:'tb_activity' };
+const T = { mrows:'tb_members', boards:'tb_boards', lists:'tb_lists', cards:'tb_cards', activity:'tb_activity', kudos:'tb_kudos' };
 const KEYS = Object.keys(T);
 const LS_DATA='tesrboard_demo_v2', LS_CFG='tesrboard_cfg', LS_SES='tesrboard_session', LS_BOARD='tesrboard_board', LS_THEME='tesrboard_theme';
 const PALETTE=['#d71f33','#d4a72c','#2fbf71','#3b82f6','#a855f7','#ec4899','#14b8a6','#f97316','#64748b','#84cc16'];
@@ -556,11 +580,30 @@ const IMPACT={
   op:  {label:'งานประจำ / Operation',icon:'🔧',mult:1,  hint:'เสนอราคา, จัดส่ง, งานบริการ, งานเอกสาร'},
   rd:  {label:'พัฒนาผลิตภัณฑ์ / R&D',icon:'🧪',mult:1.5,hint:'อัปเกรด Iron-X, ปรับปรุงสินค้า/คอร์สเดิม'},
   new: {label:'ริเริ่มผลิตภัณฑ์ / ไอเดียใหม่',icon:'💡',mult:2,hint:'สินค้าใหม่, คอร์สใหม่, บริการใหม่'},
-  grow:{label:'พัฒนาองค์กร / ขยายธุรกิจ',icon:'📈',mult:2,hint:'ใบรับรอง/มาตรฐาน, BOI, Marketplace ใหม่, ตลาด/พาร์ทเนอร์ใหม่'}
+  grow:{label:'พัฒนาองค์กร / ขยายธุรกิจ',icon:'📈',mult:2,hint:'ใบรับรอง/มาตรฐาน, BOI, Marketplace ใหม่, ตลาด/พาร์ทเนอร์ใหม่'},
+  teach:{label:'ถ่ายทอดความรู้',icon:'📚',mult:1.5,hint:'เขียนคู่มือ/README, อัดคลิปสอน, สอนน้องฝึกงาน, ทำเอกสารวงจร'},
+  reuse:{label:'ของใช้ซ้ำ / มาตรฐานภายใน',icon:'🛠',mult:1.5,hint:'ไลบรารีโค้ด, แบบ PCB มาตรฐาน, jig, template ที่ทีมใช้ต่อได้'},
+  learn:{label:'พัฒนาตัวเอง',icon:'🎓',mult:1.2,hint:'สอบใบรับรอง, เรียนคอร์สจบ (ROS 2, Safety, PLC ...)'}
 };
+['rd','new','grow'].forEach(k=>IMPACT[k].init=true);            // ได้โบนัสผู้ริเริ่ม
+['rd','new','grow','teach','reuse'].forEach(k=>IMPACT[k].dev=true); // นับเป็น "แต้มพัฒนาบริษัท"
+SCORE.kudos=0.5;                                   // ได้รับ 🙏 1 ครั้ง = +0.5 แต้ม
+const KPI_W={out:0.6,qual:0.2,team:0.2};           // น้ำหนัก KPI Score
+const DEFAULT_TARGET=10;                            // เป้าแต้ม/เดือน (Admin ตั้งรายคนได้)
+const KUDOS_LIMIT=3;                                // 🙏 ส่งได้กี่ครั้ง/เดือน
+const KPI_DEFS=[
+  ['🏆','ผลงาน','60%','แต้มจากงานที่ปิดได้ เทียบกับเป้าของคุณ — งานใหญ่/งานพัฒนาบริษัทได้แต้มมากกว่า'],
+  ['✅','คุณภาพ','20%','เฉลี่ยจาก: ส่งตรงเวลา · ผ่านรอบแรก (ไม่ถูกตีกลับ) · ไม่เลื่อนกำหนดส่ง'],
+  ['🤝','ทีมเวิร์ก','20%','งานที่ทำเป็นทีม + ส่งต่องานให้เพื่อน + 🙏 คำขอบคุณที่ได้รับ (5 ครั้ง = เต็ม)'],
+  ['🦺','ความปลอดภัย','เงื่อนไข','ถ้ามีเหตุจากความประมาทในช่วงนั้น จะระงับโบนัส (ไม่หักคะแนน)'],
+  ['🚀','พัฒนาบริษัท','ข้อมูลประกอบ','แต้มจากงาน R&D · ไอเดียใหม่ · พัฒนาองค์กร · ถ่ายทอดความรู้ · ของใช้ซ้ำ'],
+  ['⭐','ความพอใจลูกค้า','ข้อมูลประกอบ','คะแนน 1–5 ที่ลูกค้าให้ หลังส่งมอบ/ติดตั้ง/อบรม'],
+  ['💼','ปิดดีล','ข้อมูลประกอบ','สัดส่วนใบเสนอราคาที่ลูกค้าตอบรับ (สำหรับงานขาย)'],
+  ['⏱','Cycle time','ข้อมูลประกอบ','เวลาเฉลี่ยตั้งแต่เริ่มทำจนปิดงาน (วัน)']
+];
 const PERIODS=[['today','วันนี้'],['7','7 วัน'],['month','เดือนนี้'],['30','30 วัน'],['90','90 วัน'],['365','1 ปี'],['custom','📅 ช่วงวันที่…'],['cmonth','🗓 ช่วงเดือน…']];
 
-let S={staff:[],mrows:[],members:[],boards:[],lists:[],cards:[],activity:[]};
+let S={staff:[],mrows:[],members:[],boards:[],lists:[],cards:[],activity:[],kudos:[]};
 let store, session=null;
 const _t0=new Date(),_ym=_t0.toISOString().slice(0,7);
 const ui={board:null,view:'board',member:'',search:'',period:'month',scope:'board',openCard:null,dragging:false,from:_ym+'-01',to:_t0.toISOString().slice(0,10),mFrom:_ym,mTo:_ym,hideChecked:false,showActs:true};
@@ -616,7 +659,7 @@ function makeGasStore(url){
   const put=(k,row)=>{const a=S[k];const i=a.findIndex(x=>x.id===row.id);if(i>=0)a[i]=row;else a.push(row)};
   return {
     mode:'sheet',
-    async load(){const d=await call('load');ver=d.ver;return {staff:d.staff||[],mrows:d.mrows||[],boards:d.boards||[],lists:d.lists||[],cards:d.cards||[],activity:d.activity||[]}},
+    async load(){const d=await call('load');ver=d.ver;return {staff:d.staff||[],mrows:d.mrows||[],boards:d.boards||[],lists:d.lists||[],cards:d.cards||[],activity:d.activity||[],kudos:d.kudos||[],_noKudos:!Array.isArray(d.kudos)}},
     async login(user,pass){
       const r=await fetch(url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'login',user,pass})});
       const j=await r.json();
@@ -657,15 +700,16 @@ function buildMembers(){
   const ov=Object.fromEntries(S.mrows.map(r=>[r.id,r]));
   const list=S.staff.map((s,i)=>{const o=ov[s.id]||{};return {
     id:s.id,code:s.code||'',name:s.name||o.name||'?',email:s.email||'',role:s.position||o.role||'',dept:o.dept||'',
-    color:o.color||PALETTE[i%PALETTE.length],active:s.active!==false&&o.active!==false,board_role:o.board_role||'member'}});
+    color:o.color||PALETTE[i%PALETTE.length],active:s.active!==false&&o.active!==false,board_role:o.board_role||'member',target:o.target||null}});
   const a=ov.admin;
   if(a||session?.id==='admin') list.unshift({id:'admin',code:'',name:a?.name||session?.name||'Admin',email:a?.email||session?.email||'',role:a?.role||'Admin',dept:a?.dept||'Management',color:a?.color||'#d4a72c',active:true,board_role:'admin'});
   S.members=list;
 }
-function memberRow(m){return {id:m.id,name:m.name,email:m.email||'',role:m.role||'',dept:m.dept||'',color:m.color||null,active:m.active!==false,board_role:m.board_role||'member',created_at:S.mrows.find(r=>r.id===m.id)?.created_at||now()}}
+function memberRow(m){return {id:m.id,name:m.name,email:m.email||'',role:m.role||'',dept:m.dept||'',color:m.color||null,active:m.active!==false,board_role:m.board_role||'member',target:m.target?+m.target:null,created_at:S.mrows.find(r=>r.id===m.id)?.created_at||now()}}
 
 /* ===== HELPERS ===== */
 function norm(){
+  if(!Array.isArray(S.kudos)) S.kudos=[];
   S.cards.forEach(c=>{['assignees','labels','checklists','links','attachments','comments'].forEach(f=>{if(!Array.isArray(c[f]))c[f]=[]})});
   buildMembers();
 }
@@ -767,6 +811,7 @@ function cardHTML(c){
       ${due?`<span class="badge ${due.cls}">📅 ${due.text}</span>`:''}
       ${isTask(c)&&c.impact&&c.impact!=='op'?`<span class="badge imp" title="${IMPACT[c.impact].label} · แต้ม ×${IMPACT[c.impact].mult}">${IMPACT[c.impact].icon} ×${IMPACT[c.impact].mult}</span>`:''}
       ${isTask(c)&&c.size&&c.size!=='s'?`<span class="badge sz-${c.size}" title="${SIZES[c.size].label}">${SIZES[c.size].icon} ${SIZES[c.size].pts}</span>`:''}
+      ${reworked(c)?`<span class="badge rw" title="เคยถูกตีกลับให้แก้ไข">↩ ${trailOf(c).filter(t=>t.t==='back'||t.t==='reopen').length}</span>`:''}
       ${trailOf(c).filter(t=>t.t==='handoff').length?`<span class="badge" title="ส่งต่อกัน ${trailOf(c).filter(t=>t.t==='handoff').length} ครั้ง">🔁 ${trailOf(c).filter(t=>t.t==='handoff').length}</span>`:''}
       ${c.priority==='urgent'&&!isDone(c)?'<span class="badge pr-urgent">🔥 ด่วน</span>':c.priority==='high'&&!isDone(c)?'<span class="badge pr-high">⬆ สูง</span>':''}
       ${ck.total?`<span class="badge ${ck.done===ck.total?'ok':''}">☑ ${ck.done}/${ck.total}</span>`:''}
@@ -897,7 +942,7 @@ function cardScore(c){
   const people=contributors(c), base=SIZES[c.size||'s'].pts, team=people.length>1, imp=IMPACT[c.impact||'op']||IMPACT.op;
   const late=c.due&&c.done_at&&new Date(c.done_at)>new Date(c.due+'T23:59:59');
   const mult=imp.mult*(team?SCORE.team:SCORE.solo)*(late?SCORE.late:SCORE.onTime);
-  const starters=imp.mult>1?(trailOf(c)[0]?.to||[]).filter(id=>people.includes(id)):[];
+  const starters=imp.init?(trailOf(c)[0]?.to||[]).filter(id=>people.includes(id)):[];
   return {each:Math.round(base*mult*100)/100,base,mult,team,late,people,imp,starters,bonus:SCORE.initiator};
 }
 const ptsOf=(sc,id)=>sc.people.includes(id)?sc.each+(sc.starters.includes(id)?sc.bonus:0):0;
@@ -906,22 +951,24 @@ function pointsFor(id,cards){
   cards.forEach(c=>{ if(!isTask(c)||!isDone(c)||!inPeriod(c.done_at)) return;
     const sc=cardScore(c); if(!sc.people.includes(id)) return;
     const v=ptsOf(sc,id); pts+=v; if(sc.team){team+=v;teamN++} else {solo+=v;soloN++}
-    if(sc.imp.mult>1){grow+=v;growN++} if(sc.starters.includes(id)) initN++; });
+    if(sc.imp.dev){grow+=v;growN++} if(sc.starters.includes(id)) initN++; });
+  const kudosN=(S.kudos||[]).filter(k=>k.type!=='safety'&&k.to===id&&inPeriod(k.at)).length, kudos=kudosN*SCORE.kudos;
+  pts+=kudos;
   const r=x=>Math.round(x*10)/10;
-  return {pts:r(pts),solo:r(solo),team:r(team),soloN,teamN,grow:r(grow),growN,initN};
+  return {pts:r(pts),solo:r(solo),team:r(team),soloN,teamN,grow:r(grow),growN,initN,kudosN,kudos:r(kudos)};
 }
 const fmtPts=x=>(Math.round(x*10)/10).toLocaleString('th-TH',{maximumFractionDigits:1});
 function pushTrail(c,e){c.trail=trailOf(c).slice();c.trail.push({at:now(),by:session.id,...e})}
 
 /* ส่งต่องาน: ย้ายการ์ดไปขั้นใหม่ + เลือกคนรับช่วง */
-function askHandoff(c,to){
+function askHandoff(c,to,back=false){
   return new Promise(res=>{
     const sel=new Set(c.assignees); ui.openCard=null; $('#sheet').classList.remove('wide');
-    $('#sheet').innerHTML=`<div class="mhead"><b class="kanit" style="flex:1;font-size:18px">🔁 ส่งต่องาน → ${esc(to.name)}</b><button class="icon" id="hoX">✕</button></div>
-      <div class="muted" style="margin-bottom:10px">"${esc(c.title)}" — ใครรับผิดชอบขั้นนี้? (ทุกคนในเส้นทางงานจะได้แต้มเมื่อปิดงาน)</div>
+    $('#sheet').innerHTML=`<div class="mhead"><b class="kanit" style="flex:1;font-size:18px">${back?'↩ ตีกลับให้แก้ไข':'🔁 ส่งต่องาน'} → ${esc(to.name)}</b><button class="icon" id="hoX">✕</button></div>
+      <div class="muted" style="margin-bottom:10px">"${esc(c.title)}" — ${back?'ใครต้องแก้ไข? ระบุเหตุผลให้ชัด (นับเป็น "ไม่ผ่านรอบแรก" ใน KPI คุณภาพ)':'ใครรับผิดชอบขั้นนี้? (ทุกคนในเส้นทางงานจะได้แต้มเมื่อปิดงาน)'}</div>
       <div class="chips" id="hoAss">${activeMembers().map(m=>`<button type="button" class="chip ${sel.has(m.id)?'on':''}" data-id="${m.id}">${avatar(m)}${esc(m.name)}</button>`).join('')}</div>
-      <label class="fl">ฝากข้อความถึงผู้รับงาน (ไม่บังคับ)<textarea id="hoNote" rows="2" placeholder="เช่น ลูกค้าคอนเฟิร์ม PO แล้ว ฝากจัดซื้อต่อครับ"></textarea></label>
-      <div class="mfoot"><button id="hoSkip">ข้าม (คนเดิม)</button><button class="pri" id="hoOk" style="min-width:150px">ส่งต่อ</button></div>`;
+      <label class="fl">${back?'เหตุผลที่ตีกลับ / สิ่งที่ต้องแก้':'ฝากข้อความถึงผู้รับงาน (ไม่บังคับ)'}<textarea id="hoNote" rows="2" placeholder="${back?'เช่น ระยะรูยึด PCB ไม่ตรงแบบ ขอแก้เป็น M2.5x8':'เช่น ลูกค้าคอนเฟิร์ม PO แล้ว ฝากจัดซื้อต่อครับ'}"></textarea></label>
+      <div class="mfoot"><button id="hoSkip">ข้าม (คนเดิม)</button><button class="pri" id="hoOk" style="min-width:150px">${back?'ตีกลับ':'ส่งต่อ'}</button></div>`;
     showModal();
     $('#hoAss').onclick=e=>{const b=e.target.closest('.chip');if(!b)return;const id=b.dataset.id;sel.has(id)?sel.delete(id):sel.add(id);b.classList.toggle('on',sel.has(id))};
     const finish=v=>{closeModal();res(v)};
@@ -939,17 +986,18 @@ async function moveCard(c,to,{ask=true,reopen=false}={}){
     c.done_by=session.id; pushTrail(c,{t:'done',list:to.name,list_id:to.id,to:c.assignees.slice()});
     await saveCard(c,`✅ ปิดงาน (ย้ายไป ${to.name})`);
   } else {
+    const back=from.is_done||(+to.pos||0)<(+from.pos||0);
     if(from.is_done){c.done_by=null}
-    await saveCard(c,`ย้ายการ์ดจาก ${from.name} → ${to.name}`);
+    await saveCard(c,back?`↩ ตีกลับจาก ${from.name} → ${to.name}`:`ย้ายการ์ดจาก ${from.name} → ${to.name}`);
     if(ask&&isTask(c)){
-      const h=await askHandoff(c,to);
+      const h=await askHandoff(c,to,back);
       const cc=card(c.id)||c;
       if(h){ const names=h.to.map(id=>member(id)?.name.split(' ')[0]).join(', ')||'-';
-        cc.assignees=h.to; pushTrail(cc,{t:'handoff',list:to.name,list_id:to.id,to:h.to.slice(),note:h.note||''});
-        if(h.note) cc.comments.push({id:uid(),member:session.id,text:`🔁 ส่งต่อไป ${to.name}: ${h.note}`,at:now()});
-        await saveCard(cc,`🔁 ส่งต่อไป ${to.name} → ${names}`);
-      } else { pushTrail(cc,{t:'move',list:to.name,list_id:to.id,to:cc.assignees.slice()}); await saveCard(cc) }
-    }
+        cc.assignees=h.to; pushTrail(cc,{t:back?'back':'handoff',list:to.name,list_id:to.id,to:h.to.slice(),note:h.note||''});
+        if(h.note) cc.comments.push({id:uid(),member:session.id,text:`${back?'↩ ตีกลับไป':'🔁 ส่งต่อไป'} ${to.name}: ${h.note}`,at:now()});
+        await saveCard(cc,`${back?'↩ ตีกลับไป':'🔁 ส่งต่อไป'} ${to.name} → ${names}`);
+      } else { pushTrail(cc,{t:back?'back':'move',list:to.name,list_id:to.id,to:cc.assignees.slice()}); await saveCard(cc) }
+    } else if(back&&isTask(c)){ pushTrail(c,{t:'back',list:to.name,list_id:to.id,to:c.assignees.slice()}); await saveCard(c) }
   }
   if(reopen) openCard(c.id);
 }
@@ -978,7 +1026,8 @@ function scoreHelp(){
   <div class="sec"><h4>หมวดผลงาน (ตัวคูณพิเศษ)</h4>
    <div class="tblwrap"><table><thead><tr><th>หมวด</th><th>ตัวคูณ</th><th>ตัวอย่าง</th></tr></thead><tbody>
    ${Object.values(IMPACT).map(v=>`<tr><td>${v.icon} ${v.label}</td><td><b>×${v.mult}</b></td><td>${v.hint}</td></tr>`).join('')}</tbody></table></div>
-   <div class="rule">💡 <b>ผู้ริเริ่ม</b> (คนที่เริ่มงานในหมวด R&D / ไอเดียใหม่ / พัฒนาองค์กร) ได้โบนัสเพิ่ม <b>+${SCORE.initiator} แต้ม</b></div></div>
+   <div class="rule">💡 <b>ผู้ริเริ่ม</b> (คนที่เริ่มงานในหมวด R&D / ไอเดียใหม่ / พัฒนาองค์กร) ได้โบนัสเพิ่ม <b>+${SCORE.initiator} แต้ม</b></div>
+   <div class="rule">🙏 ได้รับคำขอบคุณจากเพื่อน 1 ครั้ง = <b>+${SCORE.kudos} แต้ม</b></div></div>
   <div class="sec"><h4>ตัวคูณ</h4>
    <div class="rule">👤 <b>ทำคนเดียว</b> — ได้เต็ม <b>${SCORE.solo*100}%</b></div>
    <div class="rule">👥 <b>ทำเป็นทีม / ส่งต่อกันหลายขั้น</b> — ทุกคนที่มีส่วนร่วมได้ <b>คนละ ${SCORE.team*100}%</b> (รวมทั้งทีมได้มากกว่าทำคนเดียว)</div>
@@ -990,6 +1039,70 @@ function scoreHelp(){
    <div class="rule">📈 ขอใบรับรอง CE ให้ Iron-X · โปรเจกต์ 5 แต้ม · ทำคนเดียว<br>→ 5 × 2 × 100% = <b>10 แต้ม</b> + ผู้ริเริ่ม 1 = <b>11 แต้ม</b></div>
    <div class="rule">💡 เปิดร้านบน Marketplace ใหม่ · งานกลาง 3 · 2 คน (คนเริ่ม + คนช่วย)<br>→ คนละ 3 × 2 × 60% = <b>3.6</b> · คนเริ่มได้ <b>4.6 แต้ม</b></div></div>`;
   showModal();
+}
+/* ===== 🙏 ขอบคุณเพื่อน (Kudos) & 🦺 Safety ===== */
+const monthStart=()=>{const d=today();d.setDate(1);return +d};
+const kudosLeft=()=>KUDOS_LIMIT-(S.kudos||[]).filter(k=>k.type!=='safety'&&k.from===session.id&&+new Date(k.at)>=monthStart()).length;
+function kudosModal(pre){
+  if(S._noKudos) return toast('ต้องอัปเดต Code.gs เวอร์ชันล่าสุดก่อน จึงจะใช้ 🙏 ได้');
+  ui.openCard=null;$('#sheet').classList.remove('wide');
+  let sel=pre&&pre!==session.id?pre:'';
+  const recent=(S.kudos||[]).filter(k=>k.type!=='safety').sort((a,b)=>b.at.localeCompare(a.at)).slice(0,6);
+  $('#sheet').innerHTML=`<div class="mhead"><b class="kanit" style="flex:1;font-size:18px">🙏 ขอบคุณเพื่อน</b><button class="icon" data-act="closeModal">✕</button></div>
+    <div class="muted">ชื่นชมเพื่อนที่ช่วยคุณ — ได้ +${SCORE.kudos} แต้ม และนับใน KPI ทีมเวิร์ก · เดือนนี้ส่งได้อีก <b style="color:var(--gold)">${Math.max(0,kudosLeft())}</b> / ${KUDOS_LIMIT} ครั้ง</div>
+    <div class="chips" id="kdTo" style="margin:12px 0">${activeMembers().filter(m=>m.id!==session.id).map(m=>`<button type="button" class="chip ${m.id===sel?'on':''}" data-id="${m.id}">${avatar(m)}${esc(m.name)}</button>`).join('')}</div>
+    <label class="fl">ขอบคุณเรื่องอะไร<textarea id="kdText" rows="2" placeholder="เช่น ขอบคุณที่ช่วยดีบัก Nav2 จนดึกครับ"></textarea></label>
+    <div class="mfoot"><span class="lerr" id="kdErr" style="margin:0"></span><button class="pri" id="kdOk" style="min-width:140px">ส่งคำขอบคุณ</button></div>
+    ${recent.length?`<div class="sec"><h4>ล่าสุดในทีม</h4>${recent.map(kudosItem).join('')}</div>`:''}`;
+  showModal();
+  $('#kdTo').onclick=e=>{const b=e.target.closest('.chip');if(!b)return;sel=b.dataset.id;$$('#kdTo .chip').forEach(x=>x.classList.toggle('on',x===b))};
+  $('#kdOk').onclick=async()=>{
+    const t=$('#kdText').value.trim(),err=m=>$('#kdErr').textContent=m;
+    if(!sel) return err('เลือกเพื่อนที่จะขอบคุณ');
+    if(!t) return err('เขียนสั้นๆ ว่าขอบคุณเรื่องอะไร');
+    if(kudosLeft()<=0) return err(`เดือนนี้ส่งครบ ${KUDOS_LIMIT} ครั้งแล้ว`);
+    if((S.kudos||[]).some(k=>k.type!=='safety'&&k.from===session.id&&k.to===sel&&Date.now()-new Date(k.at)<7*DAY)) return err('ขอบคุณคนเดิมได้สัปดาห์ละ 1 ครั้ง');
+    await store.upsert('kudos',{id:uid(),type:'kudos',from:session.id,to:sel,text:t,at:now()});
+    closeModal();toast(`🙏 ส่งคำขอบคุณถึง ${member(sel)?.name} แล้ว`);scheduleRender();
+  };
+}
+const kudosItem=k=>`<div class="kd">${avatar(member(k.from))}<div><b>${esc(member(k.from)?.name.split(' ')[0]||'?')}</b> 🙏 <b>${esc(member(k.to)?.name.split(' ')[0]||'?')}</b> <span class="muted">${fmtDT(k.at)}</span><div class="muted">“${esc(k.text)}”</div></div></div>`;
+async function safetyLog(pid){
+  if(!isAdmin()) return; if(S._noKudos) return toast('ต้องอัปเดต Code.gs เวอร์ชันล่าสุดก่อน');
+  const t=prompt(`บันทึกเหตุความปลอดภัยของ ${member(pid)?.name}\n(เหตุจากความประมาท — จะระงับโบนัสในช่วงนั้น)\nรายละเอียด:`); if(!t?.trim()) return;
+  await store.upsert('kudos',{id:uid(),type:'safety',from:session.id,to:pid,text:t.trim(),at:now()}); toast('บันทึกแล้ว'); renderMain();
+}
+function kpiHelp(){
+  ui.openCard=null;$('#sheet').classList.remove('wide');
+  $('#sheet').innerHTML=`<div class="mhead"><b class="kanit" style="flex:1;font-size:18px">📖 KPI ของเรา วัดอะไรบ้าง</b><button class="icon" data-act="closeModal">✕</button></div>
+   <div class="kscore-eq">📊 <b>KPI Score (0–100)</b> = 🏆 ผลงาน ${KPI_W.out*100}% + ✅ คุณภาพ ${KPI_W.qual*100}% + 🤝 ทีมเวิร์ก ${KPI_W.team*100}% · เกรด A ≥85 · B ≥70 · C ≥50</div>
+   <div class="kdefs">${KPI_DEFS.map(([i,n,w,d])=>`<div class="kdef"><span class="ki">${i}</span><div><b>${n}</b> <span class="kw">${w}</span><div class="muted">${d}</div></div></div>`).join('')}</div>
+   <div class="sec"><h4>ทำยังไงให้ KPI ดี</h4>
+    <div class="rule">✔ ปิดงานให้ตรงเวลา และทำให้ผ่านรอบแรก</div>
+    <div class="rule">✔ ตั้งกำหนดส่งให้สมจริงตั้งแต่ต้น — เลื่อนบ่อยจะเสียคะแนนคุณภาพ</div>
+    <div class="rule">✔ ช่วยเพื่อน ส่งต่องานให้ครบขั้นตอน และกด 🙏 ขอบคุณคนที่ช่วยเรา</div>
+    <div class="rule">✔ เสนอโปรเจกต์ที่พาบริษัทไปข้างหน้า — R&D, ไอเดียใหม่, ใบรับรอง, ถ่ายทอดความรู้</div></div>
+   <div class="row" style="justify-content:flex-end"><button class="sm" data-act="scoreHelp">🏆 ดูวิธีคิดแต้มละเอียด</button></div>`;
+  showModal();
+}
+function scorecardHTML(p,s){
+  const k=kpiOf(s,p.id), bar=v=>`<div class="bar sm"><i style="width:${v}%"></i></div>`;
+  const row=(i,n,val,w,d,v)=>`<tr><td>${i} <b>${n}</b></td><td class="kv">${val}</td><td>${v!=null?bar(v):''}</td><td class="kwt">${w}</td><td class="muted">${d}</td></tr>`;
+  return `<div class="scard">
+   <div class="sc-head"><div class="sc-big grade-${k.grade}"><b>${k.score}</b><span>KPI Score</span></div><div class="sc-grade grade-${k.grade}">${k.grade}</div>
+     <div class="sc-note">${k.safe?'🦺 ปลอดภัย ✅':'🦺 <b style="color:var(--late)">มีเหตุความปลอดภัย '+s.safety.length+' ครั้ง — ระงับโบนัสช่วงนี้</b>'}<div class="muted">ช่วง ${periodLabel()} · เป้าแต้ม ${fmtPts(k.target)} (${fmtPts(+(p.target)||DEFAULT_TARGET)}/เดือน)</div></div>
+     <div class="spacer"></div><button class="sm" data-act="kpiHelp">📖 KPI วัดอะไร</button>${isAdmin()?`<button class="sm" data-act="safetyLog" data-id="${p.id}">🦺 บันทึกเหตุ</button>`:''}</div>
+   <div class="tblwrap"><table class="sct"><thead><tr><th>มิติ</th><th>ค่า</th><th style="width:22%">คะแนน</th><th>น้ำหนัก</th><th>วัดอะไร</th></tr></thead><tbody>
+    ${row('🏆','ผลงาน',`${fmtPts(s.P.pts)} / ${fmtPts(k.target)} แต้ม`,'60%','แต้มจากงานที่ปิดได้ เทียบเป้า',k.out)}
+    ${row('✅','คุณภาพ',s.quality==null?'-':s.quality+'%','20%',`ตรงเวลา ${s.onTime??'-'}% · ผ่านรอบแรก ${s.firstPass??'-'}% · ไม่เลื่อนกำหนด ${s.noSlip??'-'}%`,s.quality??0)}
+    ${row('🤝','ทีมเวิร์ก',k.team+'%','20%',`งานทีม ${s.P.teamN} · ส่งต่อ ${s.handoffs} · 🙏 ได้รับ ${s.P.kudosN}`,k.team)}
+    ${row('🚀','พัฒนาบริษัท',fmtPts(s.P.grow)+' แต้ม','ประกอบ',`${s.P.growN} งาน · ริเริ่ม ${s.P.initN}`,null)}
+    ${row('⭐','ความพอใจลูกค้า',s.csat==null?'-':s.csat+' / 5','ประกอบ',s.csatN?`จาก ${s.csatN} งาน`:'ยังไม่มีข้อมูล',null)}
+    ${row('💼','ปิดดีล',s.winRate==null?'-':s.winRate+'%','ประกอบ',(s.won+s.lost)?`ได้ ${s.won} / ${s.won+s.lost} ดีล`:'ยังไม่มีข้อมูล',null)}
+    ${row('⏱','Cycle time',s.cycle==null?'-':s.cycle.toFixed(1)+' วัน','ประกอบ','เวลาเฉลี่ยจากเริ่มทำจนปิดงาน',null)}
+   </tbody></table></div>
+   ${s.safety.length&&isAdmin()?`<div class="muted" style="margin-top:6px">${s.safety.map(x=>`🦺 ${fmtD(x.at)} — ${esc(x.text)} <button class="lnk" data-act="delKudos" data-id="${x.id}">ลบ</button>`).join('<br>')}</div>`:''}
+  </div>`;
 }
 function initModalSort(c){
   const opt={animation:150,delay:150,delayOnTouchOnly:true,ghostClass:'ghost',chosenClass:'chosen',onStart:()=>ui.dragging=true};
@@ -1010,7 +1123,7 @@ function initModalSort(c){
 }
 function workflowHTML(c){
   const tr=trailOf(c), nm=id=>member(id)?.name.split(' ')[0]||'?';
-  const ic={start:'🚀',handoff:'🔁',move:'➡️',done:'✅',reopen:'↺'}, tx={start:'เริ่มงาน',handoff:'ส่งต่อ',move:'ย้าย',done:'ปิดงาน',reopen:'เปิดงานใหม่'};
+  const ic={start:'🚀',handoff:'🔁',move:'➡️',done:'✅',reopen:'↺',back:'↩',slip:'📅'}, tx={start:'เริ่มงาน',handoff:'ส่งต่อ',move:'ย้าย',done:'ปิดงาน',reopen:'เปิดงานใหม่',back:'ตีกลับให้แก้ไข',slip:'เลื่อนกำหนดส่ง'};
   const ppl=contributors(c), sc=isTask(c)?cardScore(c):null;
   return `<div class="sec"><h4>🔁 เส้นทางงาน & คะแนน <button class="sm" data-act="scoreHelp">ℹ️ วิธีคิดแต้ม</button></h4>
     <div class="trail">${tr.map(t=>`<div class="tstep ${t.t}"><span class="tdot">${ic[t.t]||'•'}</span><div><b>${tx[t.t]||t.t}</b>${t.list?` · ${esc(t.list)}`:''} <span class="muted">${fmtDT(t.at)}</span>
@@ -1038,6 +1151,8 @@ function renderCardModal(){
       <label>ประเภท<select id="cKind"><option value="task" ${isTask(c)?'selected':''}>📌 งาน</option><option value="note" ${!isTask(c)?'selected':''}>📁 ข้อมูล / ไฟล์</option></select></label>
       <label>สถานะ<select id="cList">${lists.map(l=>`<option value="${l.id}" ${l.id===c.list_id?'selected':''}>${esc(l.name)}</option>`).join('')}</select></label>
       ${isTask(c)?`<label>หมวดผลงาน<select id="cImp">${Object.entries(IMPACT).map(([k,v])=>`<option value="${k}" ${k===(c.impact||'op')?'selected':''}>${v.icon} ${v.label}${v.mult>1?' ×'+v.mult:''}</option>`).join('')}</select></label>`:''}
+      ${isTask(c)?`<label>💼 ผลดีล (ถ้ามี)<select id="cDeal"><option value="">—</option><option value="won" ${c.deal==='won'?'selected':''}>✅ ลูกค้าตอบรับ</option><option value="lost" ${c.deal==='lost'?'selected':''}>❌ ไม่ได้งาน</option></select></label>
+      <label>⭐ ความพอใจลูกค้า (ถ้ามี)<select id="cCsat"><option value="">—</option>${[5,4,3,2,1].map(n=>`<option value="${n}" ${+c.csat===n?'selected':''}>${'⭐'.repeat(n)} ${n}</option>`).join('')}</select></label>`:''}
       ${isTask(c)?`<label>ขนาดงาน (แต้ม)<select id="cSize">${Object.entries(SIZES).map(([k,v])=>`<option value="${k}" ${k===(c.size||'s')?'selected':''}>${v.icon} ${v.label} · ${v.pts}</option>`).join('')}</select></label>`:''}
       <label>ความสำคัญ<select id="cPrio">${Object.entries(PRIO).map(([k,v])=>`<option value="${k}" ${k===(c.priority||'normal')?'selected':''}>${v}</option>`).join('')}</select></label>
       ${isTask(c)?`<label>กำหนดส่ง <span style="color:var(--late)">*</span><input type="date" id="cDue" value="${c.due||''}"></label>`:''}
@@ -1083,7 +1198,12 @@ function renderCardModal(){
   $('#cTitle').onchange=e=>{const v=e.target.value.trim();if(v){c.title=v;saveCard(c,'แก้ชื่องาน')}};
   $('#cDesc').onchange=e=>{c.description=e.target.value;saveCard(c,'แก้รายละเอียด')};
   $('#cPrio').onchange=e=>{c.priority=e.target.value;saveCard(c,'ความสำคัญ → '+PRIO[c.priority])};
-  if($('#cDue'))$('#cDue').onchange=e=>{if(!e.target.value){toast('งานต้องมีกำหนดส่ง');e.target.value=c.due||'';return}c.due=e.target.value;saveCard(c,'เปลี่ยนกำหนดส่งเป็น '+fmtD(c.due)).then(renderCardModal)};
+  if($('#cDue'))$('#cDue').onchange=e=>{if(!e.target.value){toast('งานต้องมีกำหนดส่ง');e.target.value=c.due||'';return}
+    const old=c.due; c.due=e.target.value;
+    if(old&&c.due>old&&!isDone(c)){c.slips=(c.slips||0)+1;pushTrail(c,{t:'slip',to:[],note:`${fmtD(old)} → ${fmtD(c.due)}`})}
+    saveCard(c,'เปลี่ยนกำหนดส่งเป็น '+fmtD(c.due)).then(renderCardModal)};
+  if($('#cDeal'))$('#cDeal').onchange=e=>{c.deal=e.target.value||null;saveCard(c,'ผลดีล → '+({won:'ชนะ ✅',lost:'ไม่ได้ ❌'}[c.deal]||'-')).then(renderCardModal)};
+  if($('#cCsat'))$('#cCsat').onchange=e=>{c.csat=e.target.value?+e.target.value:null;saveCard(c,'ความพอใจลูกค้า → '+(c.csat?'⭐'.repeat(c.csat):'-')).then(renderCardModal)};
   $('#cKind').onchange=e=>{c.kind=e.target.value;if(c.kind==='task'&&!c.due){c.due=new Date(Date.now()+3*DAY).toISOString().slice(0,10);toast('ตั้งกำหนดส่งเริ่มต้น +3 วัน แก้ได้')}saveCard(c,'เปลี่ยนประเภทเป็น '+(c.kind==='task'?'งาน':'ข้อมูล/ไฟล์')).then(renderCardModal)};
   $('#cLabels').onchange=e=>{c.labels=e.target.value.split(',').map(s=>s.trim()).filter(Boolean);saveCard(c)};
   $('#cList').onchange=e=>{const to=list(e.target.value);c.pos=Math.max(0,...S.cards.filter(x=>x.list_id===to.id).map(x=>x.pos||0))+1024;moveCard(c,to,{reopen:true})};
@@ -1139,6 +1259,30 @@ function bindScope(){
   const on=(id,k)=>{const el=$('#'+id);if(el)el.onchange=e=>{if(!e.target.value)return;ui[k]=e.target.value;clampRange();renderMain()}};
   on('pFrom','from');on('pTo','to');on('pMFrom','mFrom');on('pMTo','mTo');
 }
+const reworked=c=>trailOf(c).some(t=>t.t==='back'||t.t==='reopen');
+const pct=(n,d)=>d?Math.round(n/d*100):null;
+function qualityOf(doneP,id){
+  const wd=doneP.filter(c=>c.due);
+  const onTime=pct(wd.filter(c=>new Date(c.done_at)<=new Date(c.due+'T23:59:59')).length,wd.length);
+  const firstPass=pct(doneP.filter(c=>!reworked(c)).length,doneP.length);
+  const noSlip=pct(doneP.filter(c=>!(c.slips>0)).length,doneP.length);
+  const parts=[onTime,firstPass,noSlip].filter(v=>v!=null);
+  const cs=doneP.filter(c=>c.csat).map(c=>+c.csat);
+  const won=doneP.filter(c=>c.deal==='won').length, lost=doneP.filter(c=>c.deal==='lost').length;
+  const safety=id==null?[]:(S.kudos||[]).filter(k=>k.type==='safety'&&k.to===id&&inPeriod(k.at));
+  return {firstPass,noSlip,quality:parts.length?Math.round(parts.reduce((a,b)=>a+b,0)/parts.length):null,
+    csat:cs.length?Math.round(cs.reduce((a,b)=>a+b,0)/cs.length*10)/10:null,csatN:cs.length,won,lost,winRate:pct(won,won+lost),safety,reworkN:doneP.filter(reworked).length};
+}
+function periodDays(){const [a,b]=periodRange();return Math.max(1,(Math.min(b,Date.now())-a)/DAY)}
+function kpiOf(s,id){
+  const m=member(id), target=Math.max(1,Math.round((+(m?.target)||DEFAULT_TARGET)*periodDays()/30.4*10)/10);
+  const out=Math.min(100,Math.round(s.P.pts/target*100));
+  const qual=s.quality??0;
+  const teamRaw=s.P.teamN+s.handoffs+s.P.kudosN, team=Math.min(100,teamRaw*20);
+  const score=Math.round(out*KPI_W.out+qual*KPI_W.qual+team*KPI_W.team);
+  const grade=score>=85?'A':score>=70?'B':score>=50?'C':'D';
+  return {target,out,qual,team,teamRaw,score,grade,safe:!s.safety.length};
+}
 function memberStats(id,cards){
   const mine=cards.filter(c=>isTask(c)&&(id===null?!c.assignees.length:c.assignees.includes(id)));
   const open=mine.filter(c=>!isDone(c));
@@ -1147,7 +1291,7 @@ function memberStats(id,cards){
   const ps=periodStart();
   const contrib=id===null?mine:cards.filter(c=>isTask(c)&&contributors(c).includes(id));
   const doneP=contrib.filter(c=>isDone(c)&&inPeriod(c.done_at));
-  const P=id===null?{pts:0,solo:0,team:0,soloN:0,teamN:0,grow:0,growN:0,initN:0}:pointsFor(id,cards);
+  const P=id===null?{pts:0,solo:0,team:0,soloN:0,teamN:0,grow:0,growN:0,initN:0,kudosN:0,kudos:0}:pointsFor(id,cards);
   const handoffs=id===null?0:cards.reduce((n,c)=>n+trailOf(c).filter(t=>t.t==='handoff'&&t.by===id&&inPeriod(t.at)).length,0);
   const withDue=doneP.filter(c=>c.due);
   const onTime=withDue.filter(c=>new Date(c.done_at)<=new Date(c.due+'T23:59:59')).length;
@@ -1159,7 +1303,7 @@ function memberStats(id,cards){
     onTime:withDue.length?Math.round(onTime/withDue.length*100):null,
     cycle:cyc.length?cyc.reduce((a,b)=>a+b,0)/cyc.length:null,
     progress:ckT?Math.round(ckD/ckT*100):null,
-    success:closed?Math.round(doneP.length/closed*100):null,dd,P,handoffs};
+    success:closed?Math.round(doneP.length/closed*100):null,dd,P,handoffs,...qualityOf(doneP,id)};
 }
 
 /* ===== TEAM (Admin เห็นทุกคน · พนักงานเห็นเฉพาะตัวเอง) ===== */
@@ -1175,7 +1319,8 @@ function renderTeam(){
     const sorted=[...s.open].sort((a,b)=>String(a.due||'0').localeCompare(String(b.due||'0')));
     return `<div class="mcard ${id===session.id?'me':''}"><div class="mtop">${avatar(m,'lg')}<div><div class="nm ${admin&&id?'link':''}" ${admin&&id?`data-act="dashPerson" data-id="${id}" title="ดูแดชบอร์ดรายบุคคล"`:''}>${esc(m.name)}${id===session.id?' <span class="muted">(ฉัน)</span>':''}</div><div class="muted">${esc([m.role,m.dept].filter(Boolean).join(' · '))}</div></div></div>
       <div class="stats"><div class="stat green"><b>${s.dd.ok}</b><span>ตามแผน</span></div><div class="stat" style="--x:1"><b style="color:var(--yel)">${s.dd.soon}</b><span>ใกล้กำหนด</span></div><div class="stat red"><b>${s.dd.late}</b><span>เลยกำหนด</span></div><div class="stat gold"><b>${id===null?s.doneP.length:fmtPts(s.P.pts)}</b><span>${id===null?'เสร็จ':'🏆 แต้ม'} (${periodLabel()})</span></div></div>
-      ${id!==null?`<div class="muted" style="margin:-4px 0 8px">เสร็จ ${s.doneP.length} งาน · เดี่ยว ${s.P.soloN} · ทีม ${s.P.teamN} · ส่งต่อ ${s.handoffs} ครั้ง</div>`:''}
+      ${id!==null?`<div class="muted" style="margin:-4px 0 8px">เสร็จ ${s.doneP.length} งาน · เดี่ยว ${s.P.soloN} · ทีม ${s.P.teamN} · ส่งต่อ ${s.handoffs} · 🙏 ${s.P.kudosN} · KPI <b class="ptsv">${kpiOf(s,id).score}</b>
+        ${id!==session.id?` <button class="sm" data-act="kudos" data-id="${id}">🙏 ขอบคุณ</button>`:''}</div>`:''}
       <div class="muted">งานค้าง ${s.open.length} งาน${s.progress!=null?` · เช็คลิสต์คืบหน้า ${s.progress}%`:''}</div><div class="bar"><i style="width:${s.open.length/maxOpen*100}%"></i></div>
       ${sorted.slice(0,8).map(c=>{const d=dueInfo(c);return `<div class="mini" data-act="openCard" data-id="${c.id}"><span class="t">${esc(c.title)}</span><span class="pill">${esc(list(c.list_id).name)}</span>${d?`<span class="badge ${d.cls}">${d.text}</span>`:''}</div>`}).join('')||'<div class="muted">ว่าง ไม่มีงานค้าง 🎉</div>'}
       ${sorted.length>8?`<div class="muted">+ อีก ${sorted.length-8} งาน</div>`:''}</div>`}).join('')}</div></div>`;
@@ -1202,15 +1347,18 @@ function renderDash(){
   const title=!admin?'ผลงานของฉัน':pid?'แดชบอร์ดรายบุคคล':'แดชบอร์ดทั้งทีม';
   const picker=admin?`<select id="personSel"><option value="">👥 ทั้งทีม</option>${activeMembers().map(m=>`<option value="${m.id}" ${m.id===pid?'selected':''}>${esc(m.name)}</option>`).join('')}</select>`:'';
   const s1=person?st[0].s:null;
-  $('#main').innerHTML=`<div class="wrap">${scopeBar(title,picker+`<button class="sm" data-act="exportReport">⬇ รายงาน CSV</button>`)}
-    ${person?`<div class="phead">${avatar(person,'lg')}<div><div class="nm">${esc(person.name)}</div><div class="muted">${esc([person.code,person.role,person.dept].filter(Boolean).join(' · '))}</div></div><div class="spacer"></div>${admin?'<button class="sm" data-act="dashPerson" data-id="">← ทั้งทีม</button>':''}</div>`:''}
+  $('#main').innerHTML=`<div class="wrap">${scopeBar(title,picker+`<button class="sm" data-act="kpiHelp">📖 KPI วัดอะไร</button><button class="sm" data-act="exportReport">⬇ รายงาน CSV</button>`)}
+    ${person?`<div class="phead">${avatar(person,'lg')}<div><div class="nm">${esc(person.name)}</div><div class="muted">${esc([person.code,person.role,person.dept].filter(Boolean).join(' · '))}</div></div><div class="spacer"></div>${admin?'<button class="sm" data-act="dashPerson" data-id="">← ทั้งทีม</button>':''}</div>${scorecardHTML(person,s1)}`:''}
     <div class="kpis">
       ${person?`<div class="kpi pts"><b>${fmtPts(s1.P.pts)}</b><span>🏆 แต้ม KPI (${periodLabel()})</span></div>
         <div class="kpi"><b>${s1.P.soloN} / ${s1.P.teamN}</b><span>งานเดี่ยว / งานทีม</span></div>
         <div class="kpi"><b>${s1.handoffs}</b><span>🔁 ส่งต่องาน</span></div>
         <div class="kpi grow"><b>${fmtPts(s1.P.grow)}</b><span>🚀 แต้มพัฒนาบริษัท (${s1.P.growN} งาน · ริเริ่ม ${s1.P.initN})</span></div>`
       :`<div class="kpi pts"><b>${fmtPts(st.reduce((a,x)=>a+x.s.P.pts,0))}</b><span>🏆 แต้มรวมทีม (${periodLabel()})</span></div>
-        <div class="kpi grow"><b>${cards.filter(c=>isDone(c)&&inPeriod(c.done_at)&&(IMPACT[c.impact||'op']?.mult||1)>1).length}</b><span>🚀 งานพัฒนาบริษัทที่ปิดได้</span></div>`}
+        <div class="kpi"><b>${st.length?Math.round(st.reduce((a,x)=>a+kpiOf(x.s,x.m.id).score,0)/st.length):'-'}</b><span>📊 KPI Score เฉลี่ยทีม</span></div>
+        <div class="kpi"><b>${(()=>{const d=cards.filter(c=>isDone(c)&&inPeriod(c.done_at));return d.length?Math.round(d.filter(c=>!reworked(c)).length/d.length*100)+'%':'-'})()}</b><span>✅ ผ่านรอบแรก (ทีม)</span></div>
+        <div class="kpi"><b>${(S.kudos||[]).filter(k=>k.type!=='safety'&&inPeriod(k.at)).length}</b><span>🙏 คำขอบคุณในทีม</span></div>
+        <div class="kpi grow"><b>${cards.filter(c=>isDone(c)&&inPeriod(c.done_at)&&IMPACT[c.impact||'op']?.dev).length}</b><span>🚀 งานพัฒนาบริษัทที่ปิดได้</span></div>`}
       <div class="kpi g"><b>${dd.ok}</b><span>🟢 ตามแผน</span></div>
       <div class="kpi y"><b>${dd.soon}</b><span>🟡 ใกล้กำหนด (≤2 วัน)</span></div>
       <div class="kpi r"><b>${dd.late}</b><span>🔴 เลยกำหนด</span></div>
@@ -1228,25 +1376,27 @@ function renderDash(){
       <div class="chartbox"><h3>แนวโน้ม 8 สัปดาห์: เสร็จ vs งานใหม่</h3><div class="cv"><canvas id="ch3"></canvas></div></div>
       <div class="chartbox"><h3>${person?'แต้ม KPI รายเดือน (6 เดือน)':'สถานะกำหนดส่งรายคน'}</h3><div class="cv"><canvas id="ch4"></canvas></div></div>
     </div>
+    ${!person?`<div class="charts" style="margin-top:12px"><div class="chartbox"><h3>⏱ เวลาเฉลี่ยในแต่ละขั้น — หาคอขวด (วัน)</h3><div class="cv"><canvas id="ch5"></canvas></div></div>
+      <div class="chartbox kfeed"><h3>🙏 คำขอบคุณล่าสุด <button class="sm" data-act="kudos">+ ส่งคำขอบคุณ</button></h3><div class="kscroll">${(S.kudos||[]).filter(k=>k.type!=='safety'&&inPeriod(k.at)).sort((a,b)=>b.at.localeCompare(a.at)).slice(0,20).map(kudosItem).join('')||'<div class="muted">ยังไม่มี — เป็นคนแรกที่ขอบคุณเพื่อนสิ!</div>'}</div></div></div>`:''}
     ${person?`<div class="tblwrap"><table><thead><tr><th>งาน</th><th>สถานะ</th><th>กำหนดส่ง</th><th>ขนาด</th><th>บทบาท</th><th>แต้ม</th><th>เสร็จเมื่อ</th></tr></thead><tbody>
       ${[...cards].sort((a,b)=>(isDone(a)-isDone(b))||String(a.due||'').localeCompare(String(b.due||''))).map(c=>{const d=dueInfo(c),p=ckProgress(c);const sc=cardScore(c),tr=trailOf(c),role=[tr[0]&&(tr[0].to||[]).includes(pid)?(sc.starters.includes(pid)?'💡 ผู้ริเริ่ม':'เริ่มงาน'):'',tr.some((t,i)=>i>0&&t.t==='handoff'&&(t.to||[]).includes(pid))?'รับช่วง':'',c.done_by===pid?'ปิดงาน':''].filter(Boolean).join(' · ')||(c.assignees.includes(pid)?'ผู้รับผิดชอบ':'-');
         return `<tr class="click" data-act="openCard" data-id="${c.id}"><td>${esc(c.title)}</td><td>${esc(list(c.list_id).name)}</td><td>${d?`<span class="badge ${d.cls}">${d.text}</span>`:'-'}</td><td>${SIZES[c.size||'s'].icon} ${SIZES[c.size||'s'].pts}${(c.impact&&c.impact!=='op')?` ${IMPACT[c.impact].icon}×${IMPACT[c.impact].mult}`:''}</td><td>${role}${sc.team?' <span class="muted">(ทีม)</span>':''}</td><td><b>${isDone(c)&&sc.people.includes(pid)?fmtPts(ptsOf(sc,pid)):'-'}</b></td><td>${c.done_at?fmtD(c.done_at):'-'}</td></tr>`}).join('')||'<tr><td colspan="7" class="muted">ยังไม่มีงาน</td></tr>'}
     </tbody></table></div>`
-    :`<div class="tblwrap"><table><thead><tr><th>พนักงาน</th><th>ตำแหน่ง</th><th>🏆 แต้ม</th><th>🚀 พัฒนา</th><th>เดี่ยว/ทีม</th><th>🔁 ส่งต่อ</th><th>🟢</th><th>🟡</th><th>🔴</th><th>เสร็จ</th><th>สำเร็จ</th><th>ตรงเวลา</th><th>Cycle (วัน)</th><th>เช็คลิสต์</th></tr></thead><tbody>
-      ${[...st].sort((a,b)=>b.s.P.pts-a.s.P.pts||b.s.doneP.length-a.s.doneP.length).map(({m,s},i)=>`<tr class="click" data-act="dashPerson" data-id="${m.id}" title="ดูรายบุคคล"><td>${['🥇','🥈','🥉'][i]||''} ${avatar(m)} ${esc(m.name)}</td><td>${esc(m.role||'')}</td><td><b class="ptsv">${fmtPts(s.P.pts)}</b></td><td>${s.P.grow?fmtPts(s.P.grow)+(s.P.initN?` <span class="muted">💡${s.P.initN}</span>`:''):'-'}</td><td>${s.P.soloN} / ${s.P.teamN}</td><td>${s.handoffs}</td><td>${s.dd.ok}</td><td>${s.dd.soon}</td><td style="color:${s.dd.late?'var(--late)':'inherit'}">${s.dd.late}</td><td><b>${s.doneP.length}</b></td><td>${s.success==null?'-':s.success+'%'}</td><td>${s.onTime==null?'-':s.onTime+'%'}</td><td>${s.cycle==null?'-':s.cycle.toFixed(1)}</td><td>${s.progress==null?'-':s.progress+'%'}</td></tr>`).join('')}
+    :`<div class="tblwrap"><table><thead><tr><th>พนักงาน</th><th>ตำแหน่ง</th><th>📊 KPI</th><th>🏆 แต้ม</th><th>✅ คุณภาพ</th><th>🙏</th><th>🚀 พัฒนา</th><th>เดี่ยว/ทีม</th><th>🔁 ส่งต่อ</th><th>🟢</th><th>🟡</th><th>🔴</th><th>เสร็จ</th><th>สำเร็จ</th><th>ตรงเวลา</th><th>Cycle (วัน)</th><th>เช็คลิสต์</th></tr></thead><tbody>
+      ${[...st].sort((a,b)=>b.s.P.pts-a.s.P.pts||b.s.doneP.length-a.s.doneP.length).map(({m,s},i)=>`<tr class="click" data-act="dashPerson" data-id="${m.id}" title="ดูรายบุคคล"><td>${['🥇','🥈','🥉'][i]||''} ${avatar(m)} ${esc(m.name)}</td><td>${esc(m.role||'')}</td><td>${(k=>`<span class="gr grade-${k.grade}">${k.grade}</span> ${k.score}${k.safe?'':' 🦺'}`)(kpiOf(s,m.id))}</td><td><b class="ptsv">${fmtPts(s.P.pts)}</b></td><td>${s.quality==null?'-':s.quality+'%'}</td><td>${s.P.kudosN||'-'}</td><td>${s.P.grow?fmtPts(s.P.grow)+(s.P.initN?` <span class="muted">💡${s.P.initN}</span>`:''):'-'}</td><td>${s.P.soloN} / ${s.P.teamN}</td><td>${s.handoffs}</td><td>${s.dd.ok}</td><td>${s.dd.soon}</td><td style="color:${s.dd.late?'var(--late)':'inherit'}">${s.dd.late}</td><td><b>${s.doneP.length}</b></td><td>${s.success==null?'-':s.success+'%'}</td><td>${s.onTime==null?'-':s.onTime+'%'}</td><td>${s.cycle==null?'-':s.cycle.toFixed(1)}</td><td>${s.progress==null?'-':s.progress+'%'}</td></tr>`).join('')}
     </tbody></table></div>`}</div>`;
   bindScope();
   const ps2=$('#personSel');if(ps2)ps2.onchange=e=>{ui.dashPerson=e.target.value;renderMain()};
   ui._report=person
     ?{name:person.name,rows:[['งาน','สถานะ','กำหนดส่ง','สถานะกำหนดส่ง','ขนาด','แต้มฐาน','หมวดผลงาน','ทีม/เดี่ยว','แต้มที่ได้','เช็คลิสต์%','เริ่ม','เสร็จ']].concat(cards.map(c=>{const d=dueInfo(c),p=ckProgress(c),sc=cardScore(c);return [c.title,list(c.list_id).name,c.due||'',d?d.text:'',SIZES[c.size||'s'].label,sc.base,sc.imp.label,sc.team?'ทีม':'เดี่ยว',isDone(c)&&sc.people.includes(pid)?ptsOf(sc,pid):'',p.total?Math.round(p.done/p.total*100):'',c.started_at?c.started_at.slice(0,10):'',c.done_at?c.done_at.slice(0,10):'']}))}
-    :{name:'ทั้งทีม',rows:[['พนักงาน','ตำแหน่ง','แต้ม KPI','แต้มเดี่ยว','แต้มทีม','แต้มพัฒนาบริษัท','งานริเริ่ม','งานเดี่ยว','งานทีม','ส่งต่อ','ตามแผน','ใกล้กำหนด','เลยกำหนด','เสร็จ','อัตราสำเร็จ%','ตรงเวลา%','Cycle(วัน)','เช็คลิสต์%']].concat(st.map(({m,s})=>[m.name,m.role||'',s.P.pts,s.P.solo,s.P.team,s.P.grow,s.P.initN,s.P.soloN,s.P.teamN,s.handoffs,s.dd.ok,s.dd.soon,s.dd.late,s.doneP.length,s.success??'',s.onTime??'',s.cycle==null?'':s.cycle.toFixed(1),s.progress??'']))};
+    :{name:'ทั้งทีม',rows:[['พนักงาน','ตำแหน่ง','KPI Score','เกรด','ผลงาน%','คุณภาพ%','ทีมเวิร์ก%','Safety','แต้ม KPI','แต้มเดี่ยว','แต้มทีม','🙏 ได้รับ','ผ่านรอบแรก%','ไม่เลื่อนกำหนด%','CSAT','ปิดดีล%','แต้มพัฒนาบริษัท','งานริเริ่ม','งานเดี่ยว','งานทีม','ส่งต่อ','ตามแผน','ใกล้กำหนด','เลยกำหนด','เสร็จ','อัตราสำเร็จ%','ตรงเวลา%','Cycle(วัน)','เช็คลิสต์%']].concat(st.map(({m,s})=>{const k=kpiOf(s,m.id);return [m.name,m.role||'',k.score,k.grade,k.out,k.qual,k.team,k.safe?'OK':'⚠ '+s.safety.length,s.P.pts,s.P.solo,s.P.team,s.P.kudosN,s.firstPass??'',s.noSlip??'',s.csat??'',s.winRate??'',s.P.grow,s.P.initN,s.P.soloN,s.P.teamN,s.handoffs,s.dd.ok,s.dd.soon,s.dd.late,s.doneP.length,s.success??'',s.onTime??'',s.cycle==null?'':s.cycle.toFixed(1),s.progress??'']}))};
   const tx=cssv('--mut'),ln=cssv('--line'),gold=cssv('--gold'),red=cssv('--late'),ok=cssv('--ok'),yel=cssv('--yel'),bg2=cssv('--bg2');
   Chart.defaults.color=tx;Chart.defaults.borderColor=ln;Chart.defaults.font.family='"IBM Plex Sans Thai",sans-serif';
   const base={responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{boxWidth:12}}}};
   const names=st.map(x=>x.m.name.split(' ')[0]);
   if(person) charts.push(new Chart($('#ch1'),{type:'bar',data:{labels:['ตามแผน','ใกล้กำหนด','เลยกำหนด','ไม่มีกำหนด'],datasets:[{label:'งานค้าง',data:[dd.ok,dd.soon,dd.late,dd.none],backgroundColor:[ok,yel,red,'#64748b']}]},options:{...base,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}}}}}));
   else { const rk=[...st].sort((a,b)=>b.s.P.pts-a.s.P.pts);
-    charts.push(new Chart($('#ch1'),{type:'bar',data:{labels:rk.map(x=>x.m.name.split(' ')[0]),datasets:[{label:'แต้มงานเดี่ยว',data:rk.map(x=>x.s.P.solo),backgroundColor:gold},{label:'แต้มงานทีม',data:rk.map(x=>x.s.P.team),backgroundColor:'#3b82f6'}]},options:{...base,indexAxis:'y',scales:{x:{stacked:true,beginAtZero:true},y:{stacked:true}}}})); }
+    charts.push(new Chart($('#ch1'),{type:'bar',data:{labels:rk.map(x=>x.m.name.split(' ')[0]),datasets:[{label:'แต้มงานเดี่ยว',data:rk.map(x=>x.s.P.solo),backgroundColor:gold},{label:'แต้มงานทีม',data:rk.map(x=>x.s.P.team),backgroundColor:'#3b82f6'},{label:'🙏 ขอบคุณ',data:rk.map(x=>x.s.P.kudos),backgroundColor:'#a855f7'}]},options:{...base,indexAxis:'y',scales:{x:{stacked:true,beginAtZero:true},y:{stacked:true}}}})); }
   const byStatus={};cards.forEach(c=>{const n=list(c.list_id).name;byStatus[n]=(byStatus[n]||0)+1});
   charts.push(new Chart($('#ch2'),{type:'doughnut',data:{labels:Object.keys(byStatus),datasets:[{data:Object.values(byStatus),backgroundColor:[gold,'#3b82f6',red,ok,'#a855f7','#64748b'],borderColor:bg2}]},options:{...base,cutout:'60%'}}));
   const wk=[...Array(8)].map((_,i)=>{const e=Date.now()-(7-i)*7*DAY;return {s:e-7*DAY,e,l:fmtD(new Date(e-6*DAY).toISOString())}});
@@ -1258,8 +1408,18 @@ function renderDash(){
     const ptsM=(x,team)=>Math.round(cards.filter(c=>inM(c,x)).reduce((a,c)=>{const sc=cardScore(c);return a+(sc.team===team?ptsOf(sc,pid):0)},0)*10)/10;
     charts.push(new Chart($('#ch4'),{type:'bar',data:{labels:mo.map(x=>x.l),datasets:[{label:'แต้มเดี่ยว',data:mo.map(x=>ptsM(x,false)),backgroundColor:gold},{label:'แต้มทีม',data:mo.map(x=>ptsM(x,true)),backgroundColor:'#3b82f6'}]},options:{...base,scales:{x:{stacked:true},y:{stacked:true,beginAtZero:true}}}}));
   } else {
+    const stg=stageTimes(cards), cv5=$('#ch5');
+    if(cv5) charts.push(new Chart(cv5,{type:'bar',data:{labels:stg.map(x=>x[0]+` (${x[2]})`),datasets:[{label:'วันเฉลี่ย',data:stg.map(x=>x[1]),backgroundColor:stg.map((x,i)=>i===0?red:gold)}]},options:{...base,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{beginAtZero:true}}}}));
     charts.push(new Chart($('#ch4'),{type:'bar',data:{labels:names,datasets:[['ok','ตามแผน',ok],['soon','ใกล้กำหนด',yel],['late','เลยกำหนด',red]].map(([k,l,c])=>({label:l,data:st.map(x=>x.s.dd[k]),backgroundColor:c}))},options:{...base,indexAxis:'y',scales:{x:{stacked:true,beginAtZero:true,ticks:{precision:0}},y:{stacked:true}}}}));
   }
+}
+function stageTimes(cards){
+  const acc={};
+  cards.filter(c=>isTask(c)&&isDone(c)&&inPeriod(c.done_at)&&Array.isArray(c.trail)).forEach(c=>{
+    const t=c.trail.filter(x=>x.list); for(let i=0;i<t.length-1;i++){ if(t[i].t==='done') continue;
+      const d=(new Date(t[i+1].at)-new Date(t[i].at))/DAY; if(d<0) continue;
+      (acc[t[i].list]=acc[t[i].list]||[]).push(d) } });
+  return Object.entries(acc).map(([k,v])=>[k,Math.round(v.reduce((a,b)=>a+b,0)/v.length*10)/10,v.length]).sort((a,b)=>b[1]-a[1]);
 }
 function exportReport(){
   const r=ui._report;if(!r)return;
@@ -1273,10 +1433,11 @@ function renderSettings(){
   $('#sheet').innerHTML=`<div class="mhead"><b style="flex:1;font-size:18px" class="kanit">⚙️ บัญชีและตั้งค่า</b><button class="icon" data-act="closeModal">✕</button></div>
   <div class="mtop">${avatar(m,'lg')}<div><div class="nm"><b>${esc(m.name)}</b> ${admin?'<span class="mode sb">ADMIN</span>':''}</div><div class="muted">${esc(session.email||'')} ${m.role?'· '+esc(m.role):''}</div></div><div class="spacer"></div><a class="howto" href="tutorial.mp4" target="_blank" rel="noopener" style="margin:0 6px">▶ วิดีโอสอนใช้</a><button data-act="toggleTheme">🌓 Dark / Light</button><button class="danger" data-act="logout">ออกจากระบบ</button></div>
   ${admin?`
-  <div class="sec"><h4>พนักงาน (${S.members.length}) <span class="muted">ดึงจากระบบลงเวลา TESR · แก้ชื่อ/อีเมล/เบอร์ได้ที่ระบบลงเวลา</span></h4>
+  <div class="sec"><h4>พนักงาน (${S.members.length}) <span class="muted">ดึงจากระบบลงเวลา TESR · ช่องตัวเลข = เป้าแต้ม KPI/เดือน (ว่าง = ${DEFAULT_TARGET})</span></h4>
     ${S.members.map(x=>`<div class="mem" data-mid="${x.id}">${avatar(x)}<div class="nm">${esc(x.name)}<small>${esc([x.code,x.role].filter(Boolean).join(' · '))}</small></div>
       <input class="hm" data-f="dept" value="${esc(x.dept||'')}" placeholder="ฝ่าย">${x.id==='admin'?`<input class="hm" data-f="name" value="${esc(x.name)}" placeholder="ชื่อที่แสดง">`:'<span class="hm"></span>'}
       <select data-f="board_role" ${x.id==='admin'?'disabled':''}><option value="member" ${x.board_role!=='admin'?'selected':''}>พนักงาน</option><option value="admin" ${x.board_role==='admin'?'selected':''}>Admin</option></select>
+      <input class="hm" type="number" min="1" step="1" data-f="target" value="${esc(x.target||'')}" placeholder="เป้า ${DEFAULT_TARGET}" title="เป้าแต้ม KPI ต่อเดือน (ตามตำแหน่ง เช่น ฝึกงาน 5 · วิศวกร 10 · Sales 15)">
       <input class="hm" type="color" data-f="color" value="${x.color||'#888888'}">
       ${x.id==='admin'?'<span></span>':`<button class="icon sm" data-act="toggleActive" data-id="${x.id}" title="${x.active!==false?'ซ่อนจากบอร์ด':'แสดงในบอร์ด'}">${x.active!==false?'👁':'🚫'}</button>`}</div>`).join('')}
   </div>
@@ -1319,6 +1480,10 @@ async function act(a,d={}){
     case 'toggleItem':{const it=c.checklists.find(x=>x.id===d.cl).items.find(x=>x.id===d.it);it.done=!it.done;it.done_at=it.done?now():null;it.by=it.done?session.id:null;await saveCard(c,(it.done?'ทำเสร็จ ':'ยกเลิกติ๊ก ')+'"'+it.text+'"');renderCardModal();break}
     case 'toggleDone': toggleDone(c); break;
     case 'scoreHelp': scoreHelp(); break;
+    case 'kpiHelp': kpiHelp(); break;
+    case 'kudos': kudosModal(d.id); break;
+    case 'safetyLog': safetyLog(d.id); break;
+    case 'delKudos':{if(!confirm('ลบรายการนี้?'))return;await store.remove('kudos',d.id);renderMain();break}
     case 'toggleHideChecked': ui.hideChecked=!ui.hideChecked; renderCardModal(); break;
     case 'toggleActs': ui.showActs=!ui.showActs; renderCardModal(); break;
     case 'replyCmt':{const t=$('#cmt');t.value='@'+d.name+' ';t.focus();break}
