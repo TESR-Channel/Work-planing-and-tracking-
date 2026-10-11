@@ -531,6 +531,24 @@ button.howto{background:transparent;font:inherit}
 .lren{width:100%;font:600 14px Inter,"Noto Sans Thai",sans-serif;padding:3px 6px;border:1px solid var(--gold);border-radius:6px;background:var(--bg2);color:var(--tx)}
 .cnt{font-family:Inter,"Noto Sans Thai",sans-serif!important;font-weight:600}
 
+/* column status + colour */
+.list.tinted{border-top:3px solid var(--lc)}
+.list.tinted .lhead{background:linear-gradient(180deg,color-mix(in srgb,var(--lc) 22%,transparent),color-mix(in srgb,var(--lc) 6%,transparent));border-radius:10px 10px 0 0}
+.list.tinted .lhead::before{background:var(--lc)!important;box-shadow:0 0 10px var(--lc)!important}
+.lstat{font:600 11px/1.6 inherit;padding:1px 8px;border-radius:20px;white-space:nowrap;border:1px solid var(--lc,var(--line));color:var(--lc,var(--mut));background:color-mix(in srgb,var(--lc,#888) 14%,transparent)}
+button.lstat{cursor:pointer;transition:filter .15s,transform .15s}button.lstat:hover{filter:brightness(1.25);transform:translateY(-1px)}
+.lstat.empty{opacity:0;border-style:dashed;--lc:var(--mut)}.lhead:hover .lstat.empty{opacity:.75}@media (hover:none){.lstat.empty{opacity:.5}}
+#lpop{position:fixed;z-index:60;width:248px;background:var(--bg2);border:1px solid var(--line);border-radius:12px;box-shadow:0 12px 32px rgba(0,0,0,.45);padding:10px}
+#lpop h5{margin:2px 4px 6px;font-size:11px;color:var(--mut);font-weight:600;letter-spacing:.4px}
+#lpop .so{display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:none;border:1px solid transparent;border-radius:8px;padding:6px 8px;color:var(--txt);cursor:pointer;font:inherit}
+#lpop .so:hover{background:var(--card2)}#lpop .so.on{border-color:var(--lc);background:color-mix(in srgb,var(--lc) 14%,transparent)}
+#lpop .so i{width:10px;height:10px;border-radius:50%;background:var(--lc);flex:none;box-shadow:0 0 6px var(--lc)}
+#lpop .so small{margin-left:auto;color:var(--mut);font-size:10px}
+#lpop .sw{display:flex;flex-wrap:wrap;gap:6px;padding:2px 4px 4px}
+#lpop .sw button{width:24px;height:24px;border-radius:50%;border:2px solid transparent;background:var(--c);cursor:pointer;padding:0}
+#lpop .sw button.on{border-color:var(--txt);box-shadow:0 0 0 2px var(--bg2) inset}
+#lpop .sw .auto{background:conic-gradient(var(--gold),var(--ok),#3b82f6,#a855f7,var(--gold));font-size:0}
+#lpop hr{border:0;border-top:1px solid var(--line);margin:8px 0}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 
 @media (max-width:700px){
@@ -885,18 +903,42 @@ function renderBoard(){
   const lists=boardLists(ui.board);
   $('#main').innerHTML=`<div class="board" id="boardEl">${lists.map(l=>{
     const cs=S.cards.filter(c=>c.list_id===l.id&&matches(c)).sort(byPos);
-    return `<section class="list ${l.is_done?'done':''}" data-id="${l.id}">
-      <div class="lhead"><span class="lname ${isAdmin()?'editable':''}" data-lid="${l.id}" ${isAdmin()?'title="ดับเบิลคลิก (หรือกด ✏️) เพื่อเปลี่ยนชื่อ"':''}>${esc(l.name)}</span>${isAdmin()?`<button class="icon ren" data-act="renameList" data-id="${l.id}" title="เปลี่ยนชื่อคอลัมน์">✏️</button>`:''}${l.is_done?'<span class="donetag">✓ เสร็จ</span>':''}<span class="cnt">${cs.length}</span>${isAdmin()?`<button class="icon" data-act="listMenu" data-id="${l.id}">⋯</button>`:''}</div>
+    const lc=lcolor(l);
+    return `<section class="list ${l.is_done?'done':''} ${lc?'tinted':''}" data-id="${l.id}" ${lc?`style="--lc:${lc}"`:''}>
+      <div class="lhead"><span class="lname ${isAdmin()?'editable':''}" data-lid="${l.id}" ${isAdmin()?'title="ดับเบิลคลิก (หรือกด ✏️) เพื่อเปลี่ยนชื่อ"':''}>${esc(l.name)}</span>${isAdmin()?`<button class="icon ren" data-act="renameList" data-id="${l.id}" title="เปลี่ยนชื่อคอลัมน์">✏️</button>`:''}${lstatChip(l)}<span class="cnt">${cs.length}</span>${isAdmin()?`<button class="icon" data-act="listMenu" data-id="${l.id}">⋯</button>`:''}</div>
       <div class="cards" data-list="${l.id}">${cs.map(cardHTML).join('')}</div>
       <button class="addcard" data-act="addCard" data-id="${l.id}">+ เพิ่มการ์ด</button></section>`}).join('')}
     ${isAdmin()?'<div class="addlist"><button data-act="addList">+ เพิ่มลิสต์</button></div>':''}</div>`;
   const opt={animation:150,delay:180,delayOnTouchOnly:true,ghostClass:'ghost',chosenClass:'chosen',onStart:()=>ui.dragging=true};
   $$('.cards').forEach(el=>Sortable.create(el,{...opt,group:'cards',onEnd:onCardDrop}));
   if(isAdmin()){
-    Sortable.create($('#boardEl'),{...opt,handle:'.lhead',draggable:'.list',filter:'input,.ren',preventOnFilter:false,onEnd:onListDrop});
+    Sortable.create($('#boardEl'),{...opt,handle:'.lhead',draggable:'.list',filter:'input,.ren,.lstat',preventOnFilter:false,onEnd:onListDrop});
     $$('.lname.editable').forEach(el=>el.ondblclick=()=>renameListInline(el.dataset.lid));
   }
 }
+const LSTAT={none:{t:'ไม่ระบุ',c:''},todo:{t:'รอทำ',i:'⏳',c:'#64748b'},doing:{t:'กำลังทำ',i:'🔧',c:'#3b82f6'},review:{t:'รอตรวจ',i:'👀',c:'#a855f7'},hold:{t:'ติดปัญหา',i:'⛔',c:'#d71f33'},done:{t:'เสร็จ',i:'✅',c:'#2fbf71'}};
+const lstat=l=>LSTAT[l.status]?l.status:(l.is_done?'done':'none');
+const lcolor=l=>l.color||LSTAT[lstat(l)].c||'';
+function lstatChip(l){const st=lstat(l),S_=LSTAT[st];
+  if(st==='none') return isAdmin()?`<button class="lstat empty" data-act="lpop" data-id="${l.id}" title="ตั้งสถานะ / สีคอลัมน์">＋ สถานะ</button>`:'';
+  const txt=`${S_.i} ${S_.t}`;
+  return isAdmin()?`<button class="lstat" data-act="lpop" data-id="${l.id}" title="คลิกเพื่อเปลี่ยนสถานะ / สี">${txt} ▾</button>`:`<span class="lstat">${txt}</span>` }
+function closeLpop(){ $('#lpop')?.remove() }
+function openLpop(id,anchor){
+  const l=list(id); if(!l) return; const was=$('#lpop')?.dataset.id; closeLpop(); if(was===id) return;
+  const st=lstat(l), col=l.color||'';
+  const d=document.createElement('div'); d.id='lpop'; d.dataset.id=id;
+  d.innerHTML=`<h5>สถานะคอลัมน์</h5>`+Object.entries(LSTAT).map(([k,v])=>`<button class="so ${k===st?'on':''}" style="--lc:${v.c||'var(--mut)'}" data-act="setLStat" data-id="${id}" data-s="${k}"><i></i>${v.i||'⚪'} ${v.t}${k==='done'?'<small>นับเป็นผลงาน</small>':''}</button>`).join('')
+    +`<hr><h5>สีไฮไลต์</h5><div class="sw"><button class="auto ${col?'':'on'}" data-act="setLColor" data-id="${id}" data-c="" title="อัตโนมัติตามสถานะ">auto</button>`
+    +PALETTE.map(c=>`<button style="--c:${c}" class="${c===col?'on':''}" data-act="setLColor" data-id="${id}" data-c="${c}" title="${c}"></button>`).join('')+`</div>`;
+  document.body.appendChild(d);
+  const r=anchor.getBoundingClientRect(), w=d.offsetWidth, h=d.offsetHeight;
+  d.style.left=Math.max(8,Math.min(innerWidth-w-8,r.right-w))+'px';
+  d.style.top=(r.bottom+6+h>innerHeight-8?Math.max(8,r.top-h-6):r.bottom+6)+'px';
+}
+document.addEventListener('mousedown',e=>{if($('#lpop')&&!e.target.closest('#lpop,.lstat'))closeLpop()},true);
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeLpop()});
+addEventListener('resize',closeLpop);
 function renameListInline(id){
   const l=list(id), el=$(`.lname[data-lid="${id}"]`); if(!l||!el||el.querySelector('input')) return;
   ui.dragging=true;
@@ -1531,11 +1573,18 @@ async function act(a,d={}){
     case 'dashPerson': if(!isAdmin())return; closeModal(); ui.dashPerson=d.id||''; ui.view='dash'; renderMain(); window.scrollTo(0,0); break;
     case 'addList':{if(!isAdmin())return;const n=prompt('ชื่อลิสต์');if(!n?.trim())return;await store.upsert('lists',{id:uid(),board_id:ui.board,name:n.trim(),pos:Math.max(0,...boardLists(ui.board).map(l=>l.pos||0))+1024,is_done:false});scheduleRender();break}
     case 'renameList': renameListInline(d.id); break;
+    case 'lpop': if(!isAdmin())return; openLpop(d.id,$(`.list[data-id="${d.id}"] .lstat`)); break;
+    case 'setLStat':{if(!isAdmin())return;const l=list(d.id),old=lstat(l);closeLpop();if(old===d.s)break;
+      l.status=d.s;l.is_done=d.s==='done';await store.upsert('lists',l);
+      log(null,`เปลี่ยนสถานะคอลัมน์ "${l.name}" → ${LSTAT[d.s].t}`);toast(`${LSTAT[d.s].i||'⚪'} "${l.name}" → ${LSTAT[d.s].t}`+(d.s==='done'?' (นับเป็นผลงาน)':''));scheduleRender();break}
+    case 'setLColor':{if(!isAdmin())return;const l=list(d.id);closeLpop();if((l.color||'')===d.c)break;
+      l.color=d.c||'';await store.upsert('lists',l);log(null,`เปลี่ยนสีคอลัมน์ "${l.name}"`);scheduleRender();break}
     case 'listMenu':{const l=list(d.id);ui.openCard=null;
       $('#sheet').innerHTML=`<div class="mhead"><input class="mtitle" id="lName" value="${esc(l.name)}"><button class="icon" data-act="closeModal">✕</button></div>
-        <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="lDone" ${l.is_done?'checked':''}> ลิสต์นี้คือ "งานเสร็จ" (นับเป็นผลงานในแดชบอร์ด)</label>
+        <label style="display:flex;gap:8px;align-items:center">สถานะคอลัมน์ <select id="lStat">${Object.entries(LSTAT).map(([k,v])=>`<option value="${k}" ${k===lstat(l)?'selected':''}>${v.i||'⚪'} ${v.t}${k==='done'?' — นับเป็นผลงาน':''}</option>`).join('')}</select></label>
+        <div class="muted" style="font-size:12px;margin-top:6px">💡 คลิกป้ายสถานะบนหัวคอลัมน์เพื่อเปลี่ยนสถานะ/สีได้ทันที</div>
         <div class="mfoot"><button class="danger sm" data-act="delList" data-id="${l.id}">ลบลิสต์</button><button class="pri" data-act="saveList" data-id="${l.id}">บันทึก</button></div>`;showModal();break}
-    case 'saveList':{const l=list(d.id);l.name=$('#lName').value.trim()||l.name;l.is_done=$('#lDone').checked;await store.upsert('lists',l);closeModal();scheduleRender();break}
+    case 'saveList':{const l=list(d.id);l.name=$('#lName').value.trim()||l.name;l.status=$('#lStat').value;l.is_done=l.status==='done';await store.upsert('lists',l);closeModal();scheduleRender();break}
     case 'delList':{const l=list(d.id),n=S.cards.filter(x=>x.list_id===l.id);if(!confirm(`ลบลิสต์ "${l.name}"${n.length?` และการ์ด ${n.length} ใบ`:''}?`))return;
       for(const x of n)await store.remove('cards',x.id);await store.remove('lists',l.id);closeModal();scheduleRender();break}
     case 'toggleAssignee':{const i=c.assignees.indexOf(d.id);i>=0?c.assignees.splice(i,1):c.assignees.push(d.id);await saveCard(c,(i>=0?'เอาออก ':'มอบหมายให้ ')+member(d.id).name);renderCardModal();break}
