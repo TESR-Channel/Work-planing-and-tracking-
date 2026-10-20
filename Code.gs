@@ -50,12 +50,13 @@ function doPost(e) {
   let req;
   try { req = JSON.parse(e.postData.contents); } catch (x) { return out_({ error: 'bad_request' }); }
   try {
-    if (req.action === 'login') return out_(login_(req.user, req.pass));
+    if (req.action === 'login') return out_(login_(req.user, req.pass, req.remember));
     const u = verify_(req.token);
     if (!u) return out_({ error: 'auth' });
     switch (req.action) {
       case 'load':       return out_(loadAll_());
       case 'ver':        return out_({ ver: ver_() });
+      case 'renew':      return out_({ token: sign_({ id: u.id, role: memberRole_(u.id) || u.role, rem: u.rem !== false, exp: Date.now() + (u.rem === false ? SHORT_DAYS : LONG_DAYS) * 864e5 }) });
       case 'upsert':     return out_(upsert_(u, req.table, req.rows || []));
       case 'remove':     return out_(remove_(u, req.table, req.ids || []));
       case 'upload':     return out_(upload_(req));
@@ -91,7 +92,8 @@ function sha_(s) {
     .map(b => ((b + 256) % 256).toString(16).padStart(2, '0')).join('');
 }
 
-function login_(user, pass) {
+const LONG_DAYS = 180, SHORT_DAYS = 1; // จำเครื่องนี้ = 180 วัน (ต่ออายุอัตโนมัติทุกครั้งที่เปิดใช้), ไม่จำ = 1 วัน
+function login_(user, pass, remember) {
   const u = String(user || '').trim().toLowerCase(), pw = String(pass || '').trim();
   if (!u || !pw) return { error: 'invalid' };
   const cache = CacheService.getScriptCache(), fk = 'fail_' + u, fails = +(cache.get(fk) || 0);
@@ -130,7 +132,8 @@ function login_(user, pass) {
     const m = readTable_('mrows').find(r => r.id === 'admin');
     me.name = (m && m.name) || 'Anon'; me.email = u; me.position = 'CEO · Owner';
   }
-  return { user: me, token: sign_({ id: me.id, role: me.role, exp: Date.now() + 30 * 864e5 }) };
+  const days = remember === false ? SHORT_DAYS : LONG_DAYS;
+  return { user: me, token: sign_({ id: me.id, role: me.role, rem: days === LONG_DAYS, exp: Date.now() + days * 864e5 }) };
 }
 
 /* ================= EMPLOYEES (Sheet ระบบลงเวลา · อ่านอย่างเดียว) ================= */

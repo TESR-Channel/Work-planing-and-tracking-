@@ -549,6 +549,9 @@ button.lstat{cursor:pointer;transition:filter .15s,transform .15s}button.lstat:h
 #lpop .sw button.on{border-color:var(--txt);box-shadow:0 0 0 2px var(--bg2) inset}
 #lpop .sw .auto{background:conic-gradient(var(--gold),var(--ok),#3b82f6,#a855f7,var(--gold));font-size:0}
 #lpop hr{border:0;border-top:1px solid var(--line);margin:8px 0}
+#loginForm .remember{display:flex;align-items:center;gap:8px;font-size:13px;margin:4px 0 10px;cursor:pointer;color:var(--txt)}
+#loginForm .remember input{width:18px;height:18px;margin:0;accent-color:var(--gold);flex:none}
+#loginForm .remember .muted{font-size:12px}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 
 @media (max-width:700px){
@@ -576,6 +579,7 @@ button.lstat{cursor:pointer;transition:filter .15s,transform .15s}button.lstat:h
     <input id="lUser" type="email" autocomplete="username" placeholder="name@tesr.co.th" required>
     <label for="lPass">รหัสผ่าน (เบอร์โทรศัพท์)</label>
     <input id="lPass" type="password" inputmode="tel" autocomplete="current-password" placeholder="08xxxxxxxx" required>
+    <label class="remember"><input type="checkbox" id="lRem" checked> จำการเข้าสู่ระบบไว้ในเครื่องนี้ <span class="muted">(ไม่ต้องล็อกอินใหม่)</span></label>
     <button class="pri" type="submit" id="lBtn">เข้าสู่ระบบ</button>
     <div class="lerr" id="lErr"></div>
     <button type="button" class="icon sm hidden" id="demoBtn" data-act="demoLogin">ทดลองใช้โหมดเดโม →</button>
@@ -707,14 +711,15 @@ function makeGasStore(url){
   return {
     mode:'sheet',
     async load(){const d=await call('load');ver=d.ver;return {staff:d.staff||[],mrows:d.mrows||[],boards:d.boards||[],lists:d.lists||[],cards:d.cards||[],activity:d.activity||[],kudos:d.kudos||[],_noKudos:!Array.isArray(d.kudos)}},
-    async login(user,pass){
-      const r=await fetch(url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'login',user,pass})});
+    async login(user,pass,remember=true){
+      const r=await fetch(url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'login',user,pass,remember})});
       const j=await r.json();
       if(j.error==='invalid') return null;
       if(j.error==='locked') throw new Error('ใส่รหัสผิดหลายครั้ง กรุณารอ 15 นาที');
       if(j.error) throw new Error(j.error);
       return {...j.user,token:j.token};
     },
+    async renew(){return call('renew')},
     async upsert(k,row){put(k,row);enqueue(()=>call('upsert',{table:k,rows:[row]}))},
     async upsertMany(k,rows){rows.forEach(r=>put(k,r));if(rows.length)enqueue(()=>call('upsert',{table:k,rows}))},
     async remove(k,id){S[k]=S[k].filter(x=>x.id!==id);enqueue(()=>call('remove',{table:k,ids:[id]}))},
@@ -727,6 +732,7 @@ function makeGasStore(url){
     },
     async removeFile(id){if(id)enqueue(()=>call('removeFile',{id}))},
     subscribe(cb){
+      if(this._sub) return; this._sub=1;
       const check=async()=>{
         if(!session||document.hidden||ui.dragging||inflight) return;
         try{
@@ -1566,7 +1572,7 @@ async function act(a,d={}){
     case 'openCard': openCard(d.id);break;
     case 'closeModal': closeModal();break;
     case 'toggleTheme': applyTheme(document.documentElement.dataset.theme==='dark'?'light':'dark');if(session)renderMain();break;
-    case 'logout': localStorage.removeItem(LS_SES);localStorage.removeItem('tesrboard_cache_v1');location.reload();break;
+    case 'logout': if(session?.email) lsSet('tesrboard_last_user',session.email); localStorage.removeItem(LS_SES);localStorage.removeItem('tesrboard_cache_v1');location.reload();break;
     case 'demoLogin': await startDemo();break;
     case 'exportReport': exportReport();break;
     case 'addCard': openNewCard(d.id);break;
@@ -1686,9 +1692,9 @@ function showLogin(msg=''){ $('#login').classList.remove('hidden');$('#topbar').
 $('#loginForm').onsubmit=async e=>{
   e.preventDefault();if(store.mode==='local'){$('#lErr').textContent='ยังไม่ได้เชื่อมต่อ API — กดทดลองโหมดเดโมด้านล่าง';$('#demoBtn').classList.remove('hidden');return}const btn=$('#lBtn');btn.disabled=true;btn.textContent='กำลังตรวจสอบ...';$('#lErr').textContent='';
   try{
-    const u=await store.login($('#lUser').value.trim(),$('#lPass').value.trim());
+    const u=await store.login($('#lUser').value.trim(),$('#lPass').value.trim(),$('#lRem').checked);
     if(!u){$('#lErr').textContent='อีเมลหรือเบอร์โทรไม่ถูกต้อง';return}
-    session={...u,at:Date.now()};lsSet(LS_SES,session);await enterApp();
+    session={...u,at:Date.now(),rem:$('#lRem').checked};lsSet(LS_SES,session);await enterApp();
   }catch(err){console.error(err);$('#lErr').textContent=(store.mode==='local'?'ยังไม่ได้เชื่อมต่อ API':'เข้าสู่ระบบไม่ได้: '+(err.message||err));$('#demoBtn').classList.remove('hidden')}
   finally{btn.disabled=false;btn.textContent='เข้าสู่ระบบ'}
 };
@@ -1701,6 +1707,23 @@ const LS_CACHE='tesrboard_cache_v1';
 let _cacheT=0;
 function saveCache(){ if(store?.mode==='local'||!session) return; clearTimeout(_cacheT);
   _cacheT=setTimeout(()=>{try{const {members,...data}=S;localStorage.setItem(LS_CACHE,JSON.stringify({user:session.id,at:Date.now(),data}))}catch(e){}},1500) }
+function tokenExp(t){ // อ่านวันหมดอายุจาก token (ไม่ต้องถามเซิร์ฟเวอร์)
+  try{const p=String(t||'').split('.')[0].replace(/-/g,'+').replace(/_/g,'/');return JSON.parse(decodeURIComponent(escape(atob(p+'==='.slice((p.length+3)%4))))).exp||0}catch(e){return 0} }
+async function renewToken(){ // ต่ออายุ token อัตโนมัติ วันละครั้ง — เปิดใช้อย่างน้อยทุก 6 เดือนก็ไม่ต้องล็อกอินอีก
+  if(!session||session.demo||store.mode==='local') return;
+  if(Date.now()-(session.renewed||session.at||0)<DAY) return;
+  try{const j=await store.renew(); if(j&&j.token){session.token=j.token;session.renewed=Date.now();lsSet(LS_SES,session)}}catch(e){}
+}
+async function enterWithRetry(n=0){ // เน็ตหลุด/เซิร์ฟเวอร์ช้า → ไม่เด้งออก ลองใหม่เอง
+  try{ await enterApp(); renewToken(); }
+  catch(e){ console.error(e);
+    if(e.message==='auth') return;
+    if(!$('#topbar').classList.contains('hidden')) { setSync(false); toast('📡 เชื่อมต่อไม่ได้ — แสดงข้อมูลล่าสุดในเครื่อง จะลองใหม่อัตโนมัติ'); }
+    else showLogin('📡 เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ กำลังลองใหม่… (ไม่ต้องล็อกอินใหม่)');
+    setTimeout(()=>enterWithRetry(n+1),Math.min(30000,3000*(n+1)));
+  }
+}
+addEventListener('online',()=>{ if(session&&!session.demo&&$('#topbar').classList.contains('hidden')) enterWithRetry() });
 async function enterApp(){
   if(store.mode!=='local'){
     const c=lsGet(LS_CACHE,null);
@@ -1729,15 +1752,15 @@ async function enterApp(){
   store=cfg.url?makeGasStore(cfg.url):LocalStore;
   if(store===LocalStore){$('#demoBtn').classList.remove('hidden');$('#lErr').textContent='ยังไม่ได้เชื่อมต่อ API — ทดลองโหมดเดโมได้'}
   const s=lsGet(LS_SES,null);
-  if(s&&Date.now()-s.at<30*DAY){
+  if(s&&(s.demo||tokenExp(s.token)>Date.now())){
     session=s;
-    try{
-      if(s.demo){await startDemo();return}
-      if(store.mode==='local') throw new Error('offline');
-      await enterApp();return;
-    }catch(e){console.error(e);session=null;localStorage.removeItem(LS_SES);showLogin('กรุณาเข้าสู่ระบบอีกครั้ง');$('#demoBtn').classList.remove('hidden');return}
+    if(s.demo){await startDemo();return}
+    if(store.mode==='local'){showLogin();return}
+    await enterWithRetry();return;
   }
-  showLogin();
+  if(s) localStorage.removeItem(LS_SES);
+  const last=lsGet('tesrboard_last_user','');if(last) $('#lUser').value=last;
+  showLogin(s?'เซสชันหมดอายุ กรุณาเข้าสู่ระบบอีกครั้ง':'');
 })();
 </script>
 </body>
