@@ -58,6 +58,8 @@ textarea{width:100%;resize:vertical}
   background:linear-gradient(90deg,#000 0%,#121214 55%,#1a1408 100%);border-bottom:2px solid var(--gold);position:relative}
 .top::after{content:"";position:absolute;left:0;right:0;bottom:-4px;height:2px;background:linear-gradient(90deg,transparent,var(--red) 30%,var(--red) 70%,transparent);opacity:.8}
 .brand{display:flex;align-items:center;gap:9px;margin-right:6px}
+.brand{position:relative}
+.appver{position:absolute;left:0;bottom:-6px;font:600 9px/1 ui-monospace,Menlo,monospace;color:#f0c552;background:rgba(0,0,0,.75);border:1px solid rgba(240,197,82,.5);border-radius:4px;padding:1px 3px;pointer-events:none}
 .brand img{height:38px;filter:drop-shadow(0 2px 6px rgba(212,167,44,.35))}
 .brand .t{font-family:sans-serif;font-weight:700;font-size:19px;letter-spacing:.6px;line-height:1}
 .brand .t b{color:#f0c552}
@@ -595,7 +597,7 @@ button.lstat{cursor:pointer;transition:filter .15s,transform .15s}button.lstat:h
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 
 @media (max-width:700px){
-  .top{padding:8px 10px}
+  .top{padding:calc(8px + env(safe-area-inset-top)) 10px 8px}
   .brand .t small{display:none}
   #search{width:110px}
   .list{flex-basis:84vw;max-height:calc(100vh - 170px)}
@@ -630,7 +632,7 @@ button.lstat{cursor:pointer;transition:filter .15s,transform .15s}button.lstat:h
 
 <!-- ===== App ===== -->
 <header class="top hidden" id="topbar">
-  <div class="brand"><img src="logo.png" alt="TESR"><div class="t">TESR <b>BOARD</b><small>WORK TRACKING</small></div></div>
+  <div class="brand"><img src="logo.png" alt="TESR"><span class="appver" id="appVer"></span><div class="t">TESR <b>BOARD</b><small>WORK TRACKING</small></div></div>
   <select id="boardSel" title="เลือกบอร์ด"></select>
   <button class="icon" id="boardMenu" title="จัดการบอร์ด">⋯</button>
   <nav class="tabs" id="tabs">
@@ -650,7 +652,7 @@ button.lstat{cursor:pointer;transition:filter .15s,transform .15s}button.lstat:h
 <div id="modal" class="modal hidden"><div class="sheet" id="sheet"></div></div>
 <div id="toast"></div>
 <div id="vid" class="vid hidden"><div class="vbox">
-  <div class="vhead"><b>▶ วิธีใช้งาน TESR Board</b><span class="muted">เวอร์ชันล่าสุด</span><div class="spacer"></div><button class="icon" data-act="closeHowto" title="ปิด">✕</button></div>
+  <div class="vhead"><b>▶ วิธีใช้งาน TESR Board</b><span class="muted" id="howVer">เวอร์ชันล่าสุด</span><div class="spacer"></div><button class="icon" data-act="closeHowto" title="ปิด">✕</button></div>
   <div class="vbody"><video id="vplayer" controls playsinline preload="metadata"></video><div class="vch" id="vch"></div></div>
 </div></div>
 
@@ -662,6 +664,7 @@ const T = { mrows:'tb_members', boards:'tb_boards', lists:'tb_lists', cards:'tb_
 const KEYS = Object.keys(T);
 const LS_DATA='tesrboard_demo_v2', LS_CFG='tesrboard_cfg', LS_SES='tesrboard_session', LS_BOARD='tesrboard_board', LS_THEME='tesrboard_theme';
 const PALETTE=['#d71f33','#d4a72c','#2fbf71','#3b82f6','#a855f7','#ec4899','#14b8a6','#f97316','#64748b','#84cc16'];
+const APP_VER='v3.1'; // เพิ่มเลขทุกครั้งที่อัปเดตหน้าเว็บ · ดูที่มุมโลโก้ว่าเครื่องโหลดเวอร์ชันใหม่แล้ว
 const PRIO={low:'ต่ำ',normal:'ปกติ',high:'สูง',urgent:'ด่วนมาก'};
 /* 🚚 ลิงก์ติดตามสำหรับลูกค้า (หน้า track.html) — ต้องตรงกับ TRK_DOCS ใน Code.gs */
 const TRK_UNITS={shop:'TESR Shop',academy:'TESR Academy',logistics:'TESR Logistics'};
@@ -1921,6 +1924,7 @@ async function enterApp(){
   renderMain();
 }
 (async function boot(){
+  {const v=document.getElementById('appVer');if(v)v.textContent=APP_VER;const h=document.getElementById('howVer');if(h)h.textContent='เวอร์ชัน '+APP_VER;}
   const cfg=getCfg();
   store=cfg.url?makeGasStore(cfg.url):LocalStore;
   if(store===LocalStore){$('#demoBtn').classList.remove('hidden');$('#lErr').textContent='ยังไม่ได้เชื่อมต่อ API — ทดลองโหมดเดโมได้'}
