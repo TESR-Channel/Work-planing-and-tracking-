@@ -383,9 +383,9 @@ th{font-family:Orbitron,sans-serif;font-size:11px;letter-spacing:1px;background:
 .trk-pin{margin-top:8px;font-size:12.5px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .pinv{font-family:ui-monospace,Menlo,monospace;font-size:15px;letter-spacing:.15em;color:var(--gold)}
 .pays{display:flex;flex-direction:column;gap:6px;margin-top:6px}
-.pay{display:flex;gap:10px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:6px 8px}
+.pay{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:6px 8px}
 .pay img,.pay .ph{width:48px;height:48px;border-radius:6px;object-fit:cover;flex:none;background:var(--card2);display:grid;place-items:center;font-size:11px;color:var(--mut)}
-.pay .nm{flex:1;min-width:0;font-size:12.5px}
+.pay .nm{flex:1 1 150px;min-width:0;font-size:12.5px}
 .pay .nm a{overflow-wrap:anywhere}
 .pst{font-size:11px;padding:1px 8px;border-radius:20px;white-space:nowrap}
 .pst.pending{background:var(--yelbg);color:var(--yel)}
@@ -678,7 +678,7 @@ const T = { mrows:'tb_members', boards:'tb_boards', lists:'tb_lists', cards:'tb_
 const KEYS = Object.keys(T);
 const LS_DATA='tesrboard_demo_v2', LS_CFG='tesrboard_cfg', LS_SES='tesrboard_session', LS_BOARD='tesrboard_board', LS_THEME='tesrboard_theme';
 const PALETTE=['#d71f33','#d4a72c','#2fbf71','#3b82f6','#a855f7','#ec4899','#14b8a6','#f97316','#64748b','#84cc16'];
-const APP_VER='v3.4'; // เพิ่มเลขทุกครั้งที่อัปเดตหน้าเว็บ · ดูที่มุมโลโก้ว่าเครื่องโหลดเวอร์ชันใหม่แล้ว
+const APP_VER='v3.5'; // เพิ่มเลขทุกครั้งที่อัปเดตหน้าเว็บ · ดูที่มุมโลโก้ว่าเครื่องโหลดเวอร์ชันใหม่แล้ว
 const PRIO={low:'ต่ำ',normal:'ปกติ',high:'สูง',urgent:'ด่วนมาก'};
 /* 🚚 ลิงก์ติดตามสำหรับลูกค้า (หน้า track.html) — ต้องตรงกับ TRK_DOCS ใน Code.gs */
 const TRK_UNITS={shop:'TESR Shop',academy:'TESR Academy',logistics:'TESR Logistics'};
