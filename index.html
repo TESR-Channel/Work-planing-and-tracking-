@@ -350,6 +350,20 @@ th{font-family:Orbitron,sans-serif;font-size:11px;letter-spacing:1px;background:
 .badge.trk{background:rgba(212,167,44,.16);color:var(--gold)}
 .lpub{font-size:11px;opacity:.8;cursor:help}
 .trk-warn{margin-top:8px;font-size:12.5px;background:var(--yelbg);color:var(--yel);border-radius:8px;padding:6px 10px}
+.intbox{margin:10px 0;border:1px dashed var(--red);border-radius:10px;padding:10px;background:rgba(215,31,51,.05)}
+.intbox h5{margin:0 0 6px;font-size:12.5px;color:var(--red2);display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+[data-theme=light] .intbox h5{color:var(--red)}
+.intbox .next textarea{width:100%;border-color:var(--gold)}
+.intbox .chips{margin:4px 0 2px}
+.intbox .chip{font-size:12px;padding:2px 10px}
+.money{display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:12.5px;margin-top:6px}
+.money b{font-variant-numeric:tabular-nums}
+.money .pos{color:var(--ok)}.money .neg{color:var(--late)}
+.inotes{display:flex;flex-direction:column;gap:6px;margin-top:6px}
+.inote{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:13px}
+.inote .muted{display:flex;gap:6px;align-items:center}
+.inote .tx{white-space:pre-wrap;overflow-wrap:anywhere}
+.badge.next{background:rgba(215,31,51,.14);color:var(--red2)}
 .trk-pin{margin-top:8px;font-size:12.5px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .pinv{font-family:ui-monospace,Menlo,monospace;font-size:15px;letter-spacing:.15em;color:var(--gold)}
 .pays{display:flex;flex-direction:column;gap:6px;margin-top:6px}
@@ -935,6 +949,27 @@ async function uploadPays(c,files){
   }
   renderCardModal();scheduleRender();
 }
+/* 🔒 ข้อมูลภายในทีม (c.trk.int) — Code.gs ไม่ส่งออกไปหน้าลูกค้าเลย */
+const INT_CH={line:'LINE OA',fb:'Facebook',email:'อีเมล',phone:'โทรศัพท์',walkin:'หน้าร้าน',mkt:'Shopee / Lazada'};
+const num=v=>{const n=parseFloat(String(v??'').replace(/[^\d.\-]/g,''));return isNaN(n)?0:n};
+const baht=n=>n.toLocaleString('th-TH',{maximumFractionDigits:2});
+function intHTML(c){
+  const t=c.trk,i=t.int||{},ch=i.ch||[],notes=i.notes||[];
+  const g=(k,label,ph='',type='text')=>`<label>${label}<input data-trk="int.${k}" type="${type}" value="${esc(i[k]||'')}" placeholder="${esc(ph)}"></label>`;
+  const paid=num(i.paid),used=num(i.used),bal=paid-used,hasMoney=String(i.paid||'')!==''||String(i.used||'')!=='';
+  return `<div class="intbox"><h5>🔒 ข้อมูลภายในทีม <span class="muted">ลูกค้าไม่เห็นส่วนนี้</span></h5>
+    <label class="fl next" style="margin:4px 0 8px">📌 ขั้นต่อไป / ฝากงานคนทำต่อ<textarea data-trk="int.next" rows="2" placeholder="เช่น รอลูกค้ายืนยันสเปก แล้วสั่งของกับผู้ผลิต · พี่โอ๊ตแพ็กพร้อมส่งวันศุกร์">${esc(i.next||'')}</textarea></label>
+    <div class="muted">ช่องทางที่คุยกับลูกค้า</div>
+    <div class="chips">${Object.entries(INT_CH).map(([k,v])=>`<button class="chip ${ch.includes(k)?'on':''}" data-act="intCh" data-ch="${k}">${v}</button>`).join('')}</div>
+    <div class="grid2">${g('who','ผู้ติดต่อฝั่งลูกค้า','ชื่อ / ตำแหน่ง')}${g('contact','รายละเอียดติดต่อ','LINE ID / อีเมล / เบอร์')}</div>
+    <div class="grid2">${g('paid','รับชำระแล้ว (บาท)','100000','text')}${g('used','ใช้กับออเดอร์นี้ (บาท)','90000','text')}</div>
+    ${hasMoney?`<div class="money">รับ <b>${baht(paid)}</b> · ใช้ <b>${baht(used)}</b> · ${bal>0?`<span class="pos">คงเหลือ / เครดิต <b>${baht(bal)}</b> บาท</span>`:bal<0?`<span class="neg">ค้างชำระ <b>${baht(-bal)}</b> บาท</span>`:'<span class="pos">ครบพอดี</span>'}</div>`:''}
+    <label class="fl" style="margin:8px 0 4px">หมายเหตุการเงิน<input data-trk="int.money" value="${esc(i.money||'')}" placeholder="เช่น เครดิต 10,000 เก็บไว้ใช้ออเดอร์หน้า / มัดจำ 50%"></label>
+    <div class="muted" style="margin-top:8px">📝 บันทึกทีม</div>
+    <div class="inotes">${notes.map((n,ix)=>`<div class="inote"><div class="muted">${avatar(member(n.by))}<b>${esc(member(n.by)?.name||'?')}</b> ${fmtDT(n.at)}${n.by===session.id||isAdmin()?` <button class="icon sm" data-act="intNoteDel" data-i="${ix}" title="ลบ">✕</button>`:''}</div><div class="tx">${linkify(n.text)}</div></div>`).join('')}</div>
+    <div class="row"><input id="intNoteIn" placeholder="เขียนบันทึก แล้วกด Enter" style="flex:1;min-width:0"><button class="sm" data-act="intNote">บันทึก</button></div>
+  </div>`;
+}
 function trkHTML(c){
   const t=c.trk;
   if(!t?.on) return `<div class="sec trkbox"><h4>🚚 ลิงก์ติดตามสำหรับลูกค้า</h4><div class="trk-off"><span class="muted">ส่งลิงก์เดียวให้ลูกค้าดูสถานะ วันที่คาดว่าจะได้รับ เอกสาร FlowAccount เลขพัสดุ และหลักฐานการส่งได้เอง</span><button class="sm pri" data-act="trkOn">เปิดลิงก์ติดตาม</button></div></div>`;
@@ -943,6 +978,7 @@ function trkHTML(c){
   return `<div class="sec trkbox"><h4>🚚 ลิงก์ติดตามสำหรับลูกค้า <button class="sm" data-act="trkOff" title="ลูกค้าจะเปิดลิงก์นี้ไม่ได้ (เปิดใหม่ได้ ลิงก์เดิม)">ปิดลิงก์</button></h4>
    <div class="trk-now">ลูกค้าเห็นตอนนี้: <b>${esc(st.label)}</b> <span class="muted">· ขั้น ${Math.min(st.i+1,st.n)}/${st.n} · ${st.pct}%${st.internal?' · คอลัมน์นี้เป็นขั้นภายใน':''}</span>
      ${st.noPub?`<div class="muted">💡 บอร์ดนี้ยังไม่ได้ตั้ง "ชื่อขั้นที่ลูกค้าเห็น" — ตอนนี้ลูกค้าเห็นชื่อคอลัมน์ตรงๆ${isAdmin()?' (ตั้งได้ที่ปุ่ม ⋯ บนหัวคอลัมน์)':' (ให้ Admin ตั้งที่ ⋯ บนหัวคอลัมน์)'}</div>`:''}</div>
+   ${intHTML(c)}
    <div class="trk-link"><code>${esc(u)}</code><button class="sm pri" data-act="trkMsg" title="ลิงก์ + วิธียืนยันตัวตน + PIN (ถ้ามี)">คัดลอกข้อความส่งลูกค้า</button><button class="sm" data-act="trkCopy">ลิงก์อย่างเดียว</button><a href="${esc(u)}" target="_blank" rel="noopener">เปิดดู ↗</a></div>
    <div class="grid2">
      <label>หน่วยธุรกิจ<select data-trk="unit">${Object.entries(TRK_UNITS).map(([k,v])=>`<option value="${k}" ${k===t.unit?'selected':''}>${v}</option>`).join('')}</select></label>
@@ -970,6 +1006,7 @@ function cardHTML(c){
     <div class="ctitle">${esc(c.title)}</div>
     <div class="meta">
       ${c.trk?.on?'<span class="badge trk" title="มีลิงก์ติดตามสำหรับลูกค้า">🚚 ลูกค้า</span>':''}
+      ${c.trk?.int?.next&&!isDone(c)?`<span class="badge next" title="ขั้นต่อไป: ${esc(c.trk.int.next)}">📌 ขั้นต่อไป</span>`:''}
       ${(S.payments||[]).some(p=>p.card_id===c.id&&(p.status||'pending')==='pending')?'<span class="badge paywait" title="ลูกค้าแนบสลิป รอตรวจสอบ">💳 รอตรวจสลิป</span>':''}
       ${due?`<span class="badge ${due.cls}">📅 ${due.text}</span>`:''}
       ${isTask(c)&&c.impact&&c.impact!=='op'?`<span class="badge imp" title="${IMPACT[c.impact].label} · แต้ม ×${IMPACT[c.impact].mult}">${IMPACT[c.impact].icon} ×${IMPACT[c.impact].mult}</span>`:''}
@@ -1416,7 +1453,8 @@ function renderCardModal(){
   if($('#cSize'))$('#cSize').onchange=e=>{c.size=e.target.value;saveCard(c,'ขนาดงาน → '+SIZES[c.size].label+' ('+SIZES[c.size].pts+' แต้ม)').then(renderCardModal)};
   $('#cFile').onchange=e=>uploadFiles(c.id,[...e.target.files]);
   if($('#payFile'))$('#payFile').onchange=e=>uploadPays(c,[...e.target.files]);
-  $$('[data-trk]').forEach(el=>el.onchange=()=>{const k=el.dataset.trk;setP(c.trk,k,el.value.trim());saveCard(c,k==='unit'?'🚚 หน่วยธุรกิจ → '+TRK_UNITS[el.value]:null);if(['unit','eta','tax','phone'].includes(k))renderCardModal()});
+  $$('[data-trk]').forEach(el=>el.onchange=()=>{const k=el.dataset.trk;setP(c.trk,k,el.value.trim());saveCard(c,k==='unit'?'🚚 หน่วยธุรกิจ → '+TRK_UNITS[el.value]:null);if(['unit','eta','tax','phone','int.paid','int.used'].includes(k))renderCardModal()});
+  if($('#intNoteIn'))$('#intNoteIn').onkeydown=e=>{if(e.key==='Enter'&&!e.isComposing){e.preventDefault();act('intNote')}};
   initModalSort(c);
   $('#cmt').onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();act('addComment')}};
   $$('[data-additem]').forEach(i=>i.onkeydown=e=>{if(e.key==='Enter')act('addItem',{cl:i.dataset.additem})});
@@ -1706,6 +1744,10 @@ async function act(a,d={}){
       row.pin=pin;row.tax=row.tax||t.tax||'';row.phone=row.phone||t.phone||'';row.name=t.customer||row.name||'';row.updated_at=now();
       await store.upsert('customers',row);log(c,'👤 สร้าง PIN ลูกค้า');toast('👤 PIN ลูกค้า: '+pin);renderCardModal();break}
     case 'trkMsg':{const m=trkMessage(c);try{await navigator.clipboard.writeText(m);toast('📋 คัดลอกข้อความส่งลูกค้าแล้ว')}catch(e){prompt('คัดลอกข้อความนี้',m)}break}
+    case 'intCh':{const i=c.trk.int=c.trk.int||{};i.ch=i.ch||[];const x=i.ch.indexOf(d.ch);x>=0?i.ch.splice(x,1):i.ch.push(d.ch);await saveCard(c);renderCardModal();break}
+    case 'intNote':{const inp=$('#intNoteIn'),tx=inp?.value.trim();if(!tx)return;const i=c.trk.int=c.trk.int||{};i.notes=i.notes||[];i.notes.push({at:now(),by:session.id,text:tx});
+      await saveCard(c,'🔒 เพิ่มบันทึกทีม');renderCardModal();$('#intNoteIn')?.focus();break}
+    case 'intNoteDel':{const i=c.trk.int;if(!i?.notes?.[d.i]||!confirm('ลบบันทึกนี้?'))return;i.notes.splice(+d.i,1);await saveCard(c);renderCardModal();break}
     case 'trkCopy':{const u=trkUrl(c.trk.token);try{await navigator.clipboard.writeText(u);toast('📋 คัดลอกลิงก์ลูกค้าแล้ว')}catch(e){prompt('คัดลอกลิงก์นี้',u)}break}
     case 'lpop': if(!isAdmin())return; openLpop(d.id,$(`.list[data-id="${d.id}"] .lstat`)); break;
     case 'setLStat':{if(!isAdmin())return;const l=list(d.id),old=lstat(l);closeLpop();if(old===d.s)break;

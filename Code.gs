@@ -258,6 +258,7 @@ function removeFile_(id) { try { DriveApp.getFileById(id).setTrashed(true); } ca
  * ขั้นที่ลูกค้าเห็น = คอลัมน์ของบอร์ดที่ตั้ง "ชื่อขั้นที่ลูกค้าเห็น" (l.pub) ไว้ · ถ้าบอร์ดยังไม่ตั้งเลย ใช้ชื่อคอลัมน์ทั้งหมด
  * คอลัมน์ที่ไม่มี pub = ขั้นภายใน → ลูกค้าเห็นเป็นขั้นสาธารณะก่อนหน้า
  * ส่งออกเฉพาะข้อมูลสาธารณะ: ไม่มีผู้รับผิดชอบ คอมเมนต์ เช็คลิสต์ ไฟล์แนบ หรือรายละเอียดภายใน
+ * c.trk.int (🔒 ข้อมูลภายในทีม: ขั้นต่อไป ช่องทางติดต่อ การเงิน บันทึกทีม) ห้ามส่งออกในฟังก์ชันใดของลูกค้า
  */
 const HANDOVER_ROOT_ID = '1PuUBsXmCo0mnQDcdvDqbDwtH_Qiv_Hni';   // TESR shop tracking and handover (แอป Handover)
 const TRK_UNITS = { shop: 'TESR Shop', academy: 'TESR Academy', logistics: 'TESR Logistics' };
