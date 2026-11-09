@@ -287,7 +287,8 @@ function loginHTML(err=''){
     <form id="lform"><input id="lkey" inputmode="numeric" autocomplete="username" placeholder="เลขผู้เสียภาษี หรือ เบอร์โทร" aria-label="เลขผู้เสียภาษีหรือเบอร์โทร">
       <input id="lpin" inputmode="numeric" autocomplete="current-password" type="password" maxlength="6" placeholder="PIN 6 หลัก" aria-label="PIN">
       <button class="btn pri" type="submit">เข้าสู่ระบบ</button><div class="err" id="lerr">${esc(err)}</div></form>
-    <p style="font-size:13px">มีลิงก์ออเดอร์อยู่แล้ว? เปิดจากลิงก์นั้นได้เลย · ยังไม่มี PIN ขอได้ทาง LINE</p></div>${contactHTML()}${footHTML()}`;
+    <p style="font-size:13px">PIN อยู่ในข้อความที่ทีมงาน TESR ส่งให้พร้อมลิงก์ออเดอร์ · ลืม PIN หรือยังไม่มี โทร <b>${CONTACT.phone}</b> หรือทัก LINE ทีมงานแจ้งให้ได้ทันที</p>
+    <p style="font-size:13px">มีลิงก์ออเดอร์อยู่แล้ว? เปิดจากลิงก์นั้นแล้วยืนยันด้วยเบอร์โทรได้เลย ไม่ต้องใช้ PIN</p></div>${contactHTML()}${footHTML()}`;
 }
 function portalHTML(list){
   document.getElementById('out').hidden=false;
