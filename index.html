@@ -365,6 +365,14 @@ th{font-family:Orbitron,sans-serif;font-size:11px;letter-spacing:1px;background:
 .inote{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:13px}
 .inote .muted{display:flex;gap:6px;align-items:center}
 .inote .tx{white-space:pre-wrap;overflow-wrap:anywhere}
+.card.trkc{border-left:4px solid var(--gold)!important}
+.trkstrip{display:flex;justify-content:space-between;gap:8px;align-items:center;margin:-2px 0 6px;padding:3px 8px;border-radius:6px;font-size:11px;line-height:1.4;background:linear-gradient(90deg,rgba(212,167,44,.28),rgba(212,167,44,.08));color:var(--tx)}
+.trkstrip span{font-weight:700;letter-spacing:.06em;color:var(--gold2,var(--gold))}
+.trkstrip b{font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.trkopt{display:flex;flex-direction:column;gap:8px;margin:10px 0;padding:10px 12px;border:1px solid var(--gold);border-radius:10px;background:rgba(212,167,44,.08)}
+.trkopt .ck{display:flex;gap:10px;align-items:center;font-weight:600;cursor:pointer}
+.trkopt .ck input{width:20px;height:20px;accent-color:#d4a72c}
+.updbar{position:fixed;left:50%;top:calc(10px + env(safe-area-inset-top));transform:translateX(-50%);z-index:400;background:#d4a72c;color:#111;border:0;border-radius:999px;padding:9px 16px;font-weight:700;box-shadow:0 6px 20px rgba(0,0,0,.35);cursor:pointer;max-width:calc(100% - 24px)}
 .badge.next{background:rgba(215,31,51,.14);color:var(--red2)}
 .trk-pin{margin-top:8px;font-size:12.5px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .pinv{font-family:ui-monospace,Menlo,monospace;font-size:15px;letter-spacing:.15em;color:var(--gold)}
@@ -664,7 +672,7 @@ const T = { mrows:'tb_members', boards:'tb_boards', lists:'tb_lists', cards:'tb_
 const KEYS = Object.keys(T);
 const LS_DATA='tesrboard_demo_v2', LS_CFG='tesrboard_cfg', LS_SES='tesrboard_session', LS_BOARD='tesrboard_board', LS_THEME='tesrboard_theme';
 const PALETTE=['#d71f33','#d4a72c','#2fbf71','#3b82f6','#a855f7','#ec4899','#14b8a6','#f97316','#64748b','#84cc16'];
-const APP_VER='v3.2'; // เพิ่มเลขทุกครั้งที่อัปเดตหน้าเว็บ · ดูที่มุมโลโก้ว่าเครื่องโหลดเวอร์ชันใหม่แล้ว
+const APP_VER='v3.3'; // เพิ่มเลขทุกครั้งที่อัปเดตหน้าเว็บ · ดูที่มุมโลโก้ว่าเครื่องโหลดเวอร์ชันใหม่แล้ว
 const PRIO={low:'ต่ำ',normal:'ปกติ',high:'สูง',urgent:'ด่วนมาก'};
 /* 🚚 ลิงก์ติดตามสำหรับลูกค้า (หน้า track.html) — ต้องตรงกับ TRK_DOCS ใน Code.gs */
 const TRK_UNITS={shop:'TESR Shop',academy:'TESR Academy',logistics:'TESR Logistics'};
@@ -973,6 +981,11 @@ function intHTML(c){
     <div class="row"><input id="intNoteIn" placeholder="เขียนบันทึก แล้วกด Enter" style="flex:1;min-width:0"><button class="sm" data-act="intNote">บันทึก</button></div>
   </div>`;
 }
+const isOrderBoard=bid=>/shop|logistic|academy|ร้าน|ออเดอร์/i.test(S.boards.find(b=>b.id===bid)?.name||'');
+function trkNew(c,extra={}){ // ค่าเริ่มต้นตอนเปิดลิงก์ติดตาม
+  const bn=S.boards.find(b=>b.id===c.board_id)?.name||'',ref=(c.title.match(/\b(QT|INV|IV|RE|RC|PO|AC)[-\s]?\d{3,}\b/i)||[''])[0].replace(/\s/g,'').toUpperCase();
+  return Object.assign({token:trkToken(),unit:/academy/i.test(bn)?'academy':/logistic/i.test(bn)?'logistics':'shop',ref,title:'',customer:'',tax:'',phone:'',eta:c.due||'',note:'',docs:{},ship:{},inv:/^INV/.test(ref)?ref:'',evidence:''},extra,{on:true});
+}
 function trkHTML(c){
   const t=c.trk;
   if(!t?.on) return `<div class="sec trkbox"><h4>🚚 ลิงก์ติดตามสำหรับลูกค้า</h4><div class="trk-off"><span class="muted">ส่งลิงก์เดียวให้ลูกค้าดูสถานะ วันที่คาดว่าจะได้รับ เอกสาร FlowAccount เลขพัสดุ และหลักฐานการส่งได้เอง</span><button class="sm pri" data-act="trkOn">เปิดลิงก์ติดตาม</button></div></div>`;
@@ -1002,13 +1015,13 @@ function trkHTML(c){
 }
 function cardHTML(c){
   const ck=ckProgress(c),due=dueInfo(c),nAtt=c.attachments.length+c.links.length,note=!isTask(c);
-  return `<article class="card ${note?'note':'d-'+due.k} ${isDone(c)?'isdone':''} ${c.assignees.includes(session.id)?'mine':''}" data-id="${c.id}" data-act="openCard">
+  const trkS=c.trk?.on?trkStage(c):null;
+  return `<article class="card ${note?'note':'d-'+due.k} ${isDone(c)?'isdone':''} ${c.assignees.includes(session.id)?'mine':''} ${trkS?'trkc':''}" data-id="${c.id}" data-act="openCard">${trkS?`<div class="trkstrip" title="ลูกค้าดูสถานะออเดอร์นี้ได้จากลิงก์ติดตาม"><span>🚚 ORDER TRACKING</span><b>${esc(trkS.label)} · ${trkS.pct}%</b></div>`:''}
     ${cover(c)?`<div class="ccover"><img src="${esc(cover(c))}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.parentNode.remove()"></div>`:''}
     ${note?'<div class="kind">📁 ข้อมูล / ไฟล์</div>':''}
     ${c.labels.length?`<div class="labels">${c.labels.map(l=>`<span class="lb" style="background:${labelColor(l)}">${esc(l)}</span>`).join('')}</div>`:''}
     <div class="ctitle">${esc(c.title)}</div>
     <div class="meta">
-      ${c.trk?.on?'<span class="badge trk" title="มีลิงก์ติดตามสำหรับลูกค้า">🚚 ลูกค้า</span>':''}
       ${c.trk?.int?.next&&!isDone(c)?`<span class="badge next" title="ขั้นต่อไป: ${esc(c.trk.int.next)}">📌 ขั้นต่อไป</span>`:''}
       ${(S.payments||[]).some(p=>p.card_id===c.id&&(p.status||'pending')==='pending')?'<span class="badge paywait" title="ลูกค้าแนบสลิป รอตรวจสอบ">💳 รอตรวจสลิป</span>':''}
       ${due?`<span class="badge ${due.cls}">📅 ${due.text}</span>`:''}
@@ -1031,6 +1044,8 @@ function openNewCard(listId){
   $('#sheet').innerHTML=`<div class="mhead"><b class="kanit" style="flex:1;font-size:18px">+ การ์ดใหม่ · ${esc(l.name)}</b><button class="icon" data-act="closeModal">✕</button></div>
     <div class="seg" id="nKind"><button type="button" class="on" data-k="task">📌 งาน · ต้องมีกำหนดส่ง</button><button type="button" data-k="note">📁 ข้อมูล / ฝากไฟล์</button></div>
     <label class="fl">ชื่อการ์ด<input id="nTitle" placeholder="เช่น ออกแบบโครง Iron-X รุ่นใหม่" autocomplete="off"></label>
+    <div class="trkopt"><label class="ck"><input type="checkbox" id="nTrk" ${isOrderBoard(l.board_id)?'checked':''}>🚚 ออเดอร์ลูกค้า · สร้างลิงก์ติดตามให้ลูกค้าทันที</label>
+      <div class="grid2" id="nTrkF" ${isOrderBoard(l.board_id)?'':'hidden'}><label>ชื่อลูกค้า<input id="nTrkCust" placeholder="บริษัท / ชื่อลูกค้า"></label><label>🔒 เบอร์โทรลูกค้า<input id="nTrkPhone" inputmode="tel" placeholder="08x-xxx-xxxx"></label></div></div>
     <div class="grid2"><label id="nDueWrap">กำหนดส่ง <span style="color:var(--late)">*</span><input type="date" id="nDue" value="${def}"></label>
       <label>ความสำคัญ<select id="nPrio">${Object.entries(PRIO).map(([k,v])=>`<option value="${k}" ${k==='normal'?'selected':''}>${v}</option>`).join('')}</select></label>
       <label id="nSizeWrap">ขนาดงาน (แต้ม KPI)<select id="nSize">${Object.entries(SIZES).map(([k,v])=>`<option value="${k}">${v.icon} ${v.label} · ${v.pts} แต้ม</option>`).join('')}</select></label>
@@ -1043,6 +1058,7 @@ function openNewCard(listId){
   const impHint=()=>{const v=IMPACT[$('#nImp').value];$('#nImpHint').innerHTML=`${v.icon} ${v.hint}${v.mult>1?` — <b style="color:var(--gold)">แต้ม ×${v.mult}</b> + ผู้ริเริ่ม <b style="color:var(--gold)">+${SCORE.initiator}</b>`:''}`};
   $('#nImp').onchange=impHint; impHint();
   $('#nAss').onclick=e=>{const b=e.target.closest('.chip');if(!b)return;const id=b.dataset.id;sel.has(id)?sel.delete(id):sel.add(id);b.classList.toggle('on',sel.has(id))};
+  $('#nTrk').onchange=()=>{$('#nTrkF').hidden=!$('#nTrk').checked};
   const save=async()=>{
     const t=$('#nTitle').value.trim(),due=$('#nDue').value;
     if(!t){$('#nErr').textContent='กรุณาใส่ชื่อการ์ด';$('#nTitle').focus();return}
@@ -1050,7 +1066,10 @@ function openNewCard(listId){
     const nc={id:uid(),board_id:l.board_id,list_id:l.id,kind,title:t,description:'',assignees:[...sel],labels:[],priority:$('#nPrio').value,due:kind==='task'?due:null,size:kind==='task'?$('#nSize').value:null,impact:kind==='task'?$('#nImp').value:null,
       trail:[{t:'start',at:now(),by:session.id,list:l.name,list_id:l.id,to:[...sel]}],
       pos:Math.max(0,...S.cards.filter(x=>x.list_id===l.id).map(x=>x.pos||0))+1024,checklists:[],links:[],attachments:[],comments:[],created_by:session.id,created_at:now(),started_at:null,done_at:null,updated_at:now()};
-    applyListChange(nc,l);closeModal();await saveCard(nc,`สร้าง${kind==='task'?'งาน':'การ์ดข้อมูล'} "${t}" ใน ${l.name}`);
+    const wantTrk=$('#nTrk').checked;
+    if(wantTrk) nc.trk=trkNew(nc,{customer:$('#nTrkCust').value.trim(),phone:$('#nTrkPhone').value.trim()});
+    applyListChange(nc,l);closeModal();await saveCard(nc,`สร้าง${kind==='task'?'งาน':'การ์ดข้อมูล'} "${t}" ใน ${l.name}${wantTrk?' · 🚚 เปิดลิงก์ติดตาม':''}`);
+    if(wantTrk) openCard(nc.id);   // เปิดการ์ดให้เห็นลิงก์ + กรอกข้อมูลลูกค้าต่อได้เลย
   };
   $('#nSave').onclick=save;$('#nTitle').onkeydown=e=>{if(e.key==='Enter')save()};
 }
@@ -1732,8 +1751,7 @@ async function act(a,d={}){
     case 'dashPerson': if(!isAdmin())return; closeModal(); ui.dashPerson=d.id||''; ui.view='dash'; renderMain(); window.scrollTo(0,0); break;
     case 'addList':{if(!isAdmin())return;const n=prompt('ชื่อลิสต์');if(!n?.trim())return;await store.upsert('lists',{id:uid(),board_id:ui.board,name:n.trim(),pos:Math.max(0,...boardLists(ui.board).map(l=>l.pos||0))+1024,is_done:false});scheduleRender();break}
     case 'renameList': renameListInline(d.id); break;
-    case 'trkOn':{const bn=S.boards.find(b=>b.id===c.board_id)?.name||'',ref=(c.title.match(/\b(QT|INV|IV|RE|RC|PO|AC)[-\s]?\d{3,}\b/i)||[''])[0].replace(/\s/g,'').toUpperCase();
-      c.trk=Object.assign({token:trkToken(),unit:/academy/i.test(bn)?'academy':/logistic/i.test(bn)?'logistics':'shop',ref,title:'',customer:'',eta:c.due||'',note:'',docs:{},ship:{},inv:/^INV/.test(ref)?ref:'',evidence:''},c.trk||{},{on:true});
+    case 'trkOn':{c.trk=Object.assign(trkNew(c),c.trk||{},{on:true});
       if(!c.trk.token)c.trk.token=trkToken();
       await saveCard(c,'🚚 เปิดลิงก์ติดตามให้ลูกค้า');renderCardModal();break}
     case 'trkOff':{if(!confirm('ปิดลิงก์ติดตาม? ลูกค้าจะเปิดลิงก์นี้ไม่ได้ (เปิดใหม่ภายหลังได้ ลิงก์เดิม)'))return;c.trk.on=false;await saveCard(c,'🚚 ปิดลิงก์ติดตาม');renderCardModal();break}
@@ -1923,6 +1941,13 @@ async function enterApp(){
   $('#login').classList.add('hidden');$('#topbar').classList.remove('hidden');
   renderMain();
 }
+/* 🔄 แจ้งเมื่อมีเวอร์ชันใหม่ (มือถือมักเก็บหน้าเว็บเก่าไว้) */
+async function checkUpdate(){
+  try{const r=await fetch(location.pathname+'?vc='+Date.now(),{cache:'no-store'});const m=(await r.text()).match(/const APP_VER='([^']+)'/);
+    if(m&&m[1]!==APP_VER&&!document.getElementById('updBar')){const b=document.createElement('button');b.id='updBar';b.className='updbar';b.textContent='🔄 มีเวอร์ชันใหม่ '+m[1]+' · แตะเพื่ออัปเดต';
+      b.onclick=()=>location.replace(location.pathname+'?v='+encodeURIComponent(m[1])+location.hash);document.body.appendChild(b)}}catch(e){}
+}
+setInterval(()=>{if(!document.hidden)checkUpdate()},120000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkUpdate()});
 (async function boot(){
   {const v=document.getElementById('appVer');if(v)v.textContent=APP_VER;const h=document.getElementById('howVer');if(h)h.textContent='เวอร์ชัน '+APP_VER;}
   const cfg=getCfg();
