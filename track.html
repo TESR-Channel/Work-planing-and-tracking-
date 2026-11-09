@@ -115,6 +115,11 @@ h1{margin:2px 0 0;font-family:var(--f-display);font-size:24px;line-height:1.25;t
 .contact{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:14px;color:var(--muted)}
 .contact b{color:var(--ink);font-weight:500}
 .contact a{text-decoration:none}
+.callmain{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:var(--crimson-soft);border-radius:12px;padding:12px 14px;margin-bottom:10px}
+.callmain .lbl b{font-family:var(--f-mono);font-size:19px;letter-spacing:.02em;color:var(--ink)}
+.callmain .lbl small{display:block;color:var(--muted);font-size:12.5px}
+.backup{font-size:12.5px;color:var(--muted);margin-top:8px}
+.backup b{font-family:var(--f-mono);font-weight:500;color:var(--ink)}
 .foot{text-align:center;font-size:12px;color:var(--muted);letter-spacing:.04em}
 .foot b{color:var(--gold);font-family:var(--f-display)}
 .pays{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
@@ -188,7 +193,10 @@ function msg(title,text,retry){
   app.innerHTML=`<div class="panel msg"><h2>${title}</h2><p>${text}</p>${retry?'<button class="btn pri" id="retry">ลองใหม่</button>':''}</div>${contactHTML()}${footHTML()}`;
   if(retry)document.getElementById('retry').onclick=()=>run(true);
 }
-const contactHTML=()=>`<div class="panel"><h3>สอบถามเพิ่มเติม</h3><div class="contact"><span>LINE <a href="${CONTACT.line}" target="_blank" rel="noopener"><b>${CONTACT.lineText}</b></a></span><span>โทร <b class="mono">${CONTACT.phone}</b></span><span>เสาร์–อาทิตย์ <b class="mono">${CONTACT.phone2}</b></span><span>อีเมล <b>${CONTACT.email}</b></span></div></div>`;
+const contactHTML=()=>`<div class="panel"><h3>สอบถามเพิ่มเติม</h3>
+  <div class="callmain"><span class="lbl"><small>แนะนำ · เบอร์หลักทีมงาน TESR</small><b>${CONTACT.phone}</b></span><a class="btn pri" href="tel:${CONTACT.phone.replace(/\D/g,'')}">โทรเลย</a></div>
+  <div class="contact"><span>LINE <a href="${CONTACT.line}" target="_blank" rel="noopener"><b>${CONTACT.lineText}</b></a></span><span>อีเมล <b>${CONTACT.email}</b></span></div>
+  <div class="backup">เบอร์สำรอง <b>${CONTACT.phone2}</b> · โปรดใช้เมื่อติดต่อเบอร์หลักไม่ได้เท่านั้น</div></div>`;
 const footHTML=()=>`<div class="foot">Made by <b>TESR</b> · Thai Embedded System and Robotics</div>`;
 
 function render(o){
