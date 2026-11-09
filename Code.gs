@@ -18,7 +18,9 @@ const TABLES = {
   lists:    { tab: 'Lists',    show: ['name', 'board_id', 'is_done'] },
   cards:    { tab: 'Cards',    show: ['title', 'list_id', 'assignees', 'priority', 'due', 'created_at', 'started_at', 'done_at'] },
   activity: { tab: 'Activity', show: ['at', 'member', 'action', 'card_id'] },
-  kudos:    { tab: 'Kudos',    show: ['at', 'type', 'from', 'to', 'text'] }
+  kudos:    { tab: 'Kudos',    show: ['at', 'type', 'from', 'to', 'text'] },
+  payments: { tab: 'Payments', show: ['at', 'card_id', 'by', 'status', 'name', 'url'] },  // 💳 หลักฐานการชำระเงิน
+  customers:{ tab: 'Customers',show: ['name', 'tax', 'phone', 'pin'] }                       // 👤 PIN ลูกค้าสำหรับหน้ารวมออเดอร์
 };
 const HEAD = ['id', 'updated_at', 'json'];
 const ADMIN_ONLY_WRITE = { mrows: 1, boards: 1, lists: 1 };
@@ -44,12 +46,15 @@ function setup() {
 }
 
 /* ================= HTTP ================= */
-function doGet() { return out_({ ok: true, app: 'TESR Board API', ver: ver_() }); }
+function doGet() { return out_({ ok: true, app: 'TESR Board API', ver: ver_(), track: true }); }
 
 function doPost(e) {
   let req;
   try { req = JSON.parse(e.postData.contents); } catch (x) { return out_({ error: 'bad_request' }); }
   try {
+    if (req.action === 'track') return out_(track_(req));            // 🚚 หน้าลูกค้า (ลิงก์ออเดอร์ · ไม่ใช้บัญชีพนักงาน)
+    if (req.action === 'trackPay') return out_(trackPay_(req));      // 💳 ลูกค้าแนบสลิป
+    if (req.action === 'portal') return out_(portal_(req));          // 👤 ลูกค้าดูทุกออเดอร์ของตัวเอง (เลขภาษี/เบอร์ + PIN)
     if (req.action === 'login') return out_(login_(req.user, req.pass, req.remember));
     const u = verify_(req.token);
     if (!u) return out_({ error: 'auth' });
@@ -198,6 +203,10 @@ function upsert_(u, t, rows) {
   });
   const names = {}; getStaff_().forEach(s => names[s.id] = s.name); names.admin = 'Admin';
   if (t === 'cards' || t === 'lists') readTable_('lists').concat(readTable_('boards')).forEach(x => names[x.id] = x.name);
+  return writeRows_(t, rows, names);
+}
+function writeRows_(t, rows, names) {
+  names = names || {};
   const lock = LockService.getScriptLock(); lock.waitLock(20000);
   try {
     const sh = sheet_(t), n = sh.getLastRow(), idx = {};
@@ -243,3 +252,186 @@ function upload_(r) {
   return { id: id, url: 'https://drive.google.com/file/d/' + id + '/view', thumb: 'https://drive.google.com/thumbnail?id=' + id + '&sz=w400' };
 }
 function removeFile_(id) { try { DriveApp.getFileById(id).setTrashed(true); } catch (e) {} return { ok: true }; }
+
+/* ================= 🚚 CUSTOMER TRACKING (หน้า track.html · สาธารณะ · อ่านอย่างเดียว) =================
+ * การ์ดที่เปิด "ลิงก์ติดตาม" จะมี c.trk = { on, token, unit, ref, title, customer, eta, note, docs{}, ship{}, inv, evidence, classInfo }
+ * ขั้นที่ลูกค้าเห็น = คอลัมน์ของบอร์ดที่ตั้ง "ชื่อขั้นที่ลูกค้าเห็น" (l.pub) ไว้ · ถ้าบอร์ดยังไม่ตั้งเลย ใช้ชื่อคอลัมน์ทั้งหมด
+ * คอลัมน์ที่ไม่มี pub = ขั้นภายใน → ลูกค้าเห็นเป็นขั้นสาธารณะก่อนหน้า
+ * ส่งออกเฉพาะข้อมูลสาธารณะ: ไม่มีผู้รับผิดชอบ คอมเมนต์ เช็คลิสต์ ไฟล์แนบ หรือรายละเอียดภายใน
+ */
+const HANDOVER_ROOT_ID = '1PuUBsXmCo0mnQDcdvDqbDwtH_Qiv_Hni';   // TESR shop tracking and handover (แอป Handover)
+const TRK_UNITS = { shop: 'TESR Shop', academy: 'TESR Academy', logistics: 'TESR Logistics' };
+const TRK_DOCS = {
+  shop:      [['q', 'ใบเสนอราคา'], ['inv', 'ใบแจ้งหนี้ / ใบส่งสินค้า'], ['tax', 'ใบเสร็จรับเงิน / ใบกำกับภาษี']],
+  academy:   [['inv', 'ใบแจ้งหนี้'], ['tax', 'ใบเสร็จรับเงิน / ใบกำกับภาษี'], ['guide', 'คู่มือเตรียมตัวก่อนเรียน']],
+  logistics: [['inv', 'ใบแจ้งหนี้ค่าบริการ'], ['tax', 'ใบเสร็จรับเงิน / ใบกำกับภาษี']]
+};
+const okUrl_ = u => { u = String(u || '').trim(); return /^https?:\/\/\S+$/i.test(u) ? u : ''; };
+const str_ = (v, n) => String(v == null ? '' : v).trim().slice(0, n || 300);
+
+function track_(r) {
+  const c = cardByTok_(r.o);
+  if (!c) return { error: 'not_found' };
+  const acc = access_(c, r);
+  if (acc.error) return acc;
+  const all = readTable_('lists').filter(l => l.board_id === c.board_id).sort((a, b) => (+a.pos || 0) - (+b.pos || 0));
+  const cur = all.find(l => l.id === c.list_id);
+  if (!cur) return { error: 'not_found' };
+  const t = c.trk, unit = TRK_UNITS[t.unit] ? t.unit : 'shop';
+
+  const pubs = all.filter(l => String(l.pub || '').trim());
+  const steps = pubs.length ? pubs : all;
+  let ci = -1;
+  steps.forEach((l, i) => { if ((+l.pos || 0) <= (+cur.pos || 0)) ci = i; });
+  const done = !!cur.is_done, n = steps.length;
+
+  // เวลาที่การ์ดเข้าแต่ละคอลัมน์ (จากเส้นทางงาน)
+  const trail = Array.isArray(c.trail) ? c.trail : [];
+  const entered = l => { let at = ''; trail.forEach(e => { if (e.t !== 'back' && (e.list_id === l.id || (!e.list_id && e.list === l.name))) at = e.at || at; }); return at; };
+
+  const out = steps.map((l, i) => ({
+    label: str_(l.pub || l.name, 80),
+    desc: str_(l.pub_desc, 200),
+    state: done || i < ci ? 'done' : (i === Math.max(ci, 0) ? 'now' : 'todo'),
+    at: (done || i <= ci) ? entered(l) : ''
+  }));
+  const pct = done ? 100 : Math.min(95, Math.round((Math.max(ci, 0) + 0.5) / n * 100));
+
+  const base = {
+    ok: true, locked: !acc.full, ct: acc.ct || undefined,
+    ref: str_(t.ref, 40), title: str_(t.title || c.title, 160),
+    unit: unit, unitLabel: TRK_UNITS[unit],
+    start: String(c.created_at || '').slice(0, 10), eta: /^\d{4}-\d{2}-\d{2}$/.test(t.eta || '') ? t.eta : '',
+    done: done, doneAt: done ? (c.done_at || entered(cur) || '') : '',
+    pct: pct, steps: out, updated: c.updated_at || ''
+  };
+  if (!acc.full) return base;   // ยังไม่ยืนยันตัวตน → เห็นแค่สถานะ/ขั้นตอน
+  return Object.assign(base, {
+    customer: str_(t.customer, 120), note: str_(t.note, 1000), classInfo: str_(t.classInfo, 200),
+    docs: TRK_DOCS[unit].map(d => ({ label: d[1], url: okUrl_(t.docs && t.docs[d[0]]) })),
+    ship: unit === 'academy' ? null : {
+      carrier: str_(t.ship && t.ship.carrier, 60), no: str_(t.ship && t.ship.no, 60), url: okUrl_(t.ship && t.ship.url)
+    },
+    evidence: unit === 'academy' ? '' : (okUrl_(t.evidence) || findHandover_(t.inv)),
+    payments: readTable_('payments').filter(p => p.card_id === c.id)
+      .sort((a, b) => String(a.at).localeCompare(String(b.at)))
+      .map(p => ({ url: okUrl_(p.url), thumb: okUrl_(p.thumb), name: str_(p.name, 80), at: p.at || '',
+                   by: p.by === 'customer' ? 'customer' : 'staff', status: ['ok', 'rejected'].indexOf(p.status) >= 0 ? p.status : 'pending',
+                   note: str_(p.note, 200) }))
+  });
+}
+
+/* ---------- ตัวตนลูกค้า: เลขผู้เสียภาษี (13 หลัก) หรือเบอร์โทร (เทียบ 9 หลักท้าย) ---------- */
+function keyOf_(v) { const d = String(v || '').replace(/\D/g, ''); return d.length === 13 ? 'T' + d : d.length >= 9 && d.length <= 12 ? 'P' + d.slice(-9) : ''; }
+function cardKeys_(c) { const t = c.trk || {}; return [keyOf_(t.tax), keyOf_(t.phone)].filter(Boolean); }
+function cardByTok_(tok) {
+  tok = String(tok || '').trim();
+  if (!/^[a-z0-9]{10,40}$/i.test(tok)) return null;
+  return readTable_('cards').find(x => x.trk && x.trk.on && x.trk.token === tok) || null;
+}
+// token ลูกค้า: เซ็นด้วยกุญแจแยกจากพนักงาน → ใช้เรียก API ฝั่งพนักงานไม่ได้
+function hmacC_(s) { return Utilities.base64EncodeWebSafe(Utilities.computeHmacSha256Signature('cust|' + s, secret_() + '|customer')); }
+function signC_(keys) { const p = Utilities.base64EncodeWebSafe(JSON.stringify({ k: keys, exp: Date.now() + 30 * 864e5 }), Utilities.Charset.UTF_8); return p + '.' + hmacC_(p); }
+function verifyC_(t) {
+  const a = String(t || '').split('.');
+  if (a.length !== 2 || hmacC_(a[0]) !== a[1]) return [];
+  try { const o = JSON.parse(Utilities.newBlob(Utilities.base64DecodeWebSafe(a[0])).getDataAsString('UTF-8')); return o.exp > Date.now() && Array.isArray(o.k) ? o.k : []; } catch (e) { return []; }
+}
+function tooMany_(k) { return +(CacheService.getScriptCache().get('cf_' + k) || 0) >= 8; }
+function fail_(k) { const c = CacheService.getScriptCache(), n = +(c.get('cf_' + k) || 0) + 1; c.put('cf_' + k, String(n), 900); }
+/* สิทธิ์ดูข้อมูลเต็มของออเดอร์: (1) การ์ดยังไม่ผูกเลขภาษี/เบอร์ → เปิดเต็ม  (2) token ลูกค้าที่มีกุญแจตรง  (3) กรอกเลขภาษี/เบอร์ตรง */
+function access_(c, r) {
+  const keys = cardKeys_(c);
+  if (!keys.length) return { full: true };
+  if (verifyC_(r.ct).some(k => keys.indexOf(k) >= 0)) return { full: true };
+  if (r.key) {
+    const lk = 'o_' + c.trk.token;
+    if (tooMany_(lk)) return { error: 'locked' };
+    const k = keyOf_(r.key);
+    if (k && keys.indexOf(k) >= 0) return { full: true, ct: signC_(mergeKeys_(r.ct, k)) };
+    fail_(lk); return { error: 'bad_key' };
+  }
+  return { full: false };
+}
+function mergeKeys_(ct, k) { const a = verifyC_(ct); if (a.indexOf(k) < 0) a.push(k); return a.slice(-6); }
+
+/* 👤 หน้ารวมออเดอร์: login = เลขภาษี/เบอร์ + PIN (แท็บ Customers) · หรือส่ง ct เดิมมา */
+function portal_(r) {
+  let keys = [], ct = '';
+  if (r.key) {
+    const k = keyOf_(r.key), pin = String(r.pin || '').replace(/\D/g, '');
+    if (!k || pin.length < 4) return { error: 'invalid' };
+    if (tooMany_('p_' + k)) return { error: 'locked' };
+    const ok = readTable_('customers').some(x => String(x.pin || '') === pin && (keyOf_(x.tax) === k || keyOf_(x.phone) === k));
+    if (!ok) { fail_('p_' + k); return { error: 'invalid' }; }
+    keys = [k]; ct = signC_(mergeKeys_(r.ct, k));
+  } else {
+    keys = verifyC_(r.ct);
+    if (!keys.length) return { error: 'auth' };
+  }
+  const lists = {}; readTable_('lists').forEach(l => lists[l.id] = l);
+  const orders = readTable_('cards').filter(c => c.trk && c.trk.on && cardKeys_(c).some(k => keys.indexOf(k) >= 0)).map(c => {
+    const l = lists[c.list_id]; if (!l) return null;
+    const bl = Object.keys(lists).map(id => lists[id]).filter(x => x.board_id === c.board_id).sort((a, b) => (+a.pos || 0) - (+b.pos || 0));
+    const pubs = bl.filter(x => String(x.pub || '').trim()), steps = pubs.length ? pubs : bl;
+    let ci = 0; steps.forEach((x, i) => { if ((+x.pos || 0) <= (+l.pos || 0)) ci = i; });
+    const done = !!l.is_done, t = c.trk;
+    return { o: t.token, ref: str_(t.ref, 40), title: str_(t.title || c.title, 160), unitLabel: TRK_UNITS[t.unit] || TRK_UNITS.shop,
+      stage: done ? 'เสร็จสมบูรณ์' : str_(steps[ci] && (steps[ci].pub || steps[ci].name), 80),
+      pct: done ? 100 : Math.min(95, Math.round((ci + 0.5) / steps.length * 100)), done: done,
+      eta: t.eta || '', updated: c.updated_at || '', customer: str_(t.customer, 120) };
+  }).filter(Boolean).sort((a, b) => (a.done - b.done) || String(b.updated).localeCompare(String(a.updated)));
+  return { ok: true, ct: ct || undefined, orders: orders };
+}
+
+/* หาโฟลเดอร์หลักฐานจากแอป Handover ตามเลข INV (ชื่อโฟลเดอร์ขึ้นต้นด้วย INV เช่น INV00125_09112026) */
+function findHandover_(inv) {
+  inv = String(inv || '').trim();
+  if (!/^[\w\-\/.]{3,40}$/.test(inv)) return '';
+  const cache = CacheService.getScriptCache(), key = 'ho_' + inv.replace(/[^\w]/g, '_'), hit = cache.get(key);
+  if (hit !== null) return hit;
+  let url = '';
+  try {
+    const it = DriveApp.searchFolders("title contains '" + inv.replace(/['\\]/g, '') + "' and trashed = false");
+    while (it.hasNext() && !url) {
+      const f = it.next();
+      if (f.getName().toUpperCase().indexOf(inv.toUpperCase()) === 0 && underRoot_(f)) url = f.getUrl();
+    }
+  } catch (e) { /* ไม่มีสิทธิ์ Drive / ค้นไม่ได้ → ไม่แสดงลิงก์ */ }
+  cache.put(key, url, url ? 21600 : 600);
+  return url;
+}
+function underRoot_(f) { // ต้องอยู่ใต้โฟลเดอร์ Handover (root → ปี → Tax ID → INV)
+  let p = f, depth = 0;
+  while (depth++ < 5) {
+    const ps = p.getParents(); if (!ps.hasNext()) return false;
+    p = ps.next(); if (p.getId() === HANDOVER_ROOT_ID) return true;
+  }
+  return false;
+}
+
+/* 💳 ลูกค้าแนบสลิปจากหน้า track.html → สถานะ "รอตรวจสอบ" ให้พนักงานกดยืนยันในการ์ด */
+const PAY_MAX_BYTES = 8e6, PAY_MAX_PER_CARD = 10;
+function trackPay_(r) {
+  const c = cardByTok_(r.o);
+  if (!c) return { error: 'not_found' };
+  if (!access_(c, { ct: r.ct }).full) return { error: 'auth' };
+  const tok = c.trk.token, type = String(r.type || '');
+  if (!/^image\/(jpeg|png|webp|heic|heif)$|^application\/pdf$/.test(type)) return { error: 'bad_type' };
+  const cache = CacheService.getScriptCache(), rk = 'pay_' + tok;
+  if (cache.get(rk)) return { error: 'too_fast' };
+  const mine = readTable_('payments').filter(p => p.card_id === c.id && p.by === 'customer');
+  if (mine.length >= PAY_MAX_PER_CARD) return { error: 'too_many' };
+  const bytes = Utilities.base64Decode(String(r.data || ''));
+  if (!bytes.length || bytes.length > PAY_MAX_BYTES) return { error: 'too_big' };
+  cache.put(rk, '1', 15);
+  const ext = type === 'application/pdf' ? '.pdf' : type === 'image/png' ? '.png' : '.jpg';
+  const name = 'สลิป ' + (c.trk.ref || c.id.slice(0, 8)) + ' ' + Utilities.formatDate(new Date(), 'Asia/Bangkok', 'yyyy-MM-dd HHmm') + ext;
+  const f = DriveApp.getFolderById(FOLDER_ID).createFile(Utilities.newBlob(bytes, type, name));
+  try { f.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch (e) {}
+  const id = f.getId(), at = new Date().toISOString();
+  writeRows_('payments', [{ id: Utilities.getUuid(), card_id: c.id, by: 'customer', status: 'pending', name: name, at: at,
+    url: 'https://drive.google.com/file/d/' + id + '/view', thumb: type === 'application/pdf' ? '' : 'https://drive.google.com/thumbnail?id=' + id + '&sz=w400', path: id }]);
+  writeRows_('activity', [{ id: Utilities.getUuid(), card_id: c.id, board_id: c.board_id, member: null, action: '💳 ลูกค้าแนบหลักฐานการชำระเงิน (รอตรวจสอบ)', at: at }]);
+  return { ok: true };
+}

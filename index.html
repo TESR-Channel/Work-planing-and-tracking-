@@ -336,6 +336,32 @@ th{font-family:Orbitron,sans-serif;font-size:11px;letter-spacing:1px;background:
 .prog{display:flex;align-items:center;gap:10px;margin:4px 0 12px}
 .prog .bar{flex:1;margin:0}.prog .bar.big{height:9px}
 .prog b{font-family:Orbitron,sans-serif;color:var(--gold);min-width:48px;text-align:right}
+.trkbox{border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--bg2)}
+.trkbox h4{margin-bottom:6px}
+.trk-off{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.trk-now{font-size:13px;margin-bottom:8px}
+.trk-now b{color:var(--gold2)}
+[data-theme=dark] .trk-now b{color:var(--gold)}
+.trk-link{display:flex;gap:6px;align-items:center;flex-wrap:wrap;background:var(--card2);border-radius:8px;padding:6px 8px;margin-bottom:10px}
+.trk-link code{flex:1;min-width:0;font-size:12px;overflow-wrap:anywhere;color:var(--tx)}
+.trk-link a{font-size:12px;padding:2px 8px;border:1px solid var(--line);border-radius:8px;text-decoration:none;color:inherit;background:var(--card)}
+.trkbox label.fl{margin:8px 0}
+.trkbox .grid2{margin-top:6px}
+.badge.trk{background:rgba(212,167,44,.16);color:var(--gold)}
+.lpub{font-size:11px;opacity:.8;cursor:help}
+.trk-warn{margin-top:8px;font-size:12.5px;background:var(--yelbg);color:var(--yel);border-radius:8px;padding:6px 10px}
+.trk-pin{margin-top:8px;font-size:12.5px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.pinv{font-family:ui-monospace,Menlo,monospace;font-size:15px;letter-spacing:.15em;color:var(--gold)}
+.pays{display:flex;flex-direction:column;gap:6px;margin-top:6px}
+.pay{display:flex;gap:10px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:6px 8px}
+.pay img,.pay .ph{width:48px;height:48px;border-radius:6px;object-fit:cover;flex:none;background:var(--card2);display:grid;place-items:center;font-size:11px;color:var(--mut)}
+.pay .nm{flex:1;min-width:0;font-size:12.5px}
+.pay .nm a{overflow-wrap:anywhere}
+.pst{font-size:11px;padding:1px 8px;border-radius:20px;white-space:nowrap}
+.pst.pending{background:var(--yelbg);color:var(--yel)}
+.pst.ok{background:rgba(47,191,113,.16);color:var(--ok)}
+.pst.rejected{background:rgba(255,77,94,.16);color:var(--late)}
+.badge.paywait{background:var(--yelbg);color:var(--yel);font-weight:600}
 .prog.sm{margin:4px 0 6px}.prog.sm .muted{min-width:34px}
 .cgrid{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:20px}
 .cright{border-left:1px dashed var(--edge);padding-left:18px;max-height:72vh;overflow:auto}
@@ -618,11 +644,17 @@ button.lstat{cursor:pointer;transition:filter .15s,transform .15s}button.lstat:h
 /* ===== CONFIG: วาง URL ของ Apps Script Web App ตรงนี้ (หรือใส่ผ่าน ⚙️ ขั้นสูง) ===== */
 const CONFIG = { API_URL: 'https://script.google.com/macros/s/AKfycbwKGxHAZ2inWEdPmK7eY7GvLL5cE_CN7kzVWKxXFeHL8X63Vu4Afg1bH4dokXhcTDmQsw/exec' };
 
-const T = { mrows:'tb_members', boards:'tb_boards', lists:'tb_lists', cards:'tb_cards', activity:'tb_activity', kudos:'tb_kudos' };
+const T = { mrows:'tb_members', boards:'tb_boards', lists:'tb_lists', cards:'tb_cards', activity:'tb_activity', kudos:'tb_kudos', payments:'tb_payments', customers:'tb_customers' };
 const KEYS = Object.keys(T);
 const LS_DATA='tesrboard_demo_v2', LS_CFG='tesrboard_cfg', LS_SES='tesrboard_session', LS_BOARD='tesrboard_board', LS_THEME='tesrboard_theme';
 const PALETTE=['#d71f33','#d4a72c','#2fbf71','#3b82f6','#a855f7','#ec4899','#14b8a6','#f97316','#64748b','#84cc16'];
 const PRIO={low:'ต่ำ',normal:'ปกติ',high:'สูง',urgent:'ด่วนมาก'};
+/* 🚚 ลิงก์ติดตามสำหรับลูกค้า (หน้า track.html) — ต้องตรงกับ TRK_DOCS ใน Code.gs */
+const TRK_UNITS={shop:'TESR Shop',academy:'TESR Academy',logistics:'TESR Logistics'};
+const TRK_DOCS={
+  shop:[['q','ใบเสนอราคา'],['inv','ใบแจ้งหนี้ / ใบส่งสินค้า'],['tax','ใบเสร็จรับเงิน / ใบกำกับภาษี']],
+  academy:[['inv','ใบแจ้งหนี้'],['tax','ใบเสร็จรับเงิน / ใบกำกับภาษี'],['guide','คู่มือเตรียมตัวก่อนเรียน']],
+  logistics:[['inv','ใบแจ้งหนี้ค่าบริการ'],['tax','ใบเสร็จรับเงิน / ใบกำกับภาษี']]};
 /* ===== KPI POINTS (ปรับตัวเลขได้ตรงนี้) ===== */
 const SIZES={s:{label:'งานทั่วไป',pts:1,icon:'●'},m:{label:'งานกลาง',pts:3,icon:'◆'},l:{label:'โปรเจกต์ / งานใหญ่-ยาก',pts:5,icon:'⭐'}};
 const SCORE={solo:1.0, team:0.6, onTime:1.0, late:0.5, initiator:1};  // เดี่ยว 100% · ทีม คนละ 60% · ส่งช้า ×0.5 · ผู้ริเริ่ม +1
@@ -654,7 +686,7 @@ const KPI_DEFS=[
 ];
 const PERIODS=[['today','วันนี้'],['7','7 วัน'],['month','เดือนนี้'],['30','30 วัน'],['90','90 วัน'],['365','1 ปี'],['custom','📅 ช่วงวันที่…'],['cmonth','🗓 ช่วงเดือน…']];
 
-let S={staff:[],mrows:[],members:[],boards:[],lists:[],cards:[],activity:[],kudos:[]};
+let S={staff:[],mrows:[],members:[],boards:[],lists:[],cards:[],activity:[],kudos:[],payments:[],customers:[]};
 let store, session=null;
 const _t0=new Date(),_ym=_t0.toISOString().slice(0,7);
 const ui={board:null,view:'board',member:'',search:'',period:'month',scope:'board',openCard:null,dragging:false,from:_ym+'-01',to:_t0.toISOString().slice(0,10),mFrom:_ym,mTo:_ym,hideChecked:false,showActs:true};
@@ -710,7 +742,7 @@ function makeGasStore(url){
   const put=(k,row)=>{const a=S[k];const i=a.findIndex(x=>x.id===row.id);if(i>=0)a[i]=row;else a.push(row)};
   return {
     mode:'sheet',
-    async load(){const d=await call('load');ver=d.ver;return {staff:d.staff||[],mrows:d.mrows||[],boards:d.boards||[],lists:d.lists||[],cards:d.cards||[],activity:d.activity||[],kudos:d.kudos||[],_noKudos:!Array.isArray(d.kudos)}},
+    async load(){const d=await call('load');ver=d.ver;return {staff:d.staff||[],mrows:d.mrows||[],boards:d.boards||[],lists:d.lists||[],cards:d.cards||[],activity:d.activity||[],kudos:d.kudos||[],payments:d.payments||[],customers:d.customers||[],_noKudos:!Array.isArray(d.kudos),_noPay:!Array.isArray(d.payments)}},
     async login(user,pass,remember=true){
       const r=await fetch(url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'login',user,pass,remember})});
       const j=await r.json();
@@ -763,6 +795,8 @@ function memberRow(m){return {id:m.id,name:m.name,email:m.email||'',role:m.role|
 /* ===== HELPERS ===== */
 function norm(){
   if(!Array.isArray(S.kudos)) S.kudos=[];
+  if(!Array.isArray(S.payments)) S.payments=[];
+  if(!Array.isArray(S.customers)) S.customers=[];
   S.cards.forEach(c=>{['assignees','labels','checklists','links','attachments','comments'].forEach(f=>{if(!Array.isArray(c[f]))c[f]=[]})});
   buildMembers();
 }
@@ -854,6 +888,78 @@ function renderMain(){
 
 const cover=c=>{const a=c.attachments.find(a=>/^image\//.test(a.type||''));return a?(a.thumb||a.url):null};
 function linkify(t){return esc(t).replace(/(https?:\/\/[^\s<]+)/g,'<a href="$1" target="_blank" rel="noopener">$1</a>').replace(/@([\u0E00-\u0E7Fa-zA-Z0-9_.]+)/g,'<b class="mention">@$1</b>')}
+/* ===== 🚚 CUSTOMER TRACKING ===== */
+function trkToken(){const a=new Uint8Array(14),ch='abcdefghjkmnpqrstuvwxyz23456789';crypto.getRandomValues(a);return [...a].map(b=>ch[b%ch.length]).join('')}
+const trkBase=()=>location.origin+location.pathname.replace(/[^/]*$/,'')+'track.html';
+const trkUrl=t=>trkBase()+'?o='+t;
+const keyOf=v=>{const d=String(v||'').replace(/\D/g,'');return d.length===13?'T'+d:d.length>=9&&d.length<=12?'P'+d.slice(-9):''}; // ตรงกับ keyOf_ ใน Code.gs
+const trkKeys=t=>[keyOf(t?.tax),keyOf(t?.phone)].filter(Boolean);
+const custOf=t=>{const ks=trkKeys(t);return ks.length?(S.customers||[]).find(x=>ks.includes(keyOf(x.tax))||ks.includes(keyOf(x.phone))):null};
+function trkMessage(c){const t=c.trk,cu=custOf(t);
+  return `${t.customer?'เรียน '+t.customer+'\n':''}ติดตามสถานะออเดอร์${t.ref?' '+t.ref:''}: ${trkUrl(t.token)}\n`+
+    (trkKeys(t).length?`ยืนยันตัวตนด้วยเลขผู้เสียภาษีหรือเบอร์โทรที่ให้ไว้กับ TESR\n`:'')+
+    (cu?`ดูออเดอร์ทั้งหมดของคุณ: ${trkBase()}\nเข้าสู่ระบบด้วยเลขผู้เสียภาษีหรือเบอร์โทร + PIN ${cu.pin}\n`:'')+'— TESR · Thai Embedded System and Robotics'}
+function pinHTML(c){const t=c.trk;
+  if(!trkKeys(t).length) return `<div class="trk-warn">⚠️ ยังไม่ผูกเลขผู้เสียภาษีหรือเบอร์โทรลูกค้า — ใครได้ลิงก์ก็เห็นเอกสาร สลิป และหลักฐาน</div>`;
+  const cu=custOf(t);
+  return `<div class="trk-pin">${cu?`👤 PIN ดูทุกออเดอร์ของลูกค้ารายนี้: <b class="pinv">${esc(cu.pin)}</b> <button class="sm" data-act="pinNew" title="สร้าง PIN ใหม่ (PIN เดิมใช้ไม่ได้)">สร้างใหม่</button>`
+    :`<span class="muted">ลูกค้ามีหลายออเดอร์? สร้าง PIN ให้ลูกค้าเข้าดูทุกออเดอร์ของตัวเองในหน้าเดียว</span> <button class="sm" data-act="pinNew">สร้าง PIN ลูกค้า</button>`}</div>`}
+const getP=(o,k)=>k.split('.').reduce((a,x)=>a==null?a:a[x],o);
+function setP(o,k,v){const p=k.split('.');let t=o;while(p.length>1){const x=p.shift();if(!t[x]||typeof t[x]!=='object')t[x]={};t=t[x]}t[p[0]]=v}
+function trkStage(c){ // ขั้นที่ลูกค้าเห็นตอนนี้ (ตรรกะเดียวกับ track_ ใน Code.gs)
+  const all=boardLists(c.board_id),cur=list(c.list_id),pubs=all.filter(l=>String(l.pub||'').trim()),steps=pubs.length?pubs:all;
+  let ci=-1;steps.forEach((l,i)=>{if((+l.pos||0)<=(+cur?.pos||0))ci=i});
+  const done=!!cur?.is_done,n=steps.length||1,i=Math.max(ci,0);
+  return {label:done?'เสร็จสมบูรณ์':String(steps[i]?.pub||steps[i]?.name||'-'),i,n,pct:done?100:Math.min(95,Math.round((i+.5)/n*100)),noPub:!pubs.length,internal:!!pubs.length&&!String(cur?.pub||'').trim()&&!done}
+}
+const PST={pending:'⏳ รอตรวจสอบ',ok:'✓ ยืนยันรับเงินแล้ว',rejected:'✕ ไม่ถูกต้อง'};
+const cardPays=c=>(S.payments||[]).filter(p=>p.card_id===c.id).sort((a,b)=>String(a.at).localeCompare(String(b.at)));
+function payHTML(c){
+  const ps=cardPays(c);
+  return `<div class="sec" style="margin-top:12px"><h4>💳 หลักฐานการชำระเงิน <label class="upl sm">+ แนบสลิป<input type="file" id="payFile" accept="image/*,application/pdf" multiple hidden></label></h4>
+   <div class="muted">ลูกค้าแนบสลิปจากหน้าติดตามได้เอง · ลูกค้าเห็นหลักฐานและสถานะชุดเดียวกับที่นี่</div>
+   <div class="pays">${ps.map(p=>`<div class="pay">${p.thumb?`<a href="${esc(p.url)}" target="_blank" rel="noopener"><img src="${esc(p.thumb)}" alt="" referrerpolicy="no-referrer"></a>`:`<span class="ph">PDF</span>`}
+     <div class="nm"><a href="${esc(p.url)}" target="_blank" rel="noopener">${esc(p.name||'สลิป')}</a><div class="muted">${p.by==='customer'?'👤 ลูกค้าแนบ':'แนบโดย '+esc(member(p.by)?.name||'-')} · ${fmtDT(p.at)}${p.checked_by?' · ตรวจโดย '+esc(member(p.checked_by)?.name||'-'):''}</div></div>
+     <span class="pst ${p.status||'pending'}">${PST[p.status]||PST.pending}</span>
+     ${p.status!=='ok'?`<button class="sm" data-act="payOk" data-id="${p.id}" title="ยืนยันว่าได้รับเงินแล้ว">✓</button>`:''}${p.status!=='rejected'?`<button class="sm" data-act="payNo" data-id="${p.id}" title="สลิปไม่ถูกต้อง">✕</button>`:''}
+     ${isAdmin()||p.by===session.id?`<button class="icon sm" data-act="payDel" data-id="${p.id}" title="ลบ">🗑</button>`:''}</div>`).join('')||'<div class="muted">ยังไม่มีหลักฐาน</div>'}</div></div>`;
+}
+async function uploadPays(c,files){
+  if(S._noPay) return toast('ต้องอัปเดต Code.gs เวอร์ชันล่าสุดก่อน จึงจะแนบสลิปได้');
+  for(const f of files){
+    try{toast('⏫ กำลังอัปโหลด '+f.name);const r=await store.upload(f);
+      await store.upsert('payments',{id:uid(),card_id:c.id,by:session.id,status:'ok',checked_by:session.id,name:f.name,url:r.url,thumb:/^image\//.test(f.type)?(r.thumb||r.url):'',path:r.path||null,at:now()});
+      log(c,'💳 แนบหลักฐานการชำระเงิน');
+    }catch(e){toast('อัปโหลดไม่สำเร็จ: '+e.message)}
+  }
+  renderCardModal();scheduleRender();
+}
+function trkHTML(c){
+  const t=c.trk;
+  if(!t?.on) return `<div class="sec trkbox"><h4>🚚 ลิงก์ติดตามสำหรับลูกค้า</h4><div class="trk-off"><span class="muted">ส่งลิงก์เดียวให้ลูกค้าดูสถานะ วันที่คาดว่าจะได้รับ เอกสาร FlowAccount เลขพัสดุ และหลักฐานการส่งได้เอง</span><button class="sm pri" data-act="trkOn">เปิดลิงก์ติดตาม</button></div></div>`;
+  const st=trkStage(c),u=trkUrl(t.token),docs=TRK_DOCS[t.unit]||TRK_DOCS.shop;
+  const f=(k,label,ph='',type='text')=>`<label>${label}<input data-trk="${k}" type="${type}" value="${esc(getP(t,k)||'')}" placeholder="${esc(ph)}"></label>`;
+  return `<div class="sec trkbox"><h4>🚚 ลิงก์ติดตามสำหรับลูกค้า <button class="sm" data-act="trkOff" title="ลูกค้าจะเปิดลิงก์นี้ไม่ได้ (เปิดใหม่ได้ ลิงก์เดิม)">ปิดลิงก์</button></h4>
+   <div class="trk-now">ลูกค้าเห็นตอนนี้: <b>${esc(st.label)}</b> <span class="muted">· ขั้น ${Math.min(st.i+1,st.n)}/${st.n} · ${st.pct}%${st.internal?' · คอลัมน์นี้เป็นขั้นภายใน':''}</span>
+     ${st.noPub?`<div class="muted">💡 บอร์ดนี้ยังไม่ได้ตั้ง "ชื่อขั้นที่ลูกค้าเห็น" — ตอนนี้ลูกค้าเห็นชื่อคอลัมน์ตรงๆ${isAdmin()?' (ตั้งได้ที่ปุ่ม ⋯ บนหัวคอลัมน์)':' (ให้ Admin ตั้งที่ ⋯ บนหัวคอลัมน์)'}</div>`:''}</div>
+   <div class="trk-link"><code>${esc(u)}</code><button class="sm pri" data-act="trkMsg" title="ลิงก์ + วิธียืนยันตัวตน + PIN (ถ้ามี)">คัดลอกข้อความส่งลูกค้า</button><button class="sm" data-act="trkCopy">ลิงก์อย่างเดียว</button><a href="${esc(u)}" target="_blank" rel="noopener">เปิดดู ↗</a></div>
+   <div class="grid2">
+     <label>หน่วยธุรกิจ<select data-trk="unit">${Object.entries(TRK_UNITS).map(([k,v])=>`<option value="${k}" ${k===t.unit?'selected':''}>${v}</option>`).join('')}</select></label>
+     ${f('ref','เลขอ้างอิง','QT002473')}${f('customer','ชื่อลูกค้า (ที่แสดง)')}
+     ${f('tax','🔒 เลขผู้เสียภาษีลูกค้า','0105551234567')}${f('phone','🔒 เบอร์โทรลูกค้า','08x-xxx-xxxx')}
+     ${f('eta',t.unit==='academy'?'วันเรียน':'วันที่คาดว่าจะได้รับ','','date')}
+   </div>
+   <label class="fl">รายการที่ลูกค้าเห็น<input data-trk="title" value="${esc(t.title||'')}" placeholder="เช่น Solid State Relay SSR-40DA × 5 ชิ้น (เว้นว่าง = ใช้ชื่อการ์ด)"></label>
+   <label class="fl">ข้อความถึงลูกค้า<textarea data-trk="note" rows="2" placeholder="แสดงบนหน้าลูกค้า เช่น สินค้าอยู่ระหว่างนำเข้า คาดว่าเข้าคลัง 18 พ.ย.">${esc(t.note||'')}</textarea></label>
+   <div class="grid2">${docs.map(([k,l])=>f('docs.'+k,'📄 '+l,'วางลิงก์ FlowAccount')).join('')}</div>
+   ${t.unit==='academy'?`<div class="grid2">${f('classInfo','รายละเอียดการเรียน','เรียนสด 2 วัน ที่ TESR นนทบุรี 09:00–17:00')}</div>`
+     :`<div class="grid2">${f('ship.carrier','ขนส่ง','EMS / Flash / Kerry')}${f('ship.no','เลขพัสดุ')}${f('ship.url','ลิงก์ติดตามพัสดุ','https://')}</div>
+       <div class="grid2">${f('inv','เลข INV (ดึงโฟลเดอร์หลักฐานจากแอป Handover)','INV00125')}${f('evidence','หรือวางลิงก์ Drive หลักฐานเอง','https://drive.google.com/…')}</div>`}
+   ${pinHTML(c)}
+   ${payHTML(c)}
+   <div class="muted" style="margin-top:8px">ลูกค้าเห็นเฉพาะข้อมูลในกล่องนี้ + ขั้นตอน · ไม่เห็นผู้รับผิดชอบ คอมเมนต์ เช็คลิสต์ หรือไฟล์แนบภายใน</div>
+  </div>`;
+}
 function cardHTML(c){
   const ck=ckProgress(c),due=dueInfo(c),nAtt=c.attachments.length+c.links.length,note=!isTask(c);
   return `<article class="card ${note?'note':'d-'+due.k} ${isDone(c)?'isdone':''} ${c.assignees.includes(session.id)?'mine':''}" data-id="${c.id}" data-act="openCard">
@@ -862,6 +968,8 @@ function cardHTML(c){
     ${c.labels.length?`<div class="labels">${c.labels.map(l=>`<span class="lb" style="background:${labelColor(l)}">${esc(l)}</span>`).join('')}</div>`:''}
     <div class="ctitle">${esc(c.title)}</div>
     <div class="meta">
+      ${c.trk?.on?'<span class="badge trk" title="มีลิงก์ติดตามสำหรับลูกค้า">🚚 ลูกค้า</span>':''}
+      ${(S.payments||[]).some(p=>p.card_id===c.id&&(p.status||'pending')==='pending')?'<span class="badge paywait" title="ลูกค้าแนบสลิป รอตรวจสอบ">💳 รอตรวจสลิป</span>':''}
       ${due?`<span class="badge ${due.cls}">📅 ${due.text}</span>`:''}
       ${isTask(c)&&c.impact&&c.impact!=='op'?`<span class="badge imp" title="${IMPACT[c.impact].label} · แต้ม ×${IMPACT[c.impact].mult}">${IMPACT[c.impact].icon} ×${IMPACT[c.impact].mult}</span>`:''}
       ${isTask(c)&&c.size&&c.size!=='s'?`<span class="badge sz-${c.size}" title="${SIZES[c.size].label}">${SIZES[c.size].icon} ${SIZES[c.size].pts}</span>`:''}
@@ -911,7 +1019,7 @@ function renderBoard(){
     const cs=S.cards.filter(c=>c.list_id===l.id&&matches(c)).sort(byPos);
     const lc=lcolor(l);
     return `<section class="list ${l.is_done?'done':''} ${lc?'tinted':''}" data-id="${l.id}" ${lc?`style="--lc:${lc}"`:''}>
-      <div class="lhead"><span class="lname ${isAdmin()?'editable':''}" data-lid="${l.id}" ${isAdmin()?'title="ดับเบิลคลิก (หรือกด ✏️) เพื่อเปลี่ยนชื่อ"':''}>${esc(l.name)}</span>${isAdmin()?`<button class="icon ren" data-act="renameList" data-id="${l.id}" title="เปลี่ยนชื่อคอลัมน์">✏️</button>`:''}${lstatChip(l)}<span class="cnt">${cs.length}</span>${isAdmin()?`<button class="icon" data-act="listMenu" data-id="${l.id}">⋯</button>`:''}</div>
+      <div class="lhead"><span class="lname ${isAdmin()?'editable':''}" data-lid="${l.id}" ${isAdmin()?'title="ดับเบิลคลิก (หรือกด ✏️) เพื่อเปลี่ยนชื่อ"':''}>${esc(l.name)}</span>${isAdmin()?`<button class="icon ren" data-act="renameList" data-id="${l.id}" title="เปลี่ยนชื่อคอลัมน์">✏️</button>`:''}${l.pub?`<span class="lpub" title="ลูกค้าเห็นเป็น: ${esc(l.pub)}">👁</span>`:''}${lstatChip(l)}<span class="cnt">${cs.length}</span>${isAdmin()?`<button class="icon" data-act="listMenu" data-id="${l.id}">⋯</button>`:''}</div>
       <div class="cards" data-list="${l.id}">${cs.map(cardHTML).join('')}</div>
       <button class="addcard" data-act="addCard" data-id="${l.id}">+ เพิ่มการ์ด</button></section>`}).join('')}
     ${isAdmin()?'<div class="addlist"><button data-act="addList">+ เพิ่มลิสต์</button></div>':''}</div>`;
@@ -1254,6 +1362,7 @@ function renderCardModal(){
       <label>Label (คั่นด้วย ,)<input id="cLabels" value="${esc(c.labels.join(', '))}"></label>
     </div>
     <div class="sec"><h4>👥 ผู้รับผิดชอบ</h4><div class="chips">${S.members.filter(m=>m.active!==false||c.assignees.includes(m.id)).map(m=>`<button class="chip ${c.assignees.includes(m.id)?'on':''}" data-act="toggleAssignee" data-id="${m.id}">${avatar(m)}${esc(m.name)}</button>`).join('')}</div></div>
+    ${trkHTML(c)}
     ${workflowHTML(c)}
     <div class="sec"><h4>📝 รายละเอียด</h4><textarea id="cDesc" rows="3" placeholder="อธิบายงาน...">${esc(c.description)}</textarea></div>
     <div class="sec"><h4>📎 ไฟล์แนบ <label class="upl sm">+ แนบไฟล์<input type="file" id="cFile" multiple hidden></label><span class="dz">หรือลากไฟล์มาวาง · Ctrl+V วางรูป</span></h4>
@@ -1305,6 +1414,8 @@ function renderCardModal(){
   if($('#cImp'))$('#cImp').onchange=e=>{c.impact=e.target.value;const v=IMPACT[c.impact];saveCard(c,'หมวดผลงาน → '+v.icon+' '+v.label+(v.mult>1?' (×'+v.mult+')':'')).then(renderCardModal)};
   if($('#cSize'))$('#cSize').onchange=e=>{c.size=e.target.value;saveCard(c,'ขนาดงาน → '+SIZES[c.size].label+' ('+SIZES[c.size].pts+' แต้ม)').then(renderCardModal)};
   $('#cFile').onchange=e=>uploadFiles(c.id,[...e.target.files]);
+  if($('#payFile'))$('#payFile').onchange=e=>uploadPays(c,[...e.target.files]);
+  $$('[data-trk]').forEach(el=>el.onchange=()=>{const k=el.dataset.trk;setP(c.trk,k,el.value.trim());saveCard(c,k==='unit'?'🚚 หน่วยธุรกิจ → '+TRK_UNITS[el.value]:null);if(['unit','eta','tax','phone'].includes(k))renderCardModal()});
   initModalSort(c);
   $('#cmt').onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();act('addComment')}};
   $$('[data-additem]').forEach(i=>i.onkeydown=e=>{if(e.key==='Enter')act('addItem',{cl:i.dataset.additem})});
@@ -1579,6 +1690,22 @@ async function act(a,d={}){
     case 'dashPerson': if(!isAdmin())return; closeModal(); ui.dashPerson=d.id||''; ui.view='dash'; renderMain(); window.scrollTo(0,0); break;
     case 'addList':{if(!isAdmin())return;const n=prompt('ชื่อลิสต์');if(!n?.trim())return;await store.upsert('lists',{id:uid(),board_id:ui.board,name:n.trim(),pos:Math.max(0,...boardLists(ui.board).map(l=>l.pos||0))+1024,is_done:false});scheduleRender();break}
     case 'renameList': renameListInline(d.id); break;
+    case 'trkOn':{const bn=S.boards.find(b=>b.id===c.board_id)?.name||'',ref=(c.title.match(/\b(QT|INV|IV|RE|RC|PO|AC)[-\s]?\d{3,}\b/i)||[''])[0].replace(/\s/g,'').toUpperCase();
+      c.trk=Object.assign({token:trkToken(),unit:/academy/i.test(bn)?'academy':/logistic/i.test(bn)?'logistics':'shop',ref,title:'',customer:'',eta:c.due||'',note:'',docs:{},ship:{},inv:/^INV/.test(ref)?ref:'',evidence:''},c.trk||{},{on:true});
+      if(!c.trk.token)c.trk.token=trkToken();
+      await saveCard(c,'🚚 เปิดลิงก์ติดตามให้ลูกค้า');renderCardModal();break}
+    case 'trkOff':{if(!confirm('ปิดลิงก์ติดตาม? ลูกค้าจะเปิดลิงก์นี้ไม่ได้ (เปิดใหม่ภายหลังได้ ลิงก์เดิม)'))return;c.trk.on=false;await saveCard(c,'🚚 ปิดลิงก์ติดตาม');renderCardModal();break}
+    case 'payOk':case 'payNo':{const p=S.payments.find(x=>x.id===d.id);if(!p)return;p.status=a==='payOk'?'ok':'rejected';p.checked_by=session.id;p.checked_at=now();
+      await store.upsert('payments',p);log(c,a==='payOk'?'💳 ยืนยันรับเงินแล้ว':'💳 สลิปไม่ถูกต้อง');toast(a==='payOk'?'✓ ยืนยันรับเงินแล้ว':'✕ ทำเครื่องหมายว่าสลิปไม่ถูกต้อง');renderCardModal();scheduleRender();break}
+    case 'payDel':{const p=S.payments.find(x=>x.id===d.id);if(!p||!confirm('ลบหลักฐานนี้? ลูกค้าจะไม่เห็นอีก'))return;await store.remove('payments',p.id);if(p.path)store.removeFile(p.path);log(c,'💳 ลบหลักฐานการชำระเงิน');renderCardModal();scheduleRender();break}
+    case 'pinNew':{if(S._noPay)return toast('ต้องอัปเดต Code.gs เวอร์ชันล่าสุดก่อน');const t=c.trk,old=custOf(t);
+      if(old&&!confirm('สร้าง PIN ใหม่? PIN เดิม ('+old.pin+') จะใช้ไม่ได้ ต้องแจ้งลูกค้าใหม่'))return;
+      const a=new Uint32Array(1);crypto.getRandomValues(a);const pin=String(100000+a[0]%900000);
+      const row=old?{...old}:{id:trkKeys(t)[0],created_at:now()};
+      row.pin=pin;row.tax=row.tax||t.tax||'';row.phone=row.phone||t.phone||'';row.name=t.customer||row.name||'';row.updated_at=now();
+      await store.upsert('customers',row);log(c,'👤 สร้าง PIN ลูกค้า');toast('👤 PIN ลูกค้า: '+pin);renderCardModal();break}
+    case 'trkMsg':{const m=trkMessage(c);try{await navigator.clipboard.writeText(m);toast('📋 คัดลอกข้อความส่งลูกค้าแล้ว')}catch(e){prompt('คัดลอกข้อความนี้',m)}break}
+    case 'trkCopy':{const u=trkUrl(c.trk.token);try{await navigator.clipboard.writeText(u);toast('📋 คัดลอกลิงก์ลูกค้าแล้ว')}catch(e){prompt('คัดลอกลิงก์นี้',u)}break}
     case 'lpop': if(!isAdmin())return; openLpop(d.id,$(`.list[data-id="${d.id}"] .lstat`)); break;
     case 'setLStat':{if(!isAdmin())return;const l=list(d.id),old=lstat(l);closeLpop();if(old===d.s)break;
       l.status=d.s;l.is_done=d.s==='done';await store.upsert('lists',l);
@@ -1589,8 +1716,11 @@ async function act(a,d={}){
       $('#sheet').innerHTML=`<div class="mhead"><input class="mtitle" id="lName" value="${esc(l.name)}"><button class="icon" data-act="closeModal">✕</button></div>
         <label style="display:flex;gap:8px;align-items:center">สถานะคอลัมน์ <select id="lStat">${Object.entries(LSTAT).map(([k,v])=>`<option value="${k}" ${k===lstat(l)?'selected':''}>${v.i||'⚪'} ${v.t}${k==='done'?' — นับเป็นผลงาน':''}</option>`).join('')}</select></label>
         <div class="muted" style="font-size:12px;margin-top:6px">💡 คลิกป้ายสถานะบนหัวคอลัมน์เพื่อเปลี่ยนสถานะ/สีได้ทันที</div>
+        <label class="fl">👁 ชื่อขั้นที่ลูกค้าเห็น (หน้าลิงก์ติดตาม)<input id="lPub" value="${esc(l.pub||'')}" placeholder="เช่น จัดเตรียมสินค้า · เว้นว่าง = ขั้นภายใน ลูกค้าไม่เห็น"></label>
+        <label class="fl">คำอธิบายสำหรับลูกค้า<input id="lPubDesc" value="${esc(l.pub_desc||'')}" placeholder="เช่น จัดหาและเตรียมสินค้าตามรายการ"></label>
+        <div class="muted" style="font-size:12px">ถ้าบอร์ดนี้ยังไม่มีคอลัมน์ไหนตั้งชื่อนี้เลย ลูกค้าจะเห็นชื่อคอลัมน์ทุกคอลัมน์ตามลำดับ</div>
         <div class="mfoot"><button class="danger sm" data-act="delList" data-id="${l.id}">ลบลิสต์</button><button class="pri" data-act="saveList" data-id="${l.id}">บันทึก</button></div>`;showModal();break}
-    case 'saveList':{const l=list(d.id);l.name=$('#lName').value.trim()||l.name;l.status=$('#lStat').value;l.is_done=l.status==='done';await store.upsert('lists',l);closeModal();scheduleRender();break}
+    case 'saveList':{const l=list(d.id);l.name=$('#lName').value.trim()||l.name;l.status=$('#lStat').value;l.pub=$('#lPub').value.trim();l.pub_desc=$('#lPubDesc').value.trim();l.is_done=l.status==='done';await store.upsert('lists',l);closeModal();scheduleRender();break}
     case 'delList':{const l=list(d.id),n=S.cards.filter(x=>x.list_id===l.id);if(!confirm(`ลบลิสต์ "${l.name}"${n.length?` และการ์ด ${n.length} ใบ`:''}?`))return;
       for(const x of n)await store.remove('cards',x.id);await store.remove('lists',l.id);closeModal();scheduleRender();break}
     case 'toggleAssignee':{const i=c.assignees.indexOf(d.id);i>=0?c.assignees.splice(i,1):c.assignees.push(d.id);await saveCard(c,(i>=0?'เอาออก ':'มอบหมายให้ ')+member(d.id).name);renderCardModal();break}

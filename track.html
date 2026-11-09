@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>TESR · สถานะคำสั่งซื้อ</title>
+<meta name="robots" content="noindex,nofollow">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#0A0A0B">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://script.google.com"><link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bai+Jamjuree:wght@600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* TESR CI: black bar · crimson · gold — one 640px reading column, mobile first */
+:root{
+  --bg:#F2F1F1;--surface:#FFFFFF;--sunk:#EAE7E8;--ink:#161314;--muted:#62595D;--line:#DCD7D9;
+  --crimson:#8B0000;--crimson-soft:#F6E6E6;--gold:#8F711E;--ok:#1B7548;--warn:#955600;--warn-soft:#FAEEDA;
+  --f-display:"Bai Jamjuree","IBM Plex Sans Thai",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans Thai",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0B0A0B;--surface:#161415;--sunk:#1F1C1E;--ink:#F1EDEE;--muted:#A79EA2;--line:#2E2A2C;
+  --crimson:#E0524C;--crimson-soft:#2B1516;--gold:#C9A84C;--ok:#4FC48C;--warn:#E3A14A;--warn-soft:#2A1F0E;color-scheme:dark}}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.6 var(--f-body);padding-bottom:env(safe-area-inset-bottom,0px)}
+a{color:inherit}
+:focus-visible{outline:2px solid #C9A84C;outline-offset:2px}
+.mono{font-family:var(--f-mono);font-size:.88em}
+.wrap{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.bar{background:#0A0A0B;color:#F1EEEF;padding-top:env(safe-area-inset-top,0px)}
+.bar-in{max-width:640px;margin:0 auto;display:flex;align-items:center;gap:10px;padding-block:12px}
+.bar img{width:42px;height:46px;object-fit:contain;flex:none}
+.bar-in .sp{flex:1}
+.bar a.out{white-space:nowrap;flex:none;color:#C9C1C4;font-size:12.5px;text-decoration:none;border:1px solid #2E2A2C;border-radius:8px;padding:4px 10px}
+.back{font-size:13.5px;color:var(--muted);text-decoration:none}
+.back:hover{color:var(--ink)}
+form.ask{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+form.ask input{flex:1 1 200px;min-width:0;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:10px;padding:10px 12px;font:16px var(--f-body)}
+form.ask .btn{padding:10px 16px;font-size:14px}
+.err{color:var(--crimson);font-size:13px;min-height:1.2em;margin-top:6px}
+.lockp p{margin:0;color:var(--muted);font-size:14px}
+.login{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;padding:28px 18px}
+.login img{width:96px;height:106px;object-fit:contain}
+.login h2{font-family:var(--f-display);margin:6px 0 0;font-size:22px}
+.login p{color:var(--muted);margin:0;font-size:14px;max-width:44ch}
+.login form{width:100%;max-width:360px;display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.login input{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:10px;padding:11px 12px;font:16px var(--f-body);text-align:center}
+.login .btn{justify-content:center;padding:11px;font-size:15px}
+.orders{display:flex;flex-direction:column;gap:10px}
+.oc{display:flex;flex-direction:column;gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;text-decoration:none;color:inherit}
+.oc:hover{border-color:var(--crimson)}
+.oc-top{display:flex;justify-content:space-between;gap:10px;align-items:baseline;flex-wrap:wrap}
+.oc b.t{font-weight:600;line-height:1.35;overflow-wrap:anywhere}
+.oc .st{font-size:13px;color:var(--muted)}
+.pbar{height:6px;border-radius:3px;background:var(--sunk);overflow:hidden}
+.pbar i{display:block;height:100%;background:#C9A84C;border-radius:3px}
+.oc.done .pbar i{background:var(--ok)}
+.chipd{font-size:11.5px;padding:1px 9px;border-radius:999px;background:var(--sunk);color:var(--muted);white-space:nowrap}
+.oc.done .chipd{background:color-mix(in srgb,var(--ok) 16%,transparent);color:var(--ok)}
+.bar b{font-family:var(--f-display);letter-spacing:.06em;font-size:15px;display:block;line-height:1.2}
+.bar small{font-size:11px;color:#A79EA2;line-height:1.4;display:block}
+@media (max-width:480px){.bar small .en{display:none}}
+main{max-width:640px;margin:0 auto;padding-block:18px 40px;display:flex;flex-direction:column;gap:14px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px}
+.panel h3{margin:0 0 10px;font-family:var(--f-display);font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.unit{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);font-weight:600}
+h1{margin:2px 0 0;font-family:var(--f-display);font-size:24px;line-height:1.25;text-wrap:balance;overflow-wrap:anywhere}
+.meta{color:var(--muted);font-size:13px;display:flex;flex-wrap:wrap;gap:4px 14px}
+.hero{display:grid;grid-template-columns:auto 1fr;gap:18px;align-items:center;background:#0A0A0B;color:#F1EEEF;border-radius:16px;padding:20px;border:1px solid #2A2628}
+.ring{width:96px;height:96px;position:relative}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring b{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:1px;font-family:var(--f-display);font-size:24px;font-variant-numeric:tabular-nums}
+.ring b small{font-size:12px}
+.now{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#C9A84C}
+.hero h2{margin:2px 0 6px;font-family:var(--f-display);font-size:22px;line-height:1.25;text-wrap:balance}
+.hero p{margin:0;color:#C9C1C4;font-size:14px}
+.eta{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap}
+.eta div{background:#1C191B;border-radius:10px;padding:6px 12px;font-size:12px;color:#A79EA2}
+.eta div b{display:block;color:#fff;font-size:15px;font-variant-numeric:tabular-nums;font-weight:600}
+.eta .late b{color:#F2A35E}
+.note{background:var(--warn-soft);border-radius:12px;padding:12px 14px;font-size:14px;white-space:pre-line}
+.note b{color:var(--warn);font-size:12px;letter-spacing:.08em;display:block;white-space:normal}
+.tl{list-style:none;margin:0;padding:0}
+.tl li{display:grid;grid-template-columns:22px 1fr;gap:12px;position:relative;padding-bottom:16px}
+.tl li:last-child{padding-bottom:0}
+.tl li::before{content:"";position:absolute;left:10px;top:22px;bottom:0;width:2px;background:var(--line)}
+.tl li:last-child::before{display:none}
+.tl li.done::before{background:var(--ok)}
+.dot{width:22px;height:22px;border-radius:50%;border:2px solid var(--line);background:var(--surface);display:grid;place-items:center;font-size:12px;position:relative;z-index:1}
+.done .dot{background:var(--ok);border-color:var(--ok);color:#fff}
+.now-s .dot{border-color:var(--crimson);box-shadow:0 0 0 4px var(--crimson-soft)}
+.now-s .dot::after{content:"";width:8px;height:8px;border-radius:50%;background:var(--crimson)}
+.tl .t{font-weight:600;line-height:1.35}
+.todo .t{color:var(--muted);font-weight:500}
+.tl .d{font-size:13px;color:var(--muted)}
+.tag{display:inline-block;font-size:11px;padding:1px 8px;border-radius:999px;margin-left:6px;background:var(--crimson-soft);color:var(--crimson);font-weight:500}
+.row{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--line)}
+.row:first-child{border-top:0;padding-top:0}
+.row:last-child{padding-bottom:0}
+.ico{width:34px;height:34px;flex:none;border-radius:9px;background:var(--sunk);display:grid;place-items:center;color:var(--muted)}
+.ico svg{width:18px;height:18px}
+.lbl{flex:1;min-width:0}
+.lbl b{display:block;font-weight:500;line-height:1.35;overflow-wrap:anywhere}
+.lbl small{color:var(--muted);font-size:12.5px}
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--surface);border-radius:9px;padding:6px 12px;font:500 13px var(--f-body);color:var(--ink);text-decoration:none;cursor:pointer;white-space:nowrap}
+.btn:hover{border-color:var(--ink)}
+.btn.pri{background:var(--crimson);border-color:var(--crimson);color:#fff}
+.pending{font-size:12px;color:var(--muted);background:var(--sunk);border-radius:999px;padding:3px 10px;white-space:nowrap}
+.contact{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:14px;color:var(--muted)}
+.contact b{color:var(--ink);font-weight:500}
+.contact a{text-decoration:none}
+.foot{text-align:center;font-size:12px;color:var(--muted);letter-spacing:.04em}
+.foot b{color:var(--gold);font-family:var(--f-display)}
+.pays{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+.pay{display:flex;gap:12px;align-items:center}
+.pay img,.pay .ph{width:56px;height:56px;border-radius:8px;object-fit:cover;flex:none;background:var(--sunk);display:grid;place-items:center;font-size:11px;color:var(--muted)}
+.pst{font-size:12px;padding:2px 10px;border-radius:999px;white-space:nowrap;font-weight:500}
+.pst.pending{background:var(--warn-soft);color:var(--warn)}
+.pst.ok{background:color-mix(in srgb,var(--ok) 16%,transparent);color:var(--ok)}
+.pst.rejected{background:var(--crimson-soft);color:var(--crimson)}
+.upl{display:flex;gap:10px;align-items:center;flex-wrap:wrap;border:1px dashed var(--line);border-radius:12px;padding:12px}
+.upl small{color:var(--muted);font-size:12.5px;flex:1;min-width:180px}
+.msg{text-align:center;padding:40px 18px}
+.msg h2{font-family:var(--f-display);margin:0 0 6px}
+.msg p{color:var(--muted);margin:0 0 14px}
+.sk{background:var(--sunk);border-radius:12px;animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.5}}
+@media (prefers-reduced-motion:reduce){.sk{animation:none}}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:#0A0A0B;color:#fff;padding:10px 16px;border-radius:10px;font-size:13.5px;max-width:calc(100% - 32px)}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<header class="bar wrap"><div class="bar-in">
+  <img src="logo.png" alt="TESR">
+  <span><b>TESR ORDER STATUS</b><small>ติดตามสถานะคำสั่งซื้อ<span class="en"> · Thai Embedded System and Robotics</span></small></span>
+  <span class="sp"></span><a class="out" id="out" href="#" hidden>ออกจากระบบ</a>
+</div></header>
+<main class="wrap" id="app">
+  <div class="sk" style="height:70px"></div><div class="sk" style="height:150px"></div><div class="sk" style="height:260px"></div>
+</main>
+<div class="toast" id="toast" hidden></div>
+<script>
+const API_URL='https://script.google.com/macros/s/AKfycbwKGxHAZ2inWEdPmK7eY7GvLL5cE_CN7kzVWKxXFeHL8X63Vu4Afg1bH4dokXhcTDmQsw/exec'; // เดียวกับ CONFIG.API_URL ใน index.html
+const CONTACT={line:'https://www.tesrshop.com/line',lineText:'www.tesrshop.com/line',phone:'090-465-6519',email:'tesrshop@gmail.com'};
+
+const TH_M=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const dayOf=s=>{if(!s)return null;const m=String(s).match(/^(\d{4})-(\d{2})-(\d{2})$/);const d=m?new Date(+m[1],m[2]-1,+m[3]):new Date(s);if(isNaN(d))return null;d.setHours(0,0,0,0);return d};
+const fmt=s=>{const d=dayOf(s);return d?d.getDate()+' '+TH_M[d.getMonth()]+' '+d.getFullYear():''};   // ปี ค.ศ.
+const todayD=()=>{const d=new Date();d.setHours(0,0,0,0);return d};
+const IC={
+  doc:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg>',
+  truck:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 6h11v10H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="18" r="1.8"/><circle cx="17" cy="18" r="1.8"/></svg>',
+  cam:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 8h3l2-2h6l2 2h3v11H4z"/><circle cx="12" cy="13" r="3.2"/></svg>',
+  cal:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>'
+};
+const open_=(u,t)=>u?`<a class="btn" href="${esc(u)}" target="_blank" rel="noopener noreferrer">${t}</a>`:'<span class="pending">ยังไม่ออก</span>';
+let tt;function toast(m){const t=document.getElementById('toast');t.textContent=m;t.hidden=false;clearTimeout(tt);tt=setTimeout(()=>t.hidden=true,2400)}
+
+const qs=new URLSearchParams(location.search), TOKEN=(qs.get('o')||'').trim(), DEMO=qs.has('demo');
+const LS_CT='tesr_track_ct';
+const getCt=()=>{try{return localStorage.getItem(LS_CT)||''}catch(e){return ''}};
+const setCt=v=>{try{v?localStorage.setItem(LS_CT,v):localStorage.removeItem(LS_CT)}catch(e){}};
+const api=body=>fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body)}).then(r=>r.json());
+const app=document.getElementById('app');
+
+function demoData(){const d=n=>{const x=todayD();x.setDate(x.getDate()+n);return x.toISOString().slice(0,10)};
+  return {ok:true,locked:qs.get('demo')==='lock',ref:'QT002478',title:'Iron-X Gen II · 3D Camera × 1',customer:'ลูกค้าตัวอย่าง',unit:'shop',unitLabel:'TESR Shop',start:d(-7),eta:d(13),done:false,pct:42,
+    steps:[{label:'ออกใบเสนอราคา',desc:'ส่งใบเสนอราคาให้ลูกค้าแล้ว',state:'done',at:d(-9)},{label:'ยืนยันคำสั่งซื้อ',desc:'ได้รับใบสั่งซื้อหรือการชำระเงินแล้ว',state:'done',at:d(-7)},
+      {label:'จัดเตรียมสินค้า',desc:'จัดหาและเตรียมสินค้าตามรายการ',state:'now',at:d(-6)},{label:'ตรวจสอบและแพ็กสินค้า',desc:'ทดสอบสินค้า ถ่ายรูปหลักฐาน และแพ็ก',state:'todo',at:''},
+      {label:'จัดส่งแล้ว',desc:'ส่งให้บริษัทขนส่ง ติดตามด้วยเลขพัสดุได้',state:'todo',at:''},{label:'ส่งมอบสำเร็จ',desc:'ได้รับสินค้าและเอกสารครบถ้วน',state:'todo',at:''}],
+    note:'สินค้าอยู่ระหว่างนำเข้าจากผู้ผลิต คาดว่าเข้าคลัง TESR ภายใน 10 วัน จากนั้นทดสอบระบบก่อนส่งอีก 2–3 วัน',
+    docs:[{label:'ใบเสนอราคา',url:'https://www.flowaccount.com/'},{label:'ใบแจ้งหนี้ / ใบส่งสินค้า',url:''},{label:'ใบเสร็จรับเงิน / ใบกำกับภาษี',url:''}],
+    ship:{carrier:'',no:'',url:''},evidence:'',payments:[{url:'',thumb:'',name:'สลิป',at:d(-7),by:'customer',status:'ok'}],updated:new Date().toISOString()}}
+
+async function load(key){
+  if(DEMO) return demoData();
+  return api({action:'track',o:TOKEN,ct:getCt(),key});
+}
+function msg(title,text,retry){
+  app.innerHTML=`<div class="panel msg"><h2>${title}</h2><p>${text}</p>${retry?'<button class="btn pri" id="retry">ลองใหม่</button>':''}</div>${contactHTML()}${footHTML()}`;
+  if(retry)document.getElementById('retry').onclick=()=>run(true);
+}
+const contactHTML=()=>`<div class="panel"><h3>สอบถามเพิ่มเติม</h3><div class="contact"><span>LINE <a href="${CONTACT.line}" target="_blank" rel="noopener"><b>${CONTACT.lineText}</b></a></span><span>โทร <b class="mono">${CONTACT.phone}</b></span><span>อีเมล <b>${CONTACT.email}</b></span></div></div>`;
+const footHTML=()=>`<div class="foot">Made by <b>TESR</b> · Thai Embedded System and Robotics</div>`;
+
+function render(o){
+  if(o.ct) setCt(o.ct);
+  document.getElementById('out').hidden=!getCt();
+  document.title=(o.ref?o.ref+' · ':'')+'สถานะคำสั่งซื้อ TESR';
+  const C=2*Math.PI*42,pct=Math.max(0,Math.min(100,+o.pct||0)),off=C*(1-pct/100);
+  const cur=o.done?{label:'เสร็จสมบูรณ์',desc:'ขอบคุณที่ใช้บริการ TESR'}:(o.steps.find(s=>s.state==='now')||o.steps[0]||{label:'-',desc:''});
+  const academy=o.unit==='academy';
+  let eta='';
+  if(o.done) eta=`<div><b>${fmt(o.doneAt)||'—'}</b>เสร็จสมบูรณ์</div>`;
+  else{
+    if(o.eta){const left=Math.round((dayOf(o.eta)-todayD())/864e5);
+      eta+=`<div><b>${fmt(o.eta)}</b>${academy?'วันเรียน':'คาดว่าจะได้รับ'}</div>`+
+        (left>=0?`<div><b>${left===0?'วันนี้':'อีก '+left+' วัน'}</b>นับถอยหลัง</div>`:`<div class="late"><b>เลยกำหนด ${-left} วัน</b>ทีมงานกำลังติดตาม</div>`)}
+    if(o.start) eta+=`<div><b>${fmt(o.start)}</b>เริ่มดำเนินการ</div>`;
+  }
+  const tl=o.steps.map(s=>`<li class="${s.state==='now'?'now-s':s.state}"><span class="dot">${s.state==='done'?'✓':''}</span><div><div class="t">${esc(s.label)}${s.state==='now'?'<span class="tag">กำลังดำเนินการ</span>':''}</div>${s.at||s.desc?`<div class="d">${s.at?fmt(s.at)+(s.desc?' · ':''):''}${esc(s.desc)}</div>`:''}</div></li>`).join('');
+  const docs=(o.docs||[]).map(d=>`<div class="row"><span class="ico">${IC.doc}</span><span class="lbl"><b>${esc(d.label)}</b><small>${d.url?'เปิดดู / ดาวน์โหลดจาก FlowAccount':'จะแนบเมื่อออกเอกสาร'}</small></span>${open_(d.url,'เปิด')}</div>`).join('');
+  let ship='';
+  if(academy){
+    if(o.eta||o.classInfo) ship=`<div class="panel"><h3>รายละเอียดการเรียน</h3><div class="row"><span class="ico">${IC.cal}</span><span class="lbl"><b>${fmt(o.eta)||'จะแจ้งวันเรียน'}</b><small>${esc(o.classInfo)}</small></span></div></div>`;
+  }else{
+    const s=o.ship||{};
+    ship=`<div class="panel"><h3>การจัดส่ง</h3>
+      <div class="row"><span class="ico">${IC.truck}</span><span class="lbl"><b>${s.no?esc(s.carrier||'ขนส่ง')+' · <span class="mono">'+esc(s.no)+'</span>':'ยังไม่มีเลขพัสดุ'}</b><small>${s.no?'ติดตามสถานะจากบริษัทขนส่ง':'จะแสดงเมื่อส่งสินค้าแล้ว'}</small></span>
+        ${s.no?(s.url?open_(s.url,'ติดตาม'):`<button class="btn" type="button" data-copy="${esc(s.no)}">คัดลอก</button>`):'<span class="pending">รอจัดส่ง</span>'}</div>
+      <div class="row"><span class="ico">${IC.cam}</span><span class="lbl"><b>รูปและวิดีโอหลักฐานการส่ง</b><small>${o.evidence?'โฟลเดอร์ Google Drive':'จะแนบหลังตรวจสอบและแพ็กสินค้า'}</small></span>${o.evidence?open_(o.evidence,'ดูหลักฐาน'):'<span class="pending">รอแนบ</span>'}</div></div>`;
+  }
+  const lock=`<div class="panel lockp"><h3>เอกสาร · การชำระเงิน · การจัดส่ง</h3>
+    <p>🔒 ยืนยันตัวตนเพื่อดูเอกสาร หลักฐานการชำระเงิน เลขพัสดุ และหลักฐานการส่ง กรอกเลขประจำตัวผู้เสียภาษีหรือเบอร์โทรที่ให้ไว้กับ TESR</p>
+    <form class="ask" id="vform"><input id="vkey" inputmode="numeric" autocomplete="off" placeholder="เลขผู้เสียภาษี 13 หลัก หรือ เบอร์โทร" aria-label="เลขผู้เสียภาษีหรือเบอร์โทร"><button class="btn pri" type="submit">ยืนยัน</button></form>
+    <div class="err" id="verr"></div></div>`;
+  app.innerHTML=`
+    ${getCt()&&!DEMO?'<a class="back" href="track.html">← ออเดอร์ทั้งหมดของฉัน</a>':''}
+    <div><span class="unit">${esc(o.unitLabel)}</span><h1>${esc(o.title)}</h1>
+      <div class="meta">${o.ref?`<span>เลขที่ <span class="mono">${esc(o.ref)}</span></span>`:''}${o.customer?`<span>${esc(o.customer)}</span>`:''}${DEMO?'<span>ตัวอย่างหน้าลูกค้า</span>':''}</div></div>
+    <div class="hero"><div class="ring" role="img" aria-label="ความคืบหน้า ${pct}%"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="42" fill="none" stroke="#2E2A2C" stroke-width="8"/><circle cx="50" cy="50" r="42" fill="none" stroke="${o.done?'#4FC48C':'#C9A84C'}" stroke-width="8" stroke-linecap="round" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}"/></svg><b>${pct}<small>%</small></b></div>
+      <div><div class="now">${o.done?'เสร็จสมบูรณ์':'สถานะตอนนี้'}</div><h2>${esc(cur.label)}</h2>${cur.desc?`<p>${esc(cur.desc)}</p>`:''}</div>
+      ${eta?`<div class="eta">${eta}</div>`:''}</div>
+    ${o.note?`<div class="note"><b>ข้อความจากทีมงาน</b>${esc(o.note)}</div>`:''}
+    <div class="panel"><h3>ขั้นตอน</h3><ol class="tl">${tl}</ol></div>
+    ${o.locked?lock:`${ship}
+    <div class="panel"><h3>เอกสาร</h3>${docs}</div>
+    ${payHTML(o)}`}
+    ${contactHTML()}
+    <div class="foot">อัปเดตล่าสุด ${fmt(o.updated)||'-'} · หน้านี้อัปเดตอัตโนมัติ</div>
+    ${footHTML()}`;
+}
+const PST={pending:'รอตรวจสอบ',ok:'ยืนยันรับเงินแล้ว',rejected:'ไม่ถูกต้อง · ติดต่อทีมงาน'};
+function payHTML(o){
+  const ps=o.payments||[];
+  const list=ps.map(p=>`<div class="pay">${p.thumb?`<a href="${esc(p.url)}" target="_blank" rel="noopener noreferrer"><img src="${esc(p.thumb)}" alt="สลิป" referrerpolicy="no-referrer"></a>`:'<span class="ph">PDF</span>'}
+    <span class="lbl"><b>${p.by==='customer'?'สลิปที่คุณแนบ':'หลักฐานจากทีมงาน TESR'}</b><small>${fmt(p.at)}${p.url?` · <a href="${esc(p.url)}" target="_blank" rel="noopener noreferrer">เปิดดู</a>`:''}</small></span>
+    <span class="pst ${esc(p.status)}">${PST[p.status]||PST.pending}</span></div>`).join('');
+    return `<div class="panel"><h3>การชำระเงิน</h3>
+    ${list?`<div class="pays">${list}</div>`:''}
+    <div class="upl"><small>${ps.length?'โอนเพิ่มหรือแนบผิด? แนบสลิปใหม่ได้':'โอนเงินแล้ว? แนบสลิปที่นี่ ทีมงานจะตรวจสอบและยืนยันให้'} (รูปภาพหรือ PDF)</small>
+      <label class="btn pri" for="slip">แนบสลิปโอนเงิน</label><input type="file" id="slip" accept="image/*,application/pdf" hidden></div></div>`;
+}
+async function shrink(file){ // ย่อรูปให้ไม่เกิน 1600px เพื่ออัปโหลดเร็ว
+  if(!/^image\/(jpeg|png|webp)$/.test(file.type)) return file;
+  try{const bm=await createImageBitmap(file),k=Math.min(1,1600/Math.max(bm.width,bm.height));
+    if(k===1&&file.size<1.5e6) return file;
+    const cv=document.createElement('canvas');cv.width=Math.round(bm.width*k);cv.height=Math.round(bm.height*k);cv.getContext('2d').drawImage(bm,0,0,cv.width,cv.height);
+    const b=await new Promise(r=>cv.toBlob(r,'image/jpeg',.85));return b?new File([b],'slip.jpg',{type:'image/jpeg'}):file}catch(e){return file}
+}
+async function sendSlip(file){
+  if(DEMO) return toast('ตัวอย่าง: ของจริงจะอัปโหลดสลิปให้ทีมงานตรวจ');
+  const f=await shrink(file);
+  if(f.size>8e6) return toast('ไฟล์ใหญ่เกิน 8MB');
+  const type=f.type||(/\.pdf$/i.test(file.name)?'application/pdf':/\.(heic|heif)$/i.test(file.name)?'image/heic':'');
+  toast('กำลังอัปโหลดสลิป…');
+  try{
+    const data=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(',')[1]);r.onerror=rej;r.readAsDataURL(f)});
+    const r=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'trackPay',o:TOKEN,ct:getCt(),type,data})});
+    const j=await r.json();
+    if(j.ok){toast('แนบสลิปแล้ว รอทีมงานตรวจสอบ');run(false);return}
+    toast({bad_type:'รองรับเฉพาะรูปภาพหรือ PDF',too_big:'ไฟล์ใหญ่เกิน 8MB',too_many:'แนบได้สูงสุด 10 ไฟล์ ติดต่อทีมงาน',too_fast:'รอสักครู่แล้วลองใหม่',not_found:'ลิงก์นี้ถูกปิดแล้ว',auth:'กรุณายืนยันตัวตนก่อนแนบสลิป'}[j.error]||'อัปโหลดไม่สำเร็จ ลองใหม่อีกครั้ง');
+  }catch(e){toast('อัปโหลดไม่สำเร็จ ตรวจสอบอินเทอร์เน็ต')}
+}
+document.addEventListener('change',e=>{if(e.target.id==='slip'&&e.target.files[0]){sendSlip(e.target.files[0]);e.target.value=''}});
+/* ===== 👤 หน้ารวมออเดอร์ของลูกค้า ===== */
+function loginHTML(err=''){
+  document.getElementById('out').hidden=true;
+  app.innerHTML=`<div class="panel login"><img src="logo.png" alt="TESR"><h2>ออเดอร์ของฉัน</h2>
+    <p>เข้าสู่ระบบด้วยเลขประจำตัวผู้เสียภาษีหรือเบอร์โทรที่ให้ไว้กับ TESR และ PIN 6 หลักที่ทีมงานส่งให้</p>
+    <form id="lform"><input id="lkey" inputmode="numeric" autocomplete="username" placeholder="เลขผู้เสียภาษี หรือ เบอร์โทร" aria-label="เลขผู้เสียภาษีหรือเบอร์โทร">
+      <input id="lpin" inputmode="numeric" autocomplete="current-password" type="password" maxlength="6" placeholder="PIN 6 หลัก" aria-label="PIN">
+      <button class="btn pri" type="submit">เข้าสู่ระบบ</button><div class="err" id="lerr">${esc(err)}</div></form>
+    <p style="font-size:13px">มีลิงก์ออเดอร์อยู่แล้ว? เปิดจากลิงก์นั้นได้เลย · ยังไม่มี PIN ขอได้ทาง LINE</p></div>${contactHTML()}${footHTML()}`;
+}
+function portalHTML(list){
+  document.getElementById('out').hidden=false;
+  document.title='ออเดอร์ของฉัน · TESR';
+  const name=list.find(x=>x.customer)?.customer||'';
+  app.innerHTML=`<div><span class="unit">TESR · ออเดอร์ของฉัน</span><h1>${name?esc(name):'ออเดอร์ทั้งหมด'}</h1><div class="meta"><span>${list.length} ออเดอร์ · กำลังดำเนินการ ${list.filter(x=>!x.done).length}</span></div></div>
+    <div class="orders">${list.map(x=>`<a class="oc ${x.done?'done':''}" href="track.html?o=${encodeURIComponent(x.o)}">
+      <span class="oc-top"><span class="unit">${esc(x.unitLabel)}${x.ref?' · <span class="mono">'+esc(x.ref)+'</span>':''}</span><span class="chipd">${x.done?'เสร็จสมบูรณ์':x.eta?'คาดว่า '+fmt(x.eta):'กำลังดำเนินการ'}</span></span>
+      <b class="t">${esc(x.title)}</b><span class="st">${esc(x.stage)} · ${x.pct}%</span><span class="pbar"><i style="width:${x.pct}%"></i></span></a>`).join('')||'<div class="panel msg"><p>ยังไม่มีออเดอร์ที่เปิดให้ติดตาม</p></div>'}</div>
+    ${contactHTML()}${footHTML()}`;
+}
+async function portal(body){
+  try{
+    const j=await api({action:'portal',ct:getCt(),...body});
+    if(j.ok){if(j.ct)setCt(j.ct);return portalHTML(j.orders||[])}
+    if(j.error==='auth'){setCt('');return loginHTML()}
+    return loginHTML(j.error==='locked'?'ใส่ PIN ผิดหลายครั้ง กรุณารอ 15 นาที':'เลขผู้เสียภาษี/เบอร์โทร หรือ PIN ไม่ถูกต้อง');
+  }catch(e){loginHTML('เชื่อมต่อไม่ได้ ตรวจสอบอินเทอร์เน็ตแล้วลองใหม่')}
+}
+document.addEventListener('submit',async e=>{
+  if(e.target.id==='lform'){e.preventDefault();const k=document.getElementById('lkey').value,p=document.getElementById('lpin').value;
+    if(!k.trim()||!p.trim()) return document.getElementById('lerr').textContent='กรอกให้ครบทั้งสองช่อง';
+    e.target.querySelector('button').disabled=true;await portal({key:k,pin:p});}
+  if(e.target.id==='vform'){e.preventDefault();const k=document.getElementById('vkey').value.trim(),er=document.getElementById('verr');
+    if(!k) return er.textContent='กรอกเลขผู้เสียภาษีหรือเบอร์โทร';
+    if(DEMO){const o=demoData();o.locked=false;return render(o)}
+    e.target.querySelector('button').disabled=true;
+    try{const o=await load(k);
+      if(o.ok) return render(o);
+      er.textContent=o.error==='locked'?'ลองผิดหลายครั้ง กรุณารอ 15 นาที':'ไม่ตรงกับข้อมูลของออเดอร์นี้ ลองใช้อีกแบบ (เลขภาษี/เบอร์โทร)';
+    }catch(x){er.textContent='เชื่อมต่อไม่ได้ ลองใหม่อีกครั้ง'}
+    e.target.querySelector('button').disabled=false;}
+});
+document.getElementById('out').onclick=e=>{e.preventDefault();setCt('');location.href='track.html'};
+
+async function run(showLoading){
+  if(!TOKEN&&!DEMO) return getCt()?portal({}):loginHTML();
+  if(showLoading) app.innerHTML='<div class="sk" style="height:70px"></div><div class="sk" style="height:150px"></div><div class="sk" style="height:260px"></div>';
+  try{
+    const o=await load();
+    if(o.error==='not_found') return msg('ไม่พบออเดอร์นี้','ลิงก์อาจถูกปิด หรือคัดลอกมาไม่ครบ ติดต่อทีมงานเพื่อขอลิงก์ใหม่ได้');
+    if(!o.ok) throw new Error(o.error||'bad');
+    render(o);
+  }catch(e){ if(showLoading!==false||!app.querySelector('.hero')) msg('โหลดข้อมูลไม่สำเร็จ','ตรวจสอบอินเทอร์เน็ตแล้วลองใหม่อีกครั้ง',true) }
+}
+document.addEventListener('click',async e=>{const b=e.target.closest('[data-copy]');if(!b)return;
+  try{await navigator.clipboard.writeText(b.dataset.copy);toast('คัดลอกเลขพัสดุแล้ว')}catch(x){toast(b.dataset.copy)}});
+run(true);
+setInterval(()=>{if(!document.hidden&&!DEMO&&TOKEN&&app.querySelector(".hero")&&!(document.activeElement&&/INPUT|TEXTAREA/.test(document.activeElement.tagName)))run(false)},60000);
+</script>
+</body>
+</html>
