@@ -148,7 +148,7 @@ h1{margin:2px 0 0;font-family:var(--f-display);font-size:24px;line-height:1.25;t
 <div class="toast" id="toast" hidden></div>
 <script>
 const API_URL='https://script.google.com/macros/s/AKfycbwKGxHAZ2inWEdPmK7eY7GvLL5cE_CN7kzVWKxXFeHL8X63Vu4Afg1bH4dokXhcTDmQsw/exec'; // เดียวกับ CONFIG.API_URL ใน index.html
-const CONTACT={line:'https://www.tesrshop.com/line',lineText:'www.tesrshop.com/line',phone:'090-465-6519',email:'tesrshop@gmail.com'};
+const CONTACT={line:'https://www.tesrshop.com/line',lineText:'www.tesrshop.com/line',phone:'082-983-7768',phone2:'090-465-6519',email:'tesrshop@gmail.com'};
 
 const TH_M=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -188,7 +188,7 @@ function msg(title,text,retry){
   app.innerHTML=`<div class="panel msg"><h2>${title}</h2><p>${text}</p>${retry?'<button class="btn pri" id="retry">ลองใหม่</button>':''}</div>${contactHTML()}${footHTML()}`;
   if(retry)document.getElementById('retry').onclick=()=>run(true);
 }
-const contactHTML=()=>`<div class="panel"><h3>สอบถามเพิ่มเติม</h3><div class="contact"><span>LINE <a href="${CONTACT.line}" target="_blank" rel="noopener"><b>${CONTACT.lineText}</b></a></span><span>โทร <b class="mono">${CONTACT.phone}</b></span><span>อีเมล <b>${CONTACT.email}</b></span></div></div>`;
+const contactHTML=()=>`<div class="panel"><h3>สอบถามเพิ่มเติม</h3><div class="contact"><span>LINE <a href="${CONTACT.line}" target="_blank" rel="noopener"><b>${CONTACT.lineText}</b></a></span><span>โทร <b class="mono">${CONTACT.phone}</b></span><span>เสาร์–อาทิตย์ <b class="mono">${CONTACT.phone2}</b></span><span>อีเมล <b>${CONTACT.email}</b></span></div></div>`;
 const footHTML=()=>`<div class="foot">Made by <b>TESR</b> · Thai Embedded System and Robotics</div>`;
 
 function render(o){

@@ -890,7 +890,8 @@ const cover=c=>{const a=c.attachments.find(a=>/^image\//.test(a.type||''));retur
 function linkify(t){return esc(t).replace(/(https?:\/\/[^\s<]+)/g,'<a href="$1" target="_blank" rel="noopener">$1</a>').replace(/@([\u0E00-\u0E7Fa-zA-Z0-9_.]+)/g,'<b class="mention">@$1</b>')}
 /* ===== 🚚 CUSTOMER TRACKING ===== */
 function trkToken(){const a=new Uint8Array(14),ch='abcdefghjkmnpqrstuvwxyz23456789';crypto.getRandomValues(a);return [...a].map(b=>ch[b%ch.length]).join('')}
-const trkBase=()=>location.origin+location.pathname.replace(/[^/]*$/,'')+'track.html';
+const TRACK_URL='';  // ถ้ามีโดเมนลูกค้า เช่น 'https://track.tesrshop.com/' ใส่ที่นี่บรรทัดเดียว · ว่าง = ใช้ track.html ใน repo นี้
+const trkBase=()=>TRACK_URL?TRACK_URL.replace(/\/?$/,'/'):location.origin+location.pathname.replace(/[^/]*$/,'')+'track.html';
 const trkUrl=t=>trkBase()+'?o='+t;
 const keyOf=v=>{const d=String(v||'').replace(/\D/g,'');return d.length===13?'T'+d:d.length>=9&&d.length<=12?'P'+d.slice(-9):''}; // ตรงกับ keyOf_ ใน Code.gs
 const trkKeys=t=>[keyOf(t?.tax),keyOf(t?.phone)].filter(Boolean);
