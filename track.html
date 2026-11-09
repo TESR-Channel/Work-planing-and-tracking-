@@ -197,7 +197,7 @@ const contactHTML=()=>`<div class="panel"><h3>สอบถามเพิ่ม�
   <div class="callmain"><span class="lbl"><small>แนะนำ · เบอร์หลักทีมงาน TESR</small><b>${CONTACT.phone}</b></span><a class="btn pri" href="tel:${CONTACT.phone.replace(/\D/g,'')}">โทรเลย</a></div>
   <div class="contact"><span>LINE <a href="${CONTACT.line}" target="_blank" rel="noopener"><b>${CONTACT.lineText}</b></a></span><span>อีเมล <b>${CONTACT.email}</b></span></div>
   <div class="backup">เบอร์สำรอง <b>${CONTACT.phone2}</b> · โปรดใช้เมื่อติดต่อเบอร์หลักไม่ได้เท่านั้น</div></div>`;
-const TRACK_VER='v3.6';
+const TRACK_VER='v3.7';
 const footHTML=()=>`<div class="foot">Made by <b>TESR</b> · Thai Embedded System and Robotics · ${TRACK_VER}</div>`;
 
 function render(o){
