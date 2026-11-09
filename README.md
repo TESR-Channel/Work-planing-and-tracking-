@@ -1,6 +1,6 @@
 # TESR Board — Work Planning & Tracking
 
-🔗 ใช้งาน: https://track.tesrshop.com/ (หน้าลูกค้า: https://track.tesrshop.com/track.html)  ·  ▶ [วิดีโอสอนใช้ v2](tutorial.mp4)
+🔗 ใช้งาน: https://track.tesrshop.com/ (หน้าลูกค้า: https://track.tesrshop.com/track.html)  ·  ▶ [วิดีโอสอนใช้ (ระบบติดตามออเดอร์)](tutorial.mp4)
 
 ระบบติดตามงานแบบการ์ด (สไตล์ Trello) + แดชบอร์ดวัดผลทีม + 🚚 ลิงก์ติดตามออเดอร์สำหรับลูกค้า ของ TESR Co., Ltd.
 

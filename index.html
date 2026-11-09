@@ -678,7 +678,7 @@ const T = { mrows:'tb_members', boards:'tb_boards', lists:'tb_lists', cards:'tb_
 const KEYS = Object.keys(T);
 const LS_DATA='tesrboard_demo_v2', LS_CFG='tesrboard_cfg', LS_SES='tesrboard_session', LS_BOARD='tesrboard_board', LS_THEME='tesrboard_theme';
 const PALETTE=['#d71f33','#d4a72c','#2fbf71','#3b82f6','#a855f7','#ec4899','#14b8a6','#f97316','#64748b','#84cc16'];
-const APP_VER='v3.5'; // เพิ่มเลขทุกครั้งที่อัปเดตหน้าเว็บ · ดูที่มุมโลโก้ว่าเครื่องโหลดเวอร์ชันใหม่แล้ว
+const APP_VER='v3.6'; // เพิ่มเลขทุกครั้งที่อัปเดตหน้าเว็บ · ดูที่มุมโลโก้ว่าเครื่องโหลดเวอร์ชันใหม่แล้ว
 const PRIO={low:'ต่ำ',normal:'ปกติ',high:'สูง',urgent:'ด่วนมาก'};
 /* 🚚 ลิงก์ติดตามสำหรับลูกค้า (หน้า track.html) — ต้องตรงกับ TRK_DOCS ใน Code.gs */
 const TRK_UNITS={shop:'TESR Shop',academy:'TESR Academy',logistics:'TESR Logistics'};
@@ -1736,10 +1736,10 @@ function renderSettings(){
 function getCfg(){const c=lsGet(LS_CFG,{});return {url:c.url||CONFIG.API_URL||''}}
 
 /* ===== วิดีโอสอนใช้งาน ===== */
-const TUTORIAL={src:['tutorial.mp4?v=5','tutorial.webm?v=5'],chapters:[[0, "แนะนำ"], [6.9, "1. เข้าสู่ระบบ"], [14.9, "2. หน้าบอร์ด & สีกำหนดส่ง"], [28.9, "3. ปรับคอลัมน์: ชื่อ · สถานะ · สี"], [61.2, "4. สร้างงานใหม่ (ขนาด + หมวดผลงาน)"], [83.6, "5. ลากไฟล์มาวาง"], [93.0, "6. ส่งต่องานให้เพื่อน"], [110.1, "7. ในการ์ด: เช็คลิสต์ · ลากจัดลำดับ · คอมเมนต์"], [150.6, "8. ปิดงาน & ได้แต้ม"], [164.3, "9. ตีกลับให้แก้ไข"], [175.7, "10. 🙏 ขอบคุณเพื่อน"], [189.3, "11. หน้าทีม"], [196.4, "12. แดชบอร์ด & KPI Score"], [210.7, "13. 📖 KPI วัดอะไรบ้าง"], [225.6, "14. Scorecard รายบุคคล"], [235.3, "15. มุมมองพนักงาน"]]};
+const TUTORIAL={src:['tutorial.mp4?v=6'],chapters:[[0, "แนะนำ"], [7, "ภาพรวม: งานไหลจากบอร์ดไปถึงลูกค้า"], [24, "1. เข้าสู่ระบบ"], [34.5, "2. หน้าบอร์ด & ชื่อขั้นที่ลูกค้าเห็น"], [54, "3. สร้างการ์ดออเดอร์ (ติ๊ก ✓ ติดตามสำหรับลูกค้า)"], [80.5, "4. 📋 คัดลอกข้อความ + ลิงก์ ส่งลูกค้า"], [104.5, "5. วางลิงก์เอกสาร FlowAccount"], [123.5, "6. 🔒 ข้อมูลภายในทีม (ลูกค้าไม่เห็น)"], [142.5, "7. ลูกค้าเห็นอะไร"], [174.5, "8. อัปเดตงาน = ย้ายการ์ด"], [192.5, "9. จัดส่งสินค้า & หลักฐาน"], [211, "10. ตรวจสลิปโอนเงิน"], [238, "11. ลูกค้าหลายออเดอร์: PIN 6 หลัก"], [260, "12. ปิดงาน"], [270.5, "สรุป 6 ข้อที่ต้องทำทุกออเดอร์"]]};
 const fmtT=t=>Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0');
 function openHowto(){
-  const v=$('#vplayer'); if(!v.querySelector('source')){v.innerHTML=`<source src="${TUTORIAL.src[0]}" type="video/mp4"><source src="${TUTORIAL.src[1]}" type="video/webm">`;v.load()}
+  const v=$('#vplayer'); if(!v.querySelector('source')){v.innerHTML=TUTORIAL.src.map(u=>`<source src="${u}" type="video/${/webm/.test(u)?'webm':'mp4'}">`).join('');v.load()}
   $('#vch').innerHTML='<div class="muted" style="padding:4px 8px">บทในวิดีโอ — กดเพื่อข้ามไป</div>'+TUTORIAL.chapters.map(([t,n],i)=>`<button class="vc" data-t="${t}"><span>${fmtT(t)}</span>${esc(n)}</button>`).join('');
   $('#vch').onclick=e=>{const b=e.target.closest('.vc');if(!b)return;v.currentTime=+b.dataset.t;v.play()};
   v.ontimeupdate=()=>{const t=v.currentTime;let k=0;TUTORIAL.chapters.forEach(([s],i)=>{if(t>=s)k=i});$$('#vch .vc').forEach((b,i)=>b.classList.toggle('on',i===k))};
