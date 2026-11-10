@@ -351,6 +351,7 @@ th{font-family:Orbitron,sans-serif;font-size:11px;letter-spacing:1px;background:
 .trkbox .grid2{margin-top:6px}
 .badge.trk{background:rgba(212,167,44,.16);color:var(--gold)}
 .lpub{font-size:11px;opacity:.8;cursor:help}
+.lown{font-size:11px;color:var(--gold);border:1px solid color-mix(in srgb,var(--gold) 45%,transparent);border-radius:20px;padding:0 7px;white-space:nowrap}
 .trk-warn{margin-top:8px;font-size:12.5px;background:var(--yelbg);color:var(--yel);border-radius:8px;padding:6px 10px}
 .intbox{margin:10px 0;border:1px dashed var(--red);border-radius:10px;padding:10px;background:rgba(215,31,51,.05)}
 .intbox h5{margin:0 0 6px;font-size:12.5px;color:var(--red2);display:flex;gap:6px;align-items:center;flex-wrap:wrap}
@@ -690,7 +691,7 @@ const T = { mrows:'tb_members', boards:'tb_boards', lists:'tb_lists', cards:'tb_
 const KEYS = Object.keys(T);
 const LS_DATA='tesrboard_demo_v2', LS_CFG='tesrboard_cfg', LS_SES='tesrboard_session', LS_BOARD='tesrboard_board', LS_THEME='tesrboard_theme';
 const PALETTE=['#d71f33','#d4a72c','#2fbf71','#3b82f6','#a855f7','#ec4899','#14b8a6','#f97316','#64748b','#84cc16'];
-const APP_VER='v3.8'; // เพิ่มเลขทุกครั้งที่อัปเดตหน้าเว็บ · ดูที่มุมโลโก้ว่าเครื่องโหลดเวอร์ชันใหม่แล้ว
+const APP_VER='v3.9'; // เพิ่มเลขทุกครั้งที่อัปเดตหน้าเว็บ · ดูที่มุมโลโก้ว่าเครื่องโหลดเวอร์ชันใหม่แล้ว
 const PRIO={low:'ต่ำ',normal:'ปกติ',high:'สูง',urgent:'ด่วนมาก'};
 /* 🚚 ลิงก์ติดตามสำหรับลูกค้า (หน้า track.html) — ต้องตรงกับ TRK_DOCS ใน Code.gs */
 const TRK_UNITS={shop:'TESR Shop',academy:'TESR Academy',logistics:'TESR Logistics'};
@@ -1158,25 +1159,25 @@ function renderBoard(){
   $('#main').innerHTML=`<div class="board" id="boardEl">${lists.map(l=>{
     const cs=S.cards.filter(c=>c.list_id===l.id&&matches(c)).sort(byPos);
     const lc=lcolor(l);
-    return `<section class="list ${l.is_done?'done':''} ${lc?'tinted':''}" data-id="${l.id}" ${lc?`style="--lc:${lc}"`:''}>
-      <div class="lhead"><span class="lname ${isAdmin()?'editable':''}" data-lid="${l.id}" ${isAdmin()?'title="ดับเบิลคลิก (หรือกด ✏️) เพื่อเปลี่ยนชื่อ"':''}>${esc(l.name)}</span>${isAdmin()?`<button class="icon ren" data-act="renameList" data-id="${l.id}" title="เปลี่ยนชื่อคอลัมน์">✏️</button>`:''}${l.pub?`<span class="lpub" title="ลูกค้าเห็นเป็น: ${esc(l.pub)}">👁</span>`:''}${lstatChip(l)}<span class="cnt">${cs.length}</span>${isAdmin()?`<button class="icon" data-act="listMenu" data-id="${l.id}">⋯</button>`:''}</div>
+    const ed=canL(l), ow=l.owner&&member(l.owner);
+    return `<section class="list ${l.is_done?'done':''} ${lc?'tinted':''} ${ed?'own':''}" data-id="${l.id}" ${lc?`style="--lc:${lc}"`:''}>
+      <div class="lhead"><span class="lname ${ed?'editable':''}" data-lid="${l.id}" ${ed?'title="ดับเบิลคลิก (หรือกด ✏️) เพื่อเปลี่ยนชื่อ"':''}>${esc(l.name)}</span>${ow?`<span class="lown" title="ลิสต์ส่วนตัวของ ${esc(ow.name)}">👤 ${esc(ow.name.split(' ')[0])}</span>`:''}${ed?`<button class="icon ren" data-act="renameList" data-id="${l.id}" title="เปลี่ยนชื่อคอลัมน์">✏️</button>`:''}${l.pub?`<span class="lpub" title="ลูกค้าเห็นเป็น: ${esc(l.pub)}">👁</span>`:''}${lstatChip(l)}<span class="cnt">${cs.length}</span>${ed?`<button class="icon" data-act="listMenu" data-id="${l.id}">⋯</button>`:''}</div>
       <div class="cards" data-list="${l.id}">${cs.map(cardHTML).join('')}</div>
       <button class="addcard" data-act="addCard" data-id="${l.id}">+ เพิ่มการ์ด</button></section>`}).join('')}
-    ${isAdmin()?'<div class="addlist"><button data-act="addList">+ เพิ่มลิสต์</button></div>':''}</div>`;
+    ${session?'<div class="addlist"><button data-act="addList">+ เพิ่มลิสต์</button></div>':''}</div>`;
   const opt={animation:150,delay:180,delayOnTouchOnly:true,ghostClass:'ghost',chosenClass:'chosen',onStart:()=>ui.dragging=true};
   $$('.cards').forEach(el=>Sortable.create(el,{...opt,group:'cards',onEnd:onCardDrop}));
-  if(isAdmin()){
-    Sortable.create($('#boardEl'),{...opt,handle:'.lhead',draggable:'.list',filter:'input,.ren,.lstat',preventOnFilter:false,onEnd:onListDrop});
-    $$('.lname.editable').forEach(el=>el.ondblclick=()=>renameListInline(el.dataset.lid));
-  }
+  Sortable.create($('#boardEl'),{...opt,handle:'.lhead',draggable:isAdmin()?'.list':'.list.own',filter:'input,.ren,.lstat',preventOnFilter:false,onEnd:onListDrop});
+  $$('.lname.editable').forEach(el=>el.ondblclick=()=>renameListInline(el.dataset.lid));
 }
+const canL=l=>!!l&&(isAdmin()||(!!l.owner&&l.owner===session?.id));   // แก้ลิสต์ได้: Admin ทุกลิสต์ · พนักงานเฉพาะลิสต์ที่ตัวเองสร้าง
 const LSTAT={none:{t:'ไม่ระบุ',c:''},todo:{t:'รอทำ',i:'⏳',c:'#64748b'},doing:{t:'กำลังทำ',i:'🔧',c:'#3b82f6'},review:{t:'รอตรวจ',i:'👀',c:'#a855f7'},hold:{t:'ติดปัญหา',i:'⛔',c:'#d71f33'},done:{t:'เสร็จ',i:'✅',c:'#2fbf71'}};
 const lstat=l=>LSTAT[l.status]?l.status:(l.is_done?'done':'none');
 const lcolor=l=>l.color||LSTAT[lstat(l)].c||'';
 function lstatChip(l){const st=lstat(l),S_=LSTAT[st];
-  if(st==='none') return isAdmin()?`<button class="lstat empty" data-act="lpop" data-id="${l.id}" title="ตั้งสถานะ / สีคอลัมน์">＋ สถานะ</button>`:'';
+  if(st==='none') return canL(l)?`<button class="lstat empty" data-act="lpop" data-id="${l.id}" title="ตั้งสถานะ / สีคอลัมน์">＋ สถานะ</button>`:'';
   const txt=`${S_.i} ${S_.t}`;
-  return isAdmin()?`<button class="lstat" data-act="lpop" data-id="${l.id}" title="คลิกเพื่อเปลี่ยนสถานะ / สี">${txt} ▾</button>`:`<span class="lstat">${txt}</span>` }
+  return canL(l)?`<button class="lstat" data-act="lpop" data-id="${l.id}" title="คลิกเพื่อเปลี่ยนสถานะ / สี">${txt} ▾</button>`:`<span class="lstat">${txt}</span>` }
 function closeLpop(){ $('#lpop')?.remove() }
 function openLpop(id,anchor){
   const l=list(id); if(!l) return; const was=$('#lpop')?.dataset.id; closeLpop(); if(was===id) return;
@@ -1194,7 +1195,7 @@ document.addEventListener('mousedown',e=>{if($('#lpop')&&!e.target.closest('#lpo
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeLpop()});
 addEventListener('resize',closeLpop);
 function renameListInline(id){
-  const l=list(id), el=$(`.lname[data-lid="${id}"]`); if(!l||!el||el.querySelector('input')) return;
+  const l=list(id), el=$(`.lname[data-lid="${id}"]`); if(!l||!el||el.querySelector('input')||!canL(l)) return;
   ui.dragging=true;
   el.innerHTML=`<input class="lren" value="${esc(l.name)}" maxlength="40">`;
   const inp=el.querySelector('input'); inp.focus(); inp.select();
@@ -1221,7 +1222,7 @@ async function onCardDrop(e){
 }
 async function onListDrop(e){
   ui.dragging=false;
-  const l=list(e.item.dataset.id); if(!l) return scheduleRender();
+  const l=list(e.item.dataset.id); if(!l||!canL(l)) return scheduleRender();
   l.pos=posBetween(e.item,list); await store.upsert('lists',l); scheduleRender();
 }
 
@@ -1830,7 +1831,10 @@ async function act(a,d={}){
     case 'exportReport': exportReport();break;
     case 'addCard': openNewCard(d.id);break;
     case 'dashPerson': if(!isAdmin())return; closeModal(); ui.dashPerson=d.id||''; ui.view='dash'; renderMain(); window.scrollTo(0,0); break;
-    case 'addList':{if(!isAdmin())return;const n=prompt('ชื่อลิสต์');if(!n?.trim())return;await store.upsert('lists',{id:uid(),board_id:ui.board,name:n.trim(),pos:Math.max(0,...boardLists(ui.board).map(l=>l.pos||0))+1024,is_done:false});scheduleRender();break}
+    case 'addList':{const mine=!isAdmin();const n=prompt(mine?'ชื่อลิสต์ของคุณ (เช่น งานของ '+(member(session.id)?.name||'ฉัน')+')':'ชื่อลิสต์');if(!n?.trim())return;
+      const row={id:uid(),board_id:ui.board,name:n.trim(),pos:Math.max(0,...boardLists(ui.board).map(l=>l.pos||0))+1024,is_done:false};if(mine)row.owner=session.id;
+      try{await store.upsert('lists',row)}catch(e){S.lists=S.lists.filter(x=>x.id!==row.id);scheduleRender();return toast('เพิ่มลิสต์ไม่สำเร็จ — ระบบหลังบ้านยังไม่อัปเดต แจ้ง Admin')}
+      log(null,`เพิ่มลิสต์ "${row.name}"${mine?' (ลิสต์ส่วนตัว)':''}`);toast('+ เพิ่มลิสต์ "'+row.name+'" แล้ว'+(mine?' · คุณแก้ไข/ลบลิสต์นี้ได้':''));scheduleRender();break}
     case 'renameList': renameListInline(d.id); break;
     case 'trkOn':{c.trk=Object.assign(trkNew(c),c.trk||{},{on:true});
       if(!c.trk.token)c.trk.token=trkToken();
@@ -1852,22 +1856,24 @@ async function act(a,d={}){
       await saveCard(c,'🔒 เพิ่มบันทึกทีม');renderCardModal();$('#intNoteIn')?.focus();break}
     case 'intNoteDel':{const i=c.trk.int;if(!i?.notes?.[d.i]||!confirm('ลบบันทึกนี้?'))return;i.notes.splice(+d.i,1);await saveCard(c);renderCardModal();break}
     case 'trkCopy':{const u=trkUrl(c.trk.token);try{await navigator.clipboard.writeText(u);toast('📋 คัดลอกลิงก์ลูกค้าแล้ว')}catch(e){prompt('คัดลอกลิงก์นี้',u)}break}
-    case 'lpop': if(!isAdmin())return; openLpop(d.id,$(`.list[data-id="${d.id}"] .lstat`)); break;
-    case 'setLStat':{if(!isAdmin())return;const l=list(d.id),old=lstat(l);closeLpop();if(old===d.s)break;
+    case 'lpop': if(!canL(list(d.id)))return; openLpop(d.id,$(`.list[data-id="${d.id}"] .lstat`)); break;
+    case 'setLStat':{const l=list(d.id);if(!canL(l))return;const old=lstat(l);closeLpop();if(old===d.s)break;
       l.status=d.s;l.is_done=d.s==='done';await store.upsert('lists',l);
       log(null,`เปลี่ยนสถานะคอลัมน์ "${l.name}" → ${LSTAT[d.s].t}`);toast(`${LSTAT[d.s].i||'⚪'} "${l.name}" → ${LSTAT[d.s].t}`+(d.s==='done'?' (นับเป็นผลงาน)':''));scheduleRender();break}
-    case 'setLColor':{if(!isAdmin())return;const l=list(d.id);closeLpop();if((l.color||'')===d.c)break;
+    case 'setLColor':{const l=list(d.id);if(!canL(l))return;closeLpop();if((l.color||'')===d.c)break;
       l.color=d.c||'';await store.upsert('lists',l);log(null,`เปลี่ยนสีคอลัมน์ "${l.name}"`);scheduleRender();break}
-    case 'listMenu':{const l=list(d.id);ui.openCard=null;
+    case 'listMenu':{const l=list(d.id);if(!canL(l))return;ui.openCard=null;
       $('#sheet').innerHTML=`<div class="mhead"><input class="mtitle" id="lName" value="${esc(l.name)}"><button class="icon" data-act="closeModal">✕</button></div>
         <label style="display:flex;gap:8px;align-items:center">สถานะคอลัมน์ <select id="lStat">${Object.entries(LSTAT).map(([k,v])=>`<option value="${k}" ${k===lstat(l)?'selected':''}>${v.i||'⚪'} ${v.t}${k==='done'?' — นับเป็นผลงาน':''}</option>`).join('')}</select></label>
         <div class="muted" style="font-size:12px;margin-top:6px">💡 คลิกป้ายสถานะบนหัวคอลัมน์เพื่อเปลี่ยนสถานะ/สีได้ทันที</div>
         <label class="fl">👁 ชื่อขั้นที่ลูกค้าเห็น (หน้าลิงก์ติดตาม)<input id="lPub" value="${esc(l.pub||'')}" placeholder="เช่น จัดเตรียมสินค้า · เว้นว่าง = ขั้นภายใน ลูกค้าไม่เห็น"></label>
         <label class="fl">คำอธิบายสำหรับลูกค้า<input id="lPubDesc" value="${esc(l.pub_desc||'')}" placeholder="เช่น จัดหาและเตรียมสินค้าตามรายการ"></label>
         <div class="muted" style="font-size:12px">ถ้าบอร์ดนี้ยังไม่มีคอลัมน์ไหนตั้งชื่อนี้เลย ลูกค้าจะเห็นชื่อคอลัมน์ทุกคอลัมน์ตามลำดับ</div>
+        ${isAdmin()?`<label class="fl">👤 เจ้าของลิสต์ (แก้ไข/ลบได้)<select id="lOwner"><option value="">ทีม · เฉพาะ Admin</option>${S.members.filter(m=>m.id!=='admin'&&m.active!==false).map(m=>`<option value="${m.id}" ${m.id===l.owner?'selected':''}>${esc(m.name)}</option>`).join('')}</select></label>`:''}
         <div class="mfoot"><button class="danger sm" data-act="delList" data-id="${l.id}">ลบลิสต์</button><button class="pri" data-act="saveList" data-id="${l.id}">บันทึก</button></div>`;showModal();break}
-    case 'saveList':{const l=list(d.id);l.name=$('#lName').value.trim()||l.name;l.status=$('#lStat').value;l.pub=$('#lPub').value.trim();l.pub_desc=$('#lPubDesc').value.trim();l.is_done=l.status==='done';await store.upsert('lists',l);closeModal();scheduleRender();break}
-    case 'delList':{const l=list(d.id),n=S.cards.filter(x=>x.list_id===l.id);if(!confirm(`ลบลิสต์ "${l.name}"${n.length?` และการ์ด ${n.length} ใบ`:''}?`))return;
+    case 'saveList':{const l=list(d.id);if(!canL(l))return;if($('#lOwner')){const o=$('#lOwner').value;if(o)l.owner=o;else delete l.owner}l.name=$('#lName').value.trim()||l.name;l.status=$('#lStat').value;l.pub=$('#lPub').value.trim();l.pub_desc=$('#lPubDesc').value.trim();l.is_done=l.status==='done';await store.upsert('lists',l);closeModal();scheduleRender();break}
+    case 'delList':{const l=list(d.id),n=S.cards.filter(x=>x.list_id===l.id);if(!canL(l))return;
+      if(!isAdmin()&&n.some(x=>x.created_by!==session.id))return toast('ลิสต์นี้มีการ์ดที่คนอื่นสร้าง — ย้ายการ์ดเหล่านั้นออกก่อนจึงลบได้');if(!confirm(`ลบลิสต์ "${l.name}"${n.length?` และการ์ด ${n.length} ใบ`:''}?`))return;
       for(const x of n)await store.remove('cards',x.id);await store.remove('lists',l.id);closeModal();scheduleRender();break}
     case 'toggleAssignee':{const i=c.assignees.indexOf(d.id);i>=0?c.assignees.splice(i,1):c.assignees.push(d.id);await saveCard(c,(i>=0?'เอาออก ':'มอบหมายให้ ')+member(d.id).name);renderCardModal();break}
     case 'addChecklist':{const t=prompt('ชื่อเช็คลิสต์','เช็คลิสต์');if(!t)return;c.checklists.push({id:uid(),title:t,items:[]});await saveCard(c,'เพิ่มเช็คลิสต์ "'+t+'"');renderCardModal();break}

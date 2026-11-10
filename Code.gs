@@ -23,7 +23,7 @@ const TABLES = {
   customers:{ tab: 'Customers',show: ['name', 'tax', 'phone', 'pin'] }                       // 👤 PIN ลูกค้าสำหรับหน้ารวมออเดอร์
 };
 const HEAD = ['id', 'updated_at', 'json'];
-const ADMIN_ONLY_WRITE = { mrows: 1, boards: 1, lists: 1 };
+const ADMIN_ONLY_WRITE = { mrows: 1, boards: 1 };   // lists: พนักงานเพิ่ม/แก้/ลบได้เฉพาะลิสต์ที่ตัวเองเป็นเจ้าของ (owner) — ตรวจใน ownLists_
 const P = () => PropertiesService.getScriptProperties();
 
 /* ================= SETUP ================= */
@@ -196,8 +196,15 @@ function rowOf_(t, o, names) {
   });
   return [o.id, new Date().toISOString(), JSON.stringify(o)].concat(show);
 }
+function ownLists_(u, ids, rows) {   // พนักงาน: ทุกลิสต์ที่แตะต้องเป็นของตัวเอง
+  if (isAdmin_(u)) return;
+  const ex = {}; readTable_('lists').forEach(l => ex[l.id] = l);
+  (rows || []).forEach(r => { if (!r || r.owner !== u.id || (ex[r.id] && ex[r.id].owner !== u.id)) throw new Error('forbidden'); });
+  (ids || []).forEach(id => { if (!ex[id] || ex[id].owner !== u.id) throw new Error('forbidden'); });
+}
 function upsert_(u, t, rows) {
   if (ADMIN_ONLY_WRITE[t] && !isAdmin_(u)) throw new Error('forbidden');
+  if (t === 'lists') ownLists_(u, null, rows);
   if (t === 'kudos') rows.forEach(r => {   // 🙏 ส่งในนามตัวเองเท่านั้น · บันทึก Safety ได้เฉพาะ Admin
     if (r.type === 'safety' ? !isAdmin_(u) : (r.from !== u.id || r.to === u.id)) throw new Error('forbidden');
   });
@@ -224,6 +231,7 @@ function writeRows_(t, rows, names) {
 }
 function remove_(u, t, ids) {
   if (ADMIN_ONLY_WRITE[t] && !isAdmin_(u)) throw new Error('forbidden');
+  if (t === 'lists') ownLists_(u, ids, null);
   if (t === 'kudos' && !isAdmin_(u)) {
     const bad = readTable_('kudos').filter(k => ids.indexOf(k.id) >= 0 && k.from !== u.id);
     if (bad.length) throw new Error('forbidden');
