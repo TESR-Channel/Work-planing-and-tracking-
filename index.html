@@ -376,7 +376,7 @@ th{font-family:Orbitron,sans-serif;font-size:11px;letter-spacing:1px;background:
 .trkopt .grid2{margin:0}
 .grid2 input[type=date]{width:100%;min-width:0;display:block;-webkit-appearance:none;appearance:none;min-height:40px;text-align:left}
 .osteps{margin:10px 0;border:1px solid var(--edge);border-radius:10px;padding:10px;background:rgba(212,167,44,.04)}
-.osteps h5{margin:0 0 6px;font-size:14px}.osteps .prog{margin-bottom:6px}
+.osteps h5{margin:0 0 6px;font-size:14px}.ocredit{display:block;font-size:12px;margin:0 0 8px}.ocredit select{width:100%;margin-top:3px}.osteps .prog{margin-bottom:6px}
 .ostep{border-top:1px dashed var(--edge);padding:8px 0}.ostep.next{background:rgba(212,167,44,.07);border-radius:8px;padding:8px 6px;border-top-color:transparent}
 .ostep .oh{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.ostep .oh input{width:18px;height:18px;accent-color:var(--gold);flex:0 0 auto}
 .otg{all:unset;cursor:pointer;flex:1;display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}.oar{margin-left:auto;color:var(--mut)}
@@ -691,12 +691,12 @@ const T = { mrows:'tb_members', boards:'tb_boards', lists:'tb_lists', cards:'tb_
 const KEYS = Object.keys(T);
 const LS_DATA='tesrboard_demo_v2', LS_CFG='tesrboard_cfg', LS_SES='tesrboard_session', LS_BOARD='tesrboard_board', LS_THEME='tesrboard_theme';
 const PALETTE=['#d71f33','#d4a72c','#2fbf71','#3b82f6','#a855f7','#ec4899','#14b8a6','#f97316','#64748b','#84cc16'];
-const APP_VER='v3.11'; // เพิ่มเลขทุกครั้งที่อัปเดตหน้าเว็บ · ดูที่มุมโลโก้ว่าเครื่องโหลดเวอร์ชันใหม่แล้ว
+const APP_VER='v3.12'; // เพิ่มเลขทุกครั้งที่อัปเดตหน้าเว็บ · ดูที่มุมโลโก้ว่าเครื่องโหลดเวอร์ชันใหม่แล้ว
 const PRIO={low:'ต่ำ',normal:'ปกติ',high:'สูง',urgent:'ด่วนมาก'};
 /* 🚚 ลิงก์ติดตามสำหรับลูกค้า (หน้า track.html) — ต้องตรงกับ TRK_DOCS ใน Code.gs */
 const TRK_UNITS={shop:'TESR Shop',academy:'TESR Academy',logistics:'TESR Logistics'};
 const TRK_DOCS={
-  shop:[['q','ใบเสนอราคา'],['inv','ใบแจ้งหนี้ / ใบส่งสินค้า'],['tax','ใบเสร็จรับเงิน / ใบกำกับภาษี']],
+  shop:[['q','ใบเสนอราคา'],['inv','ใบแจ้งหนี้ / ใบวางบิล'],['tax','ใบกำกับภาษี / ใบส่งสินค้า / ใบเสร็จรับเงิน']],
   academy:[['inv','ใบแจ้งหนี้'],['tax','ใบเสร็จรับเงิน / ใบกำกับภาษี'],['guide','คู่มือเตรียมตัวก่อนเรียน']],
   logistics:[['inv','ใบแจ้งหนี้ค่าบริการ'],['tax','ใบเสร็จรับเงิน / ใบกำกับภาษี']]};
 /* ===== KPI POINTS (ปรับตัวเลขได้ตรงนี้) ===== */
@@ -953,7 +953,7 @@ function pinHTML(c){const t=c.trk;
     :`<span class="muted">ลูกค้ามีหลายออเดอร์? สร้าง PIN ให้ลูกค้าเข้าดูทุกออเดอร์ของตัวเองในหน้าเดียว</span> <button class="sm" data-act="pinNew">สร้าง PIN ลูกค้า</button>`}</div>`}
 const getP=(o,k)=>k.split('.').reduce((a,x)=>a==null?a:a[x],o);
 function setP(o,k,v){const p=k.split('.');let t=o;while(p.length>1){const x=p.shift();if(!t[x]||typeof t[x]!=='object')t[x]={};t=t[x]}t[p[0]]=v}
-const CUST_STEP={q:'ออกใบเสนอราคา',po:'ยืนยันคำสั่งซื้อ',inv:'ออกใบแจ้งหนี้ / ใบส่งสินค้า',pay:'ชำระเงิน',ship:'จัดส่งสินค้า',evi:'ส่งมอบสินค้า',tax:'ออกใบเสร็จ / ใบกำกับภาษี',class:'ยืนยันรายละเอียดการเรียน',guide:'ส่งคู่มือเตรียมตัวก่อนเรียน'};
+const CUST_STEP={q:'ออกใบเสนอราคา',po:'ยืนยันคำสั่งซื้อ',inv:'ออกใบแจ้งหนี้',bill:'ออกเอกสารวางบิล',pay:'ชำระเงิน',ship:'จัดส่งสินค้า',evi:'ส่งมอบสินค้า',tax:'ออกใบกำกับภาษี / ใบเสร็จรับเงิน',class:'ยืนยันรายละเอียดการเรียน',guide:'ส่งคู่มือเตรียมตัวก่อนเรียน'};
 function trkStage(c){ // ขั้นที่ลูกค้าเห็นตอนนี้ (ตรรกะเดียวกับ track_ ใน Code.gs): มี 📋 ขั้นตอนออเดอร์ → ตามเช็คลิสต์ของการ์ด · ไม่มี → ตามคอลัมน์
   const cur=list(c.list_id), cl=ocl(c), its=(cl?.items||[]).filter(i=>i.k);
   if(its.length){const n=its.length,dn=its.filter(i=>i.done).length,done=!!cur?.is_done||dn===n,ni=its.findIndex(i=>!i.done);
@@ -1009,25 +1009,23 @@ function intHTML(c){
 const isOrderBoard=bid=>/shop|logistic|academy|ร้าน|ออเดอร์/i.test(S.boards.find(b=>b.id===bid)?.name||'');
 /* 📋 ขั้นตอนออเดอร์: เช็คลิสต์สำเร็จรูปที่ระบบใส่ให้เองเมื่อเปิดลิงก์ติดตาม
    แต่ละขั้นผูกกับช่องข้อมูล — วางลิงก์/เลขเอกสารแล้วติ๊กให้อัตโนมัติ (ติ๊กเองก็ได้) */
-const ORDER_STEPS={
-  shop:[['q','ออกใบเสนอราคา',[['docs.q','วางลิงก์ใบเสนอราคา FlowAccount']]],
-        ['po','ลูกค้ายืนยันสั่งซื้อ / ได้ PO',[['docs.po','ลิงก์หรือเลข PO ลูกค้า (ภายใน ลูกค้าไม่เห็น)']]],
-        ['inv','ออกใบแจ้งหนี้ / ใบส่งสินค้า',[['docs.inv','วางลิงก์ใบแจ้งหนี้ FlowAccount']]],
-        ['pay','รับชำระเงิน (ตรวจสลิปแล้ว)',[]],
-        ['ship','จัดส่ง + เลขพัสดุ',[['ship.carrier','ขนส่ง EMS / Flash / Kerry'],['ship.no','เลขพัสดุ'],['ship.url','ลิงก์ติดตามพัสดุ https://']]],
-        ['evi','หลักฐานส่งมอบ (รูป / วิดีโอ)',[['inv','เลข INV · ดึงจากแอป Handover'],['evidence','หรือวางลิงก์ Drive เอง']]],
-        ['tax','ออกใบเสร็จ / ใบกำกับภาษี',[['docs.tax','วางลิงก์ใบเสร็จ / ใบกำกับภาษี']]]],
-  academy:[['inv','ออกใบแจ้งหนี้',[['docs.inv','วางลิงก์ใบแจ้งหนี้ FlowAccount']]],
-        ['pay','รับชำระเงิน (ตรวจสลิปแล้ว)',[]],
-        ['class','ยืนยันวัน / รายละเอียดการเรียน',[['classInfo','เช่น เรียนสด 2 วัน ที่ TESR นนทบุรี 09:00–17:00']]],
-        ['guide','ส่งคู่มือเตรียมตัวก่อนเรียน',[['docs.guide','วางลิงก์คู่มือ']]],
-        ['tax','ออกใบเสร็จ / ใบกำกับภาษี',[['docs.tax','วางลิงก์ใบเสร็จ / ใบกำกับภาษี']]]],
-  logistics:[['inv','ออกใบแจ้งหนี้ค่าบริการ',[['docs.inv','วางลิงก์ใบแจ้งหนี้ FlowAccount']]],
-        ['pay','รับชำระเงิน (ตรวจสลิปแล้ว)',[]],
-        ['ship','จัดส่ง + เลขพัสดุ',[['ship.carrier','ขนส่ง'],['ship.no','เลขพัสดุ'],['ship.url','ลิงก์ติดตามพัสดุ https://']]],
-        ['evi','หลักฐานส่งมอบ (รูป / วิดีโอ)',[['inv','เลข INV · ดึงจากแอป Handover'],['evidence','หรือวางลิงก์ Drive เอง']]],
-        ['tax','ออกใบเสร็จ / ใบกำกับภาษี',[['docs.tax','วางลิงก์ใบเสร็จ / ใบกำกับภาษี']]]]};
-const ostep=(c,k)=>(ORDER_STEPS[c.trk?.unit]||ORDER_STEPS.shop).find(x=>x[0]===k);
+const OS={
+  q:['q','ออกใบเสนอราคา',[['docs.q','วางลิงก์ใบเสนอราคา FlowAccount']]],
+  po:['po','ลูกค้ายืนยันสั่งซื้อ / ได้ PO',[['docs.po','ลิงก์หรือเลข PO ลูกค้า (ภายใน ลูกค้าไม่เห็น)']]],
+  inv:['inv','ออกใบแจ้งหนี้ (แจ้งยอดชำระ)',[['docs.inv','วางลิงก์ใบแจ้งหนี้ FlowAccount']]],
+  bill:['bill','ออกเอกสารวางบิล',[['docs.inv','ลิงก์ใบวางบิล / ใบแจ้งหนี้'],['docs.tax','ลิงก์ใบกำกับภาษี / ใบส่งสินค้า / ใบเสร็จรับเงิน']]],
+  pay:['pay','รับชำระเงิน (ตรวจสลิปแล้ว)',[]],
+  tax:['tax','ออกใบกำกับภาษี / ใบเสร็จรับเงิน',[['docs.tax','วางลิงก์ใบกำกับภาษี / ใบเสร็จ FlowAccount']]],
+  ship:['ship','จัดส่ง + เลขพัสดุ (Tracking)',[['ship.carrier','ขนส่ง EMS / Flash / Kerry'],['ship.no','เลขพัสดุ'],['ship.url','ลิงก์ติดตามพัสดุ https://']]],
+  evi:['evi','หลักฐานการส่งมอบ (รูป / วิดีโอ)',[['inv','เลข INV · ดึงจากแอป Handover'],['evidence','หรือวางลิงก์ Drive เอง']]],
+  class:['class','ยืนยันวัน / รายละเอียดการเรียน',[['classInfo','เช่น เรียนสด 2 วัน ที่ TESR นนทบุรี 09:00–17:00']]],
+  guide:['guide','ส่งคู่มือเตรียมตัวก่อนเรียน',[['docs.guide','วางลิงก์คู่มือ']]]};
+const ORDER_FLOW={   // ลำดับขั้นตามหน่วยธุรกิจ · เครดิต = ส่งของก่อน เก็บเงินทีหลัง
+  shop:['q','po','inv','pay','tax','ship','evi'],          shop_credit:['q','po','bill','ship','evi','pay'],
+  academy:['inv','pay','class','guide','tax'],
+  logistics:['inv','pay','tax','ship','evi'],              logistics_credit:['bill','ship','evi','pay']};
+const oflow=c=>{const u=c.trk?.unit||'shop';return ORDER_FLOW[c.trk?.credit&&ORDER_FLOW[u+'_credit']?u+'_credit':u]||ORDER_FLOW.shop};
+const ostep=(c,k)=>OS[k];
 const ocl=c=>(c.checklists||[]).find(x=>x.order);
 function ostepFilled(c,k){ const t=c.trk||{};
   if(k==='pay') return (S.payments||[]).some(p=>p.card_id===c.id&&p.status==='ok');
@@ -1039,8 +1037,9 @@ function trkSync(c){ // ใส่เช็คลิสต์ขั้นตอ�
   if(!c.trk?.on) return;
   if(!Array.isArray(c.checklists)) c.checklists=[];
   let cl=ocl(c); if(!cl){cl={id:uid(),title:'📋 ขั้นตอนออเดอร์',order:true,items:[]};c.checklists.unshift(cl)}
-  const tpl=ORDER_STEPS[c.trk.unit]||ORDER_STEPS.shop;
-  tpl.forEach(([k,txt],i)=>{ if(!cl.items.some(it=>it.k===k)) cl.items.splice(Math.min(i,cl.items.length),0,{id:uid(),k,text:txt,done:false,assignee:null,due:null}) });
+  // เรียงตามลำดับขั้นของหน่วยธุรกิจ/เงื่อนไขชำระ (เปลี่ยนเครดิต ↔ ชำระก่อนส่ง แล้วขั้นจัดเรียงใหม่ให้เอง)
+  const flow=oflow(c), keep=cl.items.filter(it=>!it.k);
+  cl.items=flow.map(k=>{const it=cl.items.find(x=>x.k===k)||{id:uid(),k,done:false,assignee:null,due:null};it.text=OS[k][1];return it}).concat(keep);
   cl.items.forEach(it=>{ if(!it.k) return; const f=ostepFilled(c,it.k);
     if(f&&!it.f&&!it.done){it.done=true;it.auto=true;it.done_at=now();it.by=session?.id||null}
     else if(!f&&it.f&&it.auto&&it.done){it.done=false;it.auto=false;it.done_at=null;it.by=null}
@@ -1050,7 +1049,9 @@ function orderHTML(c){
   const cl=ocl(c); if(!cl) return '';
   const nm=id=>member(id)?.name.split(' ')[0]||'?', t=c.trk, dn=cl.items.filter(i=>i.done).length, n=cl.items.length, p=n?Math.round(dn/n*100):0;
   const nextIt=cl.items.find(i=>!i.done);
+  const crOK=!!ORDER_FLOW[(t.unit||'shop')+'_credit'];
   return `<div class="osteps"><h5>📋 ขั้นตอนออเดอร์ <span class="muted">${dn}/${n} · กดชื่อขั้นเพื่อใส่ลิงก์ · ใส่แล้วติ๊กให้เอง</span></h5>
+    ${crOK?`<label class="ocredit">เงื่อนไขชำระเงิน<select data-trk="credit"><option value="" ${t.credit?'':'selected'}>💵 ชำระก่อนส่งของ</option><option value="1" ${t.credit?'selected':''}>🧾 ลูกค้าเครดิต (เก็บเงินทีหลัง)</option></select></label>`:''}
     <div class="prog sm"><div class="bar"><i style="width:${p}%"></i></div><b>${p}%</b></div>
     ${cl.items.map((it,ix)=>{const st=ostep(c,it.k), ins=st?st[2]:[], due=it.done?'done':!it.due?'':(new Date(it.due+'T00:00:00')<today()?'late':(new Date(it.due+'T00:00:00')-today())/DAY<=2?'soon':'ok');
       const open=ui.oOpen?.[it.id]??(it===nextIt), val=ins.map(([k])=>String(getP(t,k)||'').trim()).find(Boolean)||'';
@@ -1130,7 +1131,7 @@ function openNewCard(listId){
     <div class="seg" id="nKind"><button type="button" class="on" data-k="task">📌 งาน · ต้องมีกำหนดส่ง</button><button type="button" data-k="note">📁 ข้อมูล / ฝากไฟล์</button></div>
     <label class="fl">ชื่อการ์ด<input id="nTitle" placeholder="เช่น ออกแบบโครง Iron-X รุ่นใหม่" autocomplete="off"></label>
     <div class="trkopt"><label class="trkck"><input type="checkbox" id="nTrk" ${isOrderBoard(l.board_id)?'checked':''}>🚚 ออเดอร์ลูกค้า · สร้างลิงก์ติดตามให้ลูกค้าทันที</label>
-      <div class="grid2" id="nTrkF" ${isOrderBoard(l.board_id)?'':'hidden'}><label>ชื่อลูกค้า<input id="nTrkCust" placeholder="บริษัท / ชื่อลูกค้า"></label><label>🔒 เบอร์โทรลูกค้า<input id="nTrkPhone" inputmode="tel" placeholder="08x-xxx-xxxx"></label></div></div>
+      <div class="grid2" id="nTrkF" ${isOrderBoard(l.board_id)?'':'hidden'}><label>ชื่อลูกค้า<input id="nTrkCust" placeholder="บริษัท / ชื่อลูกค้า"></label><label>🔒 เบอร์โทรลูกค้า<input id="nTrkPhone" inputmode="tel" placeholder="08x-xxx-xxxx"></label><label class="trkck"><input type="checkbox" id="nTrkCredit"> 🧾 ลูกค้าเครดิต (ส่งของก่อน เก็บเงินทีหลัง)</label></div></div>
     <div class="grid2"><label id="nDueWrap"><span>กำหนดส่ง <span style="color:var(--late)">*</span></span><input type="date" id="nDue" value="${def}"></label>
       <label>ความสำคัญ<select id="nPrio">${Object.entries(PRIO).map(([k,v])=>`<option value="${k}" ${k==='normal'?'selected':''}>${v}</option>`).join('')}</select></label>
       <label id="nSizeWrap">ขนาดงาน (แต้ม KPI)<select id="nSize">${Object.entries(SIZES).map(([k,v])=>`<option value="${k}">${v.icon} ${v.label} · ${v.pts} แต้ม</option>`).join('')}</select></label>
@@ -1152,7 +1153,7 @@ function openNewCard(listId){
       trail:[{t:'start',at:now(),by:session.id,list:l.name,list_id:l.id,to:[...sel]}],
       pos:Math.max(0,...S.cards.filter(x=>x.list_id===l.id).map(x=>x.pos||0))+1024,checklists:[],links:[],attachments:[],comments:[],created_by:session.id,created_at:now(),started_at:null,done_at:null,updated_at:now()};
     const wantTrk=$('#nTrk').checked;
-    if(wantTrk) nc.trk=trkNew(nc,{customer:$('#nTrkCust').value.trim(),phone:$('#nTrkPhone').value.trim()});
+    if(wantTrk) nc.trk=trkNew(nc,{customer:$('#nTrkCust').value.trim(),phone:$('#nTrkPhone').value.trim(),credit:$('#nTrkCredit')?.checked?'1':''});
     applyListChange(nc,l);closeModal();await saveCard(nc,`สร้าง${kind==='task'?'งาน':'การ์ดข้อมูล'} "${t}" ใน ${l.name}${wantTrk?' · 🚚 เปิดลิงก์ติดตาม':''}`);
     if(wantTrk){openCard(nc.id);setTimeout(()=>$('.trksend')?.scrollIntoView({behavior:'smooth',block:'center'}),150)}   // เปิดการ์ดให้เห็นลิงก์ + ปุ่มคัดลอกข้อความทันที
   };
@@ -1565,7 +1566,7 @@ function renderCardModal(){
   if($('#cSize'))$('#cSize').onchange=e=>{c.size=e.target.value;saveCard(c,'ขนาดงาน → '+SIZES[c.size].label+' ('+SIZES[c.size].pts+' แต้ม)').then(renderCardModal)};
   $('#cFile').onchange=e=>uploadFiles(c.id,[...e.target.files]);
   if($('#payFile'))$('#payFile').onchange=e=>uploadPays(c,[...e.target.files]);
-  $$('[data-trk]').forEach(el=>el.onchange=()=>{const k=el.dataset.trk;setP(c.trk,k,el.value.trim());saveCard(c,k==='unit'?'🚚 หน่วยธุรกิจ → '+TRK_UNITS[el.value]:null);if(['unit','eta','tax','phone','customer','title','ref','int.paid','int.used','inv','evidence','classInfo'].includes(k)||/^(docs|ship)\./.test(k))renderCardModal()});
+  $$('[data-trk]').forEach(el=>el.onchange=()=>{const k=el.dataset.trk;setP(c.trk,k,el.value.trim());saveCard(c,k==='unit'?'🚚 หน่วยธุรกิจ → '+TRK_UNITS[el.value]:k==='credit'?'💳 เงื่อนไขชำระ → '+(el.value?'ลูกค้าเครดิต':'ชำระก่อนส่ง'):null);if(['unit','credit','eta','tax','phone','customer','title','ref','int.paid','int.used','inv','evidence','classInfo'].includes(k)||/^(docs|ship)\./.test(k))renderCardModal()});
   if($('#intNoteIn'))$('#intNoteIn').onkeydown=e=>{if(e.key==='Enter'&&!e.isComposing){e.preventDefault();act('intNote')}};
   initModalSort(c);
   $('#cmt').onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();act('addComment')}};
