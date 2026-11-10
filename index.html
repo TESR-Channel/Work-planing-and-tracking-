@@ -376,7 +376,7 @@ th{font-family:Orbitron,sans-serif;font-size:11px;letter-spacing:1px;background:
 .trkopt .grid2{margin:0}
 .grid2 input[type=date]{width:100%;min-width:0;display:block;-webkit-appearance:none;appearance:none;min-height:40px;text-align:left}
 .osteps{margin:10px 0;border:1px solid var(--edge);border-radius:10px;padding:10px;background:rgba(212,167,44,.04)}
-.osteps h5{margin:0 0 6px;font-size:14px}.ocredit{display:block;font-size:12px;margin:0 0 8px}.ocredit select{width:100%;margin-top:3px}.osteps .prog{margin-bottom:6px}
+.osteps h5{margin:0 0 6px;font-size:14px}.opay{margin:6px 0 0 28px}.opay .opup{display:inline-flex;margin-bottom:6px}.opay .pays{margin-top:4px}.ocredit{display:block;font-size:12px;margin:0 0 8px}.ocredit select{width:100%;margin-top:3px}.osteps .prog{margin-bottom:6px}
 .ostep{border-top:1px dashed var(--edge);padding:8px 0}.ostep.next{background:rgba(212,167,44,.07);border-radius:8px;padding:8px 6px;border-top-color:transparent}
 .ostep .oh{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.ostep .oh input{width:18px;height:18px;accent-color:var(--gold);flex:0 0 auto}
 .otg{all:unset;cursor:pointer;flex:1;display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}.oar{margin-left:auto;color:var(--mut)}
@@ -691,7 +691,7 @@ const T = { mrows:'tb_members', boards:'tb_boards', lists:'tb_lists', cards:'tb_
 const KEYS = Object.keys(T);
 const LS_DATA='tesrboard_demo_v2', LS_CFG='tesrboard_cfg', LS_SES='tesrboard_session', LS_BOARD='tesrboard_board', LS_THEME='tesrboard_theme';
 const PALETTE=['#d71f33','#d4a72c','#2fbf71','#3b82f6','#a855f7','#ec4899','#14b8a6','#f97316','#64748b','#84cc16'];
-const APP_VER='v3.12'; // เพิ่มเลขทุกครั้งที่อัปเดตหน้าเว็บ · ดูที่มุมโลโก้ว่าเครื่องโหลดเวอร์ชันใหม่แล้ว
+const APP_VER='v3.13'; // เพิ่มเลขทุกครั้งที่อัปเดตหน้าเว็บ · ดูที่มุมโลโก้ว่าเครื่องโหลดเวอร์ชันใหม่แล้ว
 const PRIO={low:'ต่ำ',normal:'ปกติ',high:'สูง',urgent:'ด่วนมาก'};
 /* 🚚 ลิงก์ติดตามสำหรับลูกค้า (หน้า track.html) — ต้องตรงกับ TRK_DOCS ใน Code.gs */
 const TRK_UNITS={shop:'TESR Shop',academy:'TESR Academy',logistics:'TESR Logistics'};
@@ -966,14 +966,17 @@ function trkStage(c){ // ขั้นที่ลูกค้าเห็นต�
 const PST={pending:'⏳ รอตรวจสอบ',ok:'✓ ยืนยันรับเงินแล้ว',rejected:'✕ ไม่ถูกต้อง'};
 const cardPays=c=>(S.payments||[]).filter(p=>p.card_id===c.id).sort((a,b)=>String(a.at).localeCompare(String(b.at)));
 function payHTML(c){
-  const ps=cardPays(c);
-  return `<div class="sec" style="margin-top:12px"><h4>💳 หลักฐานการชำระเงิน <label class="upl sm">+ แนบสลิป<input type="file" id="payFile" accept="image/*,application/pdf" multiple hidden></label></h4>
+  return `<div class="sec" style="margin-top:12px"><h4>💳 หลักฐานการชำระเงิน <label class="upl sm">+ แนบสลิป<input type="file" class="payUp" accept="image/*,application/pdf" multiple hidden></label></h4>
    <div class="muted">ลูกค้าแนบสลิปจากหน้าติดตามได้เอง · ลูกค้าเห็นหลักฐานและสถานะชุดเดียวกับที่นี่</div>
-   <div class="pays">${ps.map(p=>`<div class="pay">${p.thumb?`<a href="${esc(p.url)}" target="_blank" rel="noopener"><img src="${esc(p.thumb)}" alt="" referrerpolicy="no-referrer"></a>`:`<span class="ph">PDF</span>`}
+   ${payListHTML(c)}</div>`;
+}
+function payListHTML(c){
+  const ps=cardPays(c);
+  return `<div class="pays">${ps.map(p=>`<div class="pay">${p.thumb?`<a href="${esc(p.url)}" target="_blank" rel="noopener"><img src="${esc(p.thumb)}" alt="" referrerpolicy="no-referrer"></a>`:`<span class="ph">PDF</span>`}
      <div class="nm"><a href="${esc(p.url)}" target="_blank" rel="noopener">${esc(p.name||'สลิป')}</a><div class="muted">${p.by==='customer'?'👤 ลูกค้าแนบ':'แนบโดย '+esc(member(p.by)?.name||'-')} · ${fmtDT(p.at)}${p.checked_by?' · ตรวจโดย '+esc(member(p.checked_by)?.name||'-'):''}</div></div>
      <span class="pst ${p.status||'pending'}">${PST[p.status]||PST.pending}</span>
      ${p.status!=='ok'?`<button class="sm" data-act="payOk" data-id="${p.id}" title="ยืนยันว่าได้รับเงินแล้ว">✓</button>`:''}${p.status!=='rejected'?`<button class="sm" data-act="payNo" data-id="${p.id}" title="สลิปไม่ถูกต้อง">✕</button>`:''}
-     ${isAdmin()||p.by===session.id?`<button class="icon sm" data-act="payDel" data-id="${p.id}" title="ลบ">🗑</button>`:''}</div>`).join('')||'<div class="muted">ยังไม่มีหลักฐาน</div>'}</div></div>`;
+     ${isAdmin()||p.by===session.id?`<button class="icon sm" data-act="payDel" data-id="${p.id}" title="ลบ">🗑</button>`:''}</div>`).join('')||'<div class="muted">ยังไม่มีหลักฐาน</div>'}</div>`;
 }
 async function uploadPays(c,files){
   if(S._noPay) return toast('ต้องอัปเดต Code.gs เวอร์ชันล่าสุดก่อน จึงจะแนบสลิปได้');
@@ -983,6 +986,7 @@ async function uploadPays(c,files){
       log(c,'💳 แนบหลักฐานการชำระเงิน');
     }catch(e){toast('อัปโหลดไม่สำเร็จ: '+e.message)}
   }
+  if(c.trk?.on) await saveCard(c);   // ติ๊กขั้น "รับชำระเงิน" ให้อัตโนมัติ
   renderCardModal();scheduleRender();
 }
 /* 🔒 ข้อมูลภายในทีม (c.trk.int) — Code.gs ไม่ส่งออกไปหน้าลูกค้าเลย */
@@ -1056,12 +1060,12 @@ function orderHTML(c){
     ${cl.items.map((it,ix)=>{const st=ostep(c,it.k), ins=st?st[2]:[], due=it.done?'done':!it.due?'':(new Date(it.due+'T00:00:00')<today()?'late':(new Date(it.due+'T00:00:00')-today())/DAY<=2?'soon':'ok');
       const open=ui.oOpen?.[it.id]??(it===nextIt), val=ins.map(([k])=>String(getP(t,k)||'').trim()).find(Boolean)||'';
       const pay=it.k==='pay'?(()=>{const ps=(S.payments||[]).filter(x=>x.card_id===c.id),ok=ps.filter(x=>x.status==='ok').length,pe=ps.filter(x=>(x.status||'pending')==='pending').length;
-        return ok?`✓ ยืนยันรับเงินแล้ว ${ok} รายการ`:pe?`💳 มีสลิปรอตรวจ ${pe} รายการ — ตรวจที่ "หลักฐานการชำระเงิน" ด้านล่าง`:'ยังไม่มีสลิป · ลูกค้าแนบเองได้ หรือกด + แนบสลิป ด้านล่าง'})():'';
+        return ok?`✓ ยืนยันรับเงินแล้ว ${ok} รายการ`:pe?`💳 มีสลิปรอตรวจ ${pe} รายการ — ตรวจแล้วกด ✓ ยืนยัน หรือ ✕ ไม่ถูกต้อง`:'ยังไม่มีสลิป · ลูกค้าแนบเองจากหน้าติดตามได้ หรือกดแนบสลิปตรงนี้'})():'';
       const sub=[it.done&&it.by?`✓ ${esc(nm(it.by))}${it.auto?' · อัตโนมัติ':''}`:'', val&&!open?(/^https?:/.test(val)?'🔗 มีลิงก์แล้ว':esc(val.length>24?val.slice(0,24)+'…':val)):'', it.due&&!it.done?`📅 ${fmtD(it.due)}`:'', it.assignee&&!open?esc(nm(it.assignee)):'', it.note&&!open?'📝':''].filter(Boolean).join(' · ');
       return `<div class="ostep ${it.done?'on':''} ${it===nextIt?'next':''} ${open?'open':''}"><div class="oh"><input type="checkbox" data-act="toggleItem" data-cl="${cl.id}" data-it="${it.id}" ${it.done?'checked':''}>
         <span class="on2">${ix+1}</span><button class="otg" data-act="oTog" data-it="${it.id}"><b class="${it.done?'strike':''}">${esc(it.text)}</b>${it===nextIt?'<span class="onext">ขั้นถัดไป</span>':''}<span class="oar">${open?'▾':'▸'}</span></button></div>
         ${sub?`<div class="osub">${sub}</div>`:''}
-        ${open?`${ins.length?`<div class="oins">${ins.map(([k,ph])=>`<input data-trk="${k}" value="${esc(getP(t,k)||'')}" placeholder="${esc(ph)}">`).join('')}</div>`:''}${pay?`<div class="osub">${pay}</div>`:''}
+        ${open?`${ins.length?`<div class="oins">${ins.map(([k,ph])=>`<input data-trk="${k}" value="${esc(getP(t,k)||'')}" placeholder="${esc(ph)}">`).join('')}</div>`:''}${pay?`<div class="osub">${pay}</div>`:''}${it.k==='pay'?`<div class="opay"><label class="upl sm opup">📎 แนบสลิป / หลักฐานโอนเงิน<input type="file" class="payUp" accept="image/*,application/pdf" multiple hidden></label>${payListHTML(c)}</div>`:''}
         <div class="ometa"><input type="date" class="itdue ${due}" data-itdue data-cl="${cl.id}" data-it="${it.id}" value="${it.due||''}" title="กำหนดของขั้นนี้"><select data-itemassign data-cl="${cl.id}" data-it="${it.id}">${memberOpts(it.assignee,'ใครทำ?')}</select>
           <button class="sm" data-act="itNote" data-cl="${cl.id}" data-it="${it.id}">📝 ${it.note?'แก้โน้ต':'โน้ตภายใน'}</button></div>
         ${it.note?`<div class="onote">📝 ${linkify(it.note)}</div>`:''}`:''}</div>`}).join('')}
@@ -1565,7 +1569,7 @@ function renderCardModal(){
   if($('#cImp'))$('#cImp').onchange=e=>{c.impact=e.target.value;const v=IMPACT[c.impact];saveCard(c,'หมวดผลงาน → '+v.icon+' '+v.label+(v.mult>1?' (×'+v.mult+')':'')).then(renderCardModal)};
   if($('#cSize'))$('#cSize').onchange=e=>{c.size=e.target.value;saveCard(c,'ขนาดงาน → '+SIZES[c.size].label+' ('+SIZES[c.size].pts+' แต้ม)').then(renderCardModal)};
   $('#cFile').onchange=e=>uploadFiles(c.id,[...e.target.files]);
-  if($('#payFile'))$('#payFile').onchange=e=>uploadPays(c,[...e.target.files]);
+  $$('.payUp').forEach(el=>el.onchange=e=>uploadPays(c,[...e.target.files]));
   $$('[data-trk]').forEach(el=>el.onchange=()=>{const k=el.dataset.trk;setP(c.trk,k,el.value.trim());saveCard(c,k==='unit'?'🚚 หน่วยธุรกิจ → '+TRK_UNITS[el.value]:k==='credit'?'💳 เงื่อนไขชำระ → '+(el.value?'ลูกค้าเครดิต':'ชำระก่อนส่ง'):null);if(['unit','credit','eta','tax','phone','customer','title','ref','int.paid','int.used','inv','evidence','classInfo'].includes(k)||/^(docs|ship)\./.test(k))renderCardModal()});
   if($('#intNoteIn'))$('#intNoteIn').onkeydown=e=>{if(e.key==='Enter'&&!e.isComposing){e.preventDefault();act('intNote')}};
   initModalSort(c);
