@@ -199,7 +199,13 @@ function rowOf_(t, o, names) {
 function ownLists_(u, ids, rows) {   // พนักงาน: ทุกลิสต์ที่แตะต้องเป็นของตัวเอง
   if (isAdmin_(u)) return;
   const ex = {}; readTable_('lists').forEach(l => ex[l.id] = l);
-  (rows || []).forEach(r => { if (!r || r.owner !== u.id || (ex[r.id] && ex[r.id].owner !== u.id)) throw new Error('forbidden'); });
+  const isD = l => l && (l.is_done === true || String(l.is_done) === 'true');
+  (rows || []).forEach(r => {
+    if (!r) throw new Error('forbidden');
+    // ยกเว้น: บอร์ดที่ยังไม่มีคอลัมน์ "เสร็จ" → พนักงานสร้างคอลัมน์เสร็จ (ของทีม) ได้ครั้งเดียว เพื่อปิดงานได้
+    if (!ex[r.id] && !r.owner && isD(r) && !Object.keys(ex).some(id => ex[id].board_id === r.board_id && isD(ex[id]))) return;
+    if (r.owner !== u.id || (ex[r.id] && ex[r.id].owner !== u.id)) throw new Error('forbidden');
+  });
   (ids || []).forEach(id => { if (!ex[id] || ex[id].owner !== u.id) throw new Error('forbidden'); });
 }
 function upsert_(u, t, rows) {

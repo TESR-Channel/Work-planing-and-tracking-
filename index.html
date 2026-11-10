@@ -1357,7 +1357,11 @@ async function toggleDone(c){
     c.done_by=null; pushTrail(c,{t:'reopen',list:to.name,list_id:to.id,to:c.assignees.slice()});
     c.list_id=to.id; applyListChange(c,to); await saveCard(c,`↺ เปิดงานใหม่ (กลับไป ${to.name})`);
   } else {
-    const to=doneList(c.board_id); if(!to) return toast('บอร์ดนี้ยังไม่มีคอลัมน์ "เสร็จ" — ตั้งได้ที่ ⋯ ของคอลัมน์');
+    let to=doneList(c.board_id);
+    if(!to){ // บอร์ดยังไม่มีคอลัมน์ "เสร็จ" → สร้างให้อัตโนมัติท้ายบอร์ด (พนักงานปิดงานได้ทันที ไม่ต้องรอ Admin)
+      to={id:uid(),board_id:c.board_id,name:'เสร็จ',pos:Math.max(0,...boardLists(c.board_id).map(l=>+l.pos||0))+1024,is_done:true,status:'done'};
+      await store.upsert('lists',to); toast('✓ สร้างคอลัมน์ "เสร็จ" ท้ายบอร์ดให้อัตโนมัติ');
+    }
     c.pos=Math.max(0,...S.cards.filter(x=>x.list_id===to.id).map(x=>x.pos||0))+1024;
     await moveCard(c,to,{ask:false});
     const sc=cardScore(card(c.id)||c); if(isTask(c)) toast(`🏆 ปิดงานแล้ว · ${sc.people.length} คน ได้คนละ ${fmtPts(sc.each)} แต้ม${sc.starters.length?' · ผู้ริเริ่ม +'+sc.bonus:''}`);
