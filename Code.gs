@@ -275,6 +275,28 @@ const TRK_DOCS = {
   academy:   [['inv', 'ใบแจ้งหนี้'], ['tax', 'ใบเสร็จรับเงิน / ใบกำกับภาษี'], ['guide', 'คู่มือเตรียมตัวก่อนเรียน']],
   logistics: [['inv', 'ใบแจ้งหนี้ค่าบริการ'], ['tax', 'ใบเสร็จรับเงิน / ใบกำกับภาษี']]
 };
+/* ขั้นที่ลูกค้าเห็น: ถ้าการ์ดมี "📋 ขั้นตอนออเดอร์" (เช็คลิสต์ order:true) ใช้ขั้นจากเช็คลิสต์นั้น — ตามงานของการ์ดจริง
+   ไม่ขึ้นกับชื่อคอลัมน์ของบอร์ด · ถ้าไม่มี ใช้คอลัมน์แบบเดิม */
+const CUST_STEP = {
+  q: ['ออกใบเสนอราคา', 'ส่งใบเสนอราคาให้ลูกค้าแล้ว'], po: ['ยืนยันคำสั่งซื้อ', 'ได้รับการยืนยัน / ใบสั่งซื้อ (PO) จากลูกค้า'],
+  inv: ['ออกใบแจ้งหนี้ / ใบส่งสินค้า', 'ส่งเอกสารเรียกเก็บเงินแล้ว'], pay: ['ชำระเงิน', 'ได้รับการชำระเงินเรียบร้อย'],
+  ship: ['จัดส่งสินค้า', 'ส่งให้บริษัทขนส่งแล้ว ติดตามได้ด้วยเลขพัสดุ'], evi: ['ส่งมอบสินค้า', 'มีรูป / วิดีโอหลักฐานการส่งมอบ'],
+  tax: ['ออกใบเสร็จ / ใบกำกับภาษี', 'เอกสารครบถ้วน'], class: ['ยืนยันรายละเอียดการเรียน', 'วัน เวลา และสถานที่เรียน'],
+  guide: ['ส่งคู่มือเตรียมตัวก่อนเรียน', 'เตรียมตัวก่อนเข้าเรียน']
+};
+function orderSteps_(c, listDone) {
+  const cl = (Array.isArray(c.checklists) ? c.checklists : []).find(x => x && x.order);
+  const items = cl && Array.isArray(cl.items) ? cl.items.filter(it => it && it.k) : [];
+  if (!items.length) return null;
+  const n = items.length, dn = items.filter(it => it.done).length, done = !!listDone || dn === n;
+  const ni = items.findIndex(it => !it.done);
+  const steps = items.map((it, i) => {
+    const lb = CUST_STEP[it.k] || [it.text, ''];
+    return { label: str_(lb[0], 80), desc: str_(lb[1], 200), state: done || it.done ? 'done' : (i === ni ? 'now' : 'todo'), at: it.done ? String(it.done_at || '') : '' };
+  });
+  return { steps: steps, done: done, stage: done ? 'เสร็จสมบูรณ์' : steps[ni].label,
+           pct: done ? 100 : Math.max(5, Math.min(95, Math.round((dn + 0.5) / n * 100))) };
+}
 const okUrl_ = u => { u = String(u || '').trim(); return /^https?:\/\/\S+$/i.test(u) ? u : ''; };
 const str_ = (v, n) => String(v == null ? '' : v).trim().slice(0, n || 300);
 
@@ -304,15 +326,17 @@ function track_(r) {
     state: done || i < ci ? 'done' : (i === Math.max(ci, 0) ? 'now' : 'todo'),
     at: (done || i <= ci) ? entered(l) : ''
   }));
-  const pct = done ? 100 : Math.min(95, Math.round((Math.max(ci, 0) + 0.5) / n * 100));
+  let pct = done ? 100 : Math.min(95, Math.round((Math.max(ci, 0) + 0.5) / n * 100)), steps2 = out, done2 = done;
+  const os = orderSteps_(c, done);
+  if (os) { steps2 = os.steps; pct = os.pct; done2 = os.done; }
 
   const base = {
     ok: true, locked: !acc.full, ct: acc.ct || undefined,
     ref: str_(t.ref, 40), title: str_(t.title || c.title, 160),
     unit: unit, unitLabel: TRK_UNITS[unit],
     start: String(c.created_at || '').slice(0, 10), eta: /^\d{4}-\d{2}-\d{2}$/.test(t.eta || '') ? t.eta : '',
-    done: done, doneAt: done ? (c.done_at || entered(cur) || '') : '',
-    pct: pct, steps: out, updated: c.updated_at || ''
+    done: done2, doneAt: done2 ? (c.done_at || entered(cur) || '') : '',
+    pct: pct, steps: steps2, updated: c.updated_at || ''
   };
   if (!acc.full) return base;   // ยังไม่ยืนยันตัวตน → เห็นแค่สถานะ/ขั้นตอน
   return Object.assign(base, {
@@ -384,10 +408,10 @@ function portal_(r) {
     const bl = Object.keys(lists).map(id => lists[id]).filter(x => x.board_id === c.board_id).sort((a, b) => (+a.pos || 0) - (+b.pos || 0));
     const pubs = bl.filter(x => String(x.pub || '').trim()), steps = pubs.length ? pubs : bl;
     let ci = 0; steps.forEach((x, i) => { if ((+x.pos || 0) <= (+l.pos || 0)) ci = i; });
-    const done = !!l.is_done, t = c.trk;
+    const t = c.trk, os = orderSteps_(c, !!l.is_done), done = os ? os.done : !!l.is_done;
     return { o: t.token, ref: str_(t.ref, 40), title: str_(t.title || c.title, 160), unitLabel: TRK_UNITS[t.unit] || TRK_UNITS.shop,
-      stage: done ? 'เสร็จสมบูรณ์' : str_(steps[ci] && (steps[ci].pub || steps[ci].name), 80),
-      pct: done ? 100 : Math.min(95, Math.round((ci + 0.5) / steps.length * 100)), done: done,
+      stage: os ? os.stage : (done ? 'เสร็จสมบูรณ์' : str_(steps[ci] && (steps[ci].pub || steps[ci].name), 80)),
+      pct: os ? os.pct : (done ? 100 : Math.min(95, Math.round((ci + 0.5) / steps.length * 100))), done: done,
       eta: t.eta || '', updated: c.updated_at || '', customer: str_(t.customer, 120) };
   }).filter(Boolean).sort((a, b) => (a.done - b.done) || String(b.updated).localeCompare(String(a.updated)));
   return { ok: true, ct: ct || undefined, orders: orders };

@@ -691,7 +691,7 @@ const T = { mrows:'tb_members', boards:'tb_boards', lists:'tb_lists', cards:'tb_
 const KEYS = Object.keys(T);
 const LS_DATA='tesrboard_demo_v2', LS_CFG='tesrboard_cfg', LS_SES='tesrboard_session', LS_BOARD='tesrboard_board', LS_THEME='tesrboard_theme';
 const PALETTE=['#d71f33','#d4a72c','#2fbf71','#3b82f6','#a855f7','#ec4899','#14b8a6','#f97316','#64748b','#84cc16'];
-const APP_VER='v3.9'; // เพิ่มเลขทุกครั้งที่อัปเดตหน้าเว็บ · ดูที่มุมโลโก้ว่าเครื่องโหลดเวอร์ชันใหม่แล้ว
+const APP_VER='v3.10'; // เพิ่มเลขทุกครั้งที่อัปเดตหน้าเว็บ · ดูที่มุมโลโก้ว่าเครื่องโหลดเวอร์ชันใหม่แล้ว
 const PRIO={low:'ต่ำ',normal:'ปกติ',high:'สูง',urgent:'ด่วนมาก'};
 /* 🚚 ลิงก์ติดตามสำหรับลูกค้า (หน้า track.html) — ต้องตรงกับ TRK_DOCS ใน Code.gs */
 const TRK_UNITS={shop:'TESR Shop',academy:'TESR Academy',logistics:'TESR Logistics'};
@@ -953,8 +953,12 @@ function pinHTML(c){const t=c.trk;
     :`<span class="muted">ลูกค้ามีหลายออเดอร์? สร้าง PIN ให้ลูกค้าเข้าดูทุกออเดอร์ของตัวเองในหน้าเดียว</span> <button class="sm" data-act="pinNew">สร้าง PIN ลูกค้า</button>`}</div>`}
 const getP=(o,k)=>k.split('.').reduce((a,x)=>a==null?a:a[x],o);
 function setP(o,k,v){const p=k.split('.');let t=o;while(p.length>1){const x=p.shift();if(!t[x]||typeof t[x]!=='object')t[x]={};t=t[x]}t[p[0]]=v}
-function trkStage(c){ // ขั้นที่ลูกค้าเห็นตอนนี้ (ตรรกะเดียวกับ track_ ใน Code.gs)
-  const all=boardLists(c.board_id),cur=list(c.list_id),pubs=all.filter(l=>String(l.pub||'').trim()),steps=pubs.length?pubs:all;
+const CUST_STEP={q:'ออกใบเสนอราคา',po:'ยืนยันคำสั่งซื้อ',inv:'ออกใบแจ้งหนี้ / ใบส่งสินค้า',pay:'ชำระเงิน',ship:'จัดส่งสินค้า',evi:'ส่งมอบสินค้า',tax:'ออกใบเสร็จ / ใบกำกับภาษี',class:'ยืนยันรายละเอียดการเรียน',guide:'ส่งคู่มือเตรียมตัวก่อนเรียน'};
+function trkStage(c){ // ขั้นที่ลูกค้าเห็นตอนนี้ (ตรรกะเดียวกับ track_ ใน Code.gs): มี 📋 ขั้นตอนออเดอร์ → ตามเช็คลิสต์ของการ์ด · ไม่มี → ตามคอลัมน์
+  const cur=list(c.list_id), cl=ocl(c), its=(cl?.items||[]).filter(i=>i.k);
+  if(its.length){const n=its.length,dn=its.filter(i=>i.done).length,done=!!cur?.is_done||dn===n,ni=its.findIndex(i=>!i.done);
+    return {label:done?'เสร็จสมบูรณ์':CUST_STEP[its[ni].k]||its[ni].text,i:Math.max(ni,0),n,pct:done?100:Math.max(5,Math.min(95,Math.round((dn+.5)/n*100))),noPub:false,internal:false,byCl:true}}
+  const all=boardLists(c.board_id),pubs=all.filter(l=>String(l.pub||'').trim()),steps=pubs.length?pubs:all;
   let ci=-1;steps.forEach((l,i)=>{if((+l.pos||0)<=(+cur?.pos||0))ci=i});
   const done=!!cur?.is_done,n=steps.length||1,i=Math.max(ci,0);
   return {label:done?'เสร็จสมบูรณ์':String(steps[i]?.pub||steps[i]?.name||'-'),i,n,pct:done?100:Math.min(95,Math.round((i+.5)/n*100)),noPub:!pubs.length,internal:!!pubs.length&&!String(cur?.pub||'').trim()&&!done}
@@ -1072,7 +1076,7 @@ function trkHTML(c){
   const st=trkStage(c),u=trkUrl(t.token),docs=TRK_DOCS[t.unit]||TRK_DOCS.shop;
   const f=(k,label,ph='',type='text')=>`<label>${label}<input data-trk="${k}" type="${type}" value="${esc(getP(t,k)||'')}" placeholder="${esc(ph)}"></label>`;
   return `<div class="sec trkbox"><h4>🚚 ลิงก์ติดตามสำหรับลูกค้า <button class="sm" data-act="trkOff" title="ลูกค้าจะเปิดลิงก์นี้ไม่ได้ (เปิดใหม่ได้ ลิงก์เดิม)">ปิดลิงก์</button></h4>
-   <div class="trk-now">ลูกค้าเห็นตอนนี้: <b>${esc(st.label)}</b> <span class="muted">· ขั้น ${Math.min(st.i+1,st.n)}/${st.n} · ${st.pct}%${st.internal?' · คอลัมน์นี้เป็นขั้นภายใน':''}</span>
+   <div class="trk-now">ลูกค้าเห็นตอนนี้: <b>${esc(st.label)}</b> <span class="muted">· ขั้น ${Math.min(st.i+1,st.n)}/${st.n} · ${st.pct}%${st.internal?' · คอลัมน์นี้เป็นขั้นภายใน':''}${st.byCl?' · ตาม 📋 ขั้นตอนออเดอร์ (ไม่ขึ้นกับชื่อคอลัมน์)':''}</span>
      ${st.noPub?`<div class="muted">💡 บอร์ดนี้ยังไม่ได้ตั้ง "ชื่อขั้นที่ลูกค้าเห็น" — ตอนนี้ลูกค้าเห็นชื่อคอลัมน์ตรงๆ${isAdmin()?' (ตั้งได้ที่ปุ่ม ⋯ บนหัวคอลัมน์)':' (ให้ Admin ตั้งที่ ⋯ บนหัวคอลัมน์)'}</div>`:''}</div>
    <div class="trksend"><div class="muted">ข้อความส่งลูกค้า (แก้ชื่อลูกค้า / รายการด้านล่างได้ ข้อความเปลี่ยนตาม)</div>
      <pre class="trkmsg">${esc(trkMessage(c))}</pre>
