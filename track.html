@@ -87,6 +87,8 @@ h1{margin:2px 0 0;font-family:var(--f-display);font-size:24px;line-height:1.25;t
 .note{background:var(--warn-soft);border-radius:12px;padding:12px 14px;font-size:14px;white-space:pre-line}
 .note b{color:var(--warn);font-size:12px;letter-spacing:.08em;display:block;white-space:normal}
 .tl{list-style:none;margin:0;padding:0}
+.lcnt{float:right;font-weight:600;color:#8a7a4a}.cl{list-style:none;margin:0;padding:0}.cl li{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-top:1px solid rgba(128,128,128,.22);line-height:1.45}.cl li:first-child{border-top:0}
+.cl .cb{flex:0 0 20px;height:20px;border-radius:6px;border:2px solid #cfcfcf;display:grid;place-items:center;font-size:13px;font-weight:700;color:#fff}.cl li.d .cb{background:#1F7A4D;border-color:#1F7A4D}.cl li.d{opacity:.75}
 .tl li{display:grid;grid-template-columns:22px 1fr;gap:12px;position:relative;padding-bottom:16px}
 .tl li:last-child{padding-bottom:0}
 .tl li::before{content:"";position:absolute;left:10px;top:22px;bottom:0;width:2px;background:var(--line)}
@@ -197,7 +199,7 @@ const contactHTML=()=>`<div class="panel"><h3>สอบถามเพิ่ม�
   <div class="callmain"><span class="lbl"><small>แนะนำ · เบอร์หลักทีมงาน TESR</small><b>${CONTACT.phone}</b></span><a class="btn pri" href="tel:${CONTACT.phone.replace(/\D/g,'')}">โทรเลย</a></div>
   <div class="contact"><span>LINE <a href="${CONTACT.line}" target="_blank" rel="noopener"><b>${CONTACT.lineText}</b></a></span><span>อีเมล <b>${CONTACT.email}</b></span></div>
   <div class="backup">เบอร์สำรอง <b>${CONTACT.phone2}</b> · โปรดใช้เมื่อติดต่อเบอร์หลักไม่ได้เท่านั้น</div></div>`;
-const TRACK_VER='v3.13';
+const TRACK_VER='v3.14';
 const footHTML=()=>`<div class="foot">Made by <b>TESR</b> · Thai Embedded System and Robotics · ${TRACK_VER}</div>`;
 
 function render(o){
@@ -241,6 +243,8 @@ function render(o){
     ${o.note?`<div class="note"><b>ข้อความจากทีมงาน</b>${esc(o.note)}</div>`:''}
     <div class="panel"><h3>ขั้นตอน</h3><ol class="tl">${tl}</ol></div>
     ${o.locked?lock:`${ship}
+    ${(o.lists||[]).map(l=>{const dn=l.items.filter(i=>i.d).length;return `<div class="panel"><h3>${esc(l.title)} <span class="lcnt">${dn}/${l.items.length}</span></h3>
+      <ul class="cl">${l.items.map(i=>`<li class="${i.d?'d':''}"><span class="cb">${i.d?'✓':''}</span>${esc(i.t)}</li>`).join('')}</ul></div>`}).join('')}
     <div class="panel"><h3>เอกสาร</h3>${docs}</div>
     ${payHTML(o)}`}
     ${contactHTML()}

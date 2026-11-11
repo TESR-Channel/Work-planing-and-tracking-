@@ -353,6 +353,8 @@ function track_(r) {
       carrier: str_(t.ship && t.ship.carrier, 60), no: str_(t.ship && t.ship.no, 60), url: okUrl_(t.ship && t.ship.url)
     },
     evidence: unit === 'academy' ? '' : (okUrl_(t.evidence) || findHandover_(t.inv)),
+    lists: (Array.isArray(c.checklists) ? c.checklists : []).filter(x => x && x.pub && !x.order).slice(0, 10)   // เช็คลิสต์ที่ทีมกด "👁 ลูกค้าเห็น"
+      .map(x => ({ title: str_(x.title, 80), items: (Array.isArray(x.items) ? x.items : []).slice(0, 100).map(it => ({ t: str_(it && it.text, 160), d: !!(it && it.done) })) })),
     payments: readTable_('payments').filter(p => p.card_id === c.id)
       .sort((a, b) => String(a.at).localeCompare(String(b.at)))
       .map(p => ({ url: okUrl_(p.url), thumb: okUrl_(p.thumb), name: str_(p.name, 80), at: p.at || '',

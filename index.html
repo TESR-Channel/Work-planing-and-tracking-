@@ -376,7 +376,7 @@ th{font-family:Orbitron,sans-serif;font-size:11px;letter-spacing:1px;background:
 .trkopt .grid2{margin:0}
 .grid2 input[type=date]{width:100%;min-width:0;display:block;-webkit-appearance:none;appearance:none;min-height:40px;text-align:left}
 .osteps{margin:10px 0;border:1px solid var(--edge);border-radius:10px;padding:10px;background:rgba(212,167,44,.04)}
-.osteps h5{margin:0 0 6px;font-size:14px}.opay{margin:6px 0 0 28px}.opay .opup{display:inline-flex;margin-bottom:6px}.opay .pays{margin-top:4px}.ocredit{display:block;font-size:12px;margin:0 0 8px}.ocredit select{width:100%;margin-top:3px}.osteps .prog{margin-bottom:6px}
+.osteps h5{margin:0 0 6px;font-size:14px}.cked{cursor:text;border-radius:4px}.cked:hover{background:rgba(212,167,44,.12)}.ckedit{width:100%;min-width:120px;font:inherit;padding:3px 6px}.ckpub{margin-left:auto;font-size:11px;padding:2px 8px;white-space:nowrap}.ckpub.on{background:var(--gold);color:#111;border-color:var(--gold)}.opay{margin:6px 0 0 28px}.opay .opup{display:inline-flex;margin-bottom:6px}.opay .pays{margin-top:4px}.ocredit{display:block;font-size:12px;margin:0 0 8px}.ocredit select{width:100%;margin-top:3px}.osteps .prog{margin-bottom:6px}
 .ostep{border-top:1px dashed var(--edge);padding:8px 0}.ostep.next{background:rgba(212,167,44,.07);border-radius:8px;padding:8px 6px;border-top-color:transparent}
 .ostep .oh{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.ostep .oh input{width:18px;height:18px;accent-color:var(--gold);flex:0 0 auto}
 .otg{all:unset;cursor:pointer;flex:1;display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}.oar{margin-left:auto;color:var(--mut)}
@@ -691,7 +691,7 @@ const T = { mrows:'tb_members', boards:'tb_boards', lists:'tb_lists', cards:'tb_
 const KEYS = Object.keys(T);
 const LS_DATA='tesrboard_demo_v2', LS_CFG='tesrboard_cfg', LS_SES='tesrboard_session', LS_BOARD='tesrboard_board', LS_THEME='tesrboard_theme';
 const PALETTE=['#d71f33','#d4a72c','#2fbf71','#3b82f6','#a855f7','#ec4899','#14b8a6','#f97316','#64748b','#84cc16'];
-const APP_VER='v3.13'; // เพิ่มเลขทุกครั้งที่อัปเดตหน้าเว็บ · ดูที่มุมโลโก้ว่าเครื่องโหลดเวอร์ชันใหม่แล้ว
+const APP_VER='v3.14'; // เพิ่มเลขทุกครั้งที่อัปเดตหน้าเว็บ · ดูที่มุมโลโก้ว่าเครื่องโหลดเวอร์ชันใหม่แล้ว
 const PRIO={low:'ต่ำ',normal:'ปกติ',high:'สูง',urgent:'ด่วนมาก'};
 /* 🚚 ลิงก์ติดตามสำหรับลูกค้า (หน้า track.html) — ต้องตรงกับ TRK_DOCS ใน Code.gs */
 const TRK_UNITS={shop:'TESR Shop',academy:'TESR Academy',logistics:'TESR Logistics'};
@@ -1531,11 +1531,11 @@ function renderCardModal(){
     </div>
     <div class="sec"><h4>☑ เช็คลิสต์ / Checkpoint <button class="sm" data-act="addChecklist">+ เพิ่มเช็คลิสต์</button>${ck.done?`<button class="sm" data-act="toggleHideChecked">${ui.hideChecked?'แสดงที่ทำแล้ว ('+ck.done+')':'ซ่อนที่ทำแล้ว'}</button>`:''}</h4>
       <div id="sCks">${c.checklists.filter(cl=>!cl.order).map(cl=>{const dn=cl.items.filter(i=>i.done).length,t=cl.items.length,p=t?Math.round(dn/t*100):0;
-        return `<div class="ck" data-cl="${cl.id}"><div class="ckhead"><span class="grip ckgrip" title="ลากเพื่อย้ายทั้งเช็คลิสต์">⋮⋮</span><b>${esc(cl.title)}</b><button class="icon sm" data-act="delChecklist" data-cl="${cl.id}" title="ลบเช็คลิสต์">🗑</button></div>
+        return `<div class="ck" data-cl="${cl.id}"><div class="ckhead"><span class="grip ckgrip" title="ลากเพื่อย้ายทั้งเช็คลิสต์">⋮⋮</span><b class="cked" data-act="editCl" data-cl="${cl.id}" title="แตะเพื่อแก้ชื่อเช็คลิสต์">${esc(cl.title)}</b>${c.trk?.on?`<button class="sm ckpub ${cl.pub?'on':''}" data-act="ckPub" data-cl="${cl.id}" title="ให้ลูกค้าเห็นเช็คลิสต์นี้ในหน้าติดตามหรือไม่">${cl.pub?'👁 ลูกค้าเห็น':'🔒 ภายใน'}</button>`:''}<button class="icon sm" data-act="delChecklist" data-cl="${cl.id}" title="ลบเช็คลิสต์">🗑</button></div>
         <div class="prog sm"><span class="muted">${p}%</span><div class="bar"><i style="width:${p}%"></i></div><span class="muted">${dn}/${t}</span></div>
         <div class="ckitems" data-cl="${cl.id}">${cl.items.filter(it=>!(ui.hideChecked&&it.done)).map(it=>{const st=it.done?'done':!it.due?'':(new Date(it.due+'T00:00:00')<today()?'late':(new Date(it.due+'T00:00:00')-today())/DAY<=2?'soon':'ok');
           return `<div class="ckitem" data-it="${it.id}"><span class="grip igrip" title="ลากเพื่อจัดลำดับ">⋮⋮</span><input type="checkbox" data-act="toggleItem" data-cl="${cl.id}" data-it="${it.id}" ${it.done?'checked':''}>
-          <span class="${it.done?'strike':''}">${esc(it.text)}${it.done&&it.by?` <i class="muted">· ${esc(nm(it.by))}</i>`:''}</span>
+          <span class="cked ${it.done?'strike':''}" data-act="editItem" data-cl="${cl.id}" data-it="${it.id}" title="แตะเพื่อแก้ไขข้อความ">${esc(it.text)}${it.done&&it.by?` <i class="muted">· ${esc(nm(it.by))}</i>`:''}</span>
           <input type="date" class="itdue ${st}" data-itdue data-cl="${cl.id}" data-it="${it.id}" value="${it.due||''}" title="Checkpoint / กำหนดของข้อนี้">
           <select data-itemassign data-cl="${cl.id}" data-it="${it.id}">${memberOpts(it.assignee,'ใครทำ?')}</select>
           <button class="icon sm" data-act="delItem" data-cl="${cl.id}" data-it="${it.id}">✕</button></div>`}).join('')}</div>
@@ -1906,6 +1906,16 @@ async function act(a,d={}){
     case 'replyCmt':{const t=$('#cmt');t.value='@'+d.name+' ';t.focus();break}
     case 'delCmt':{if(!confirm('ลบคอมเมนต์นี้?'))return;c.comments=c.comments.filter(x=>x.id!==d.id);await saveCard(c);renderCardModal();break}
     case 'oTog':{const cl=ocl(c),it=cl?.items.find(x=>x.id===d.it);if(!it)return;ui.oOpen=ui.oOpen||{};const nx=cl.items.find(i=>!i.done);ui.oOpen[it.id]=!(ui.oOpen[it.id]??(it===nx));renderCardModal();break}
+    case 'editItem': case 'editCl':{   // แตะข้อความเช็คลิสต์ → แก้ไขในที่ (Enter บันทึก · Esc ยกเลิก)
+      const cl=c.checklists.find(x=>x.id===d.cl), it=a==='editItem'?cl?.items.find(x=>x.id===d.it):null, tg=a==='editItem'?it:cl;
+      const el=$(a==='editItem'?`.cked[data-act="editItem"][data-it="${d.it}"]`:`.cked[data-act="editCl"][data-cl="${d.cl}"]`); if(!tg||!el||el.querySelector('input'))return;
+      const key=a==='editItem'?'text':'title', old=tg[key]||'', inp=document.createElement('input'); inp.value=old; inp.className='ckedit';
+      el.replaceChildren(inp); inp.focus(); inp.select(); let done=false;
+      const fin=async ok=>{if(done)return;done=true;const v=inp.value.trim();
+        if(ok&&v&&v!==old){tg[key]=v;await saveCard(c,`✏️ แก้${a==='editItem'?'รายการ':'ชื่อเช็คลิสต์'} "${old}" → "${v}"`)}renderCardModal()};
+      inp.onkeydown=e=>{if(e.key==='Enter'&&!e.isComposing){e.preventDefault();fin(true)}else if(e.key==='Escape'){e.stopPropagation();fin(false)}};
+      inp.onblur=()=>fin(true); inp.onclick=e=>e.stopPropagation(); break}
+    case 'ckPub':{const cl=c.checklists.find(x=>x.id===d.cl);if(!cl)return;cl.pub=!cl.pub;await saveCard(c,`${cl.pub?'👁 ให้ลูกค้าเห็น':'🔒 ซ่อนจากลูกค้า'} เช็คลิสต์ "${cl.title}"`);renderCardModal();break}
     case 'itNote':{const it=c.checklists.find(x=>x.id===d.cl)?.items.find(x=>x.id===d.it);if(!it)return;const v=prompt(`โน้ตภายในของขั้น "${it.text}"\nเช่น ลูกค้าขอออกใบแจ้งหนี้วันที่ 15 / รอบัญชีลูกค้าอนุมัติ`,it.note||'');if(v==null)return;it.note=v.trim();await saveCard(c,`📝 โน้ตขั้น "${it.text}"${it.note?': '+it.note:' (ลบ)'}`);renderCardModal();break}
     case 'delItem':{const cl=c.checklists.find(x=>x.id===d.cl);cl.items=cl.items.filter(x=>x.id!==d.it);await saveCard(c);renderCardModal();break}
     case 'addLink':{let u=$('#lnkUrl').value.trim();if(!u)return;if(!/^https?:\/\//i.test(u))u='https://'+u;const tt=$('#lnkTitle').value.trim();c.links.push({url:u,title:tt,at:now(),by:session.id});await saveCard(c,'แนบลิงก์ '+(tt||u));renderCardModal();break}
