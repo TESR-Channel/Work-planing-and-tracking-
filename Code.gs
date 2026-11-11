@@ -277,10 +277,22 @@ function removeFile_(id) { try { DriveApp.getFileById(id).setTrashed(true); } ca
 const HANDOVER_ROOT_ID = '1PuUBsXmCo0mnQDcdvDqbDwtH_Qiv_Hni';   // TESR shop tracking and handover (แอป Handover)
 const TRK_UNITS = { shop: 'TESR Shop', academy: 'TESR Academy', logistics: 'TESR Logistics' };
 const TRK_DOCS = {
-  shop:      [['q', 'ใบเสนอราคา'], ['inv', 'ใบแจ้งหนี้ / ใบวางบิล'], ['tax', 'ใบกำกับภาษี / ใบส่งสินค้า / ใบเสร็จรับเงิน']],
-  academy:   [['inv', 'ใบแจ้งหนี้'], ['tax', 'ใบเสร็จรับเงิน / ใบกำกับภาษี'], ['guide', 'คู่มือเตรียมตัวก่อนเรียน']],
-  logistics: [['inv', 'ใบแจ้งหนี้ค่าบริการ'], ['tax', 'ใบเสร็จรับเงิน / ใบกำกับภาษี']]
+  shop:      [['q', 'ใบเสนอราคา'], ['inv', 'ใบแจ้งหนี้ / ใบวางบิล'], ['tax', 'ใบกำกับภาษี / ใบส่งสินค้า'], ['rcpt', 'ใบเสร็จรับเงิน']],
+  academy:   [['inv', 'ใบแจ้งหนี้'], ['tax', 'ใบกำกับภาษี'], ['rcpt', 'ใบเสร็จรับเงิน'], ['guide', 'คู่มือเตรียมตัวก่อนเรียน']],
+  logistics: [['inv', 'ใบแจ้งหนี้ค่าบริการ'], ['tax', 'ใบกำกับภาษี'], ['rcpt', 'ใบเสร็จรับเงิน']]
 };
+/* ลิงก์เอกสาร: ดึง URL ออกจากข้อความ (ช่องอาจมีคำนำหน้า/หลายลิงก์) · เลือกตามชนิดเอกสาร FlowAccount (/qt/ /bl/ /inv/ /re/) */
+const urlsIn_ = v => String(v || '').match(/https?:\/\/[^\s<>"']+/g) || [];
+const FA_KIND_ = { q: '/qt/', inv: '/bl/', tax: '/inv/', rcpt: '/re/' };
+function docUrl_(t, k) {
+  const d = t.docs || {}, own = urlsIn_(d[k]), want = FA_KIND_[k];
+  if (own.length === 1) return okUrl_(own[0]);
+  if (own.length > 1) return okUrl_(own.find(u => want && u.indexOf(want) >= 0) || own[0]);
+  if (!want) return '';
+  const other = Object.keys(d).filter(x => x !== k && urlsIn_(d[x]).length > 1)   // ลิงก์ชนิดนี้ที่ถูกวางรวมไว้ในช่องอื่น
+    .reduce((a, x) => a.concat(urlsIn_(d[x])), []).find(u => u.indexOf(want) >= 0);
+  return okUrl_(other || '');
+}
 /* ขั้นที่ลูกค้าเห็น: ถ้าการ์ดมี "📋 ขั้นตอนออเดอร์" (เช็คลิสต์ order:true) ใช้ขั้นจากเช็คลิสต์นั้น — ตามงานของการ์ดจริง
    ไม่ขึ้นกับชื่อคอลัมน์ของบอร์ด · ถ้าไม่มี ใช้คอลัมน์แบบเดิม */
 const CUST_STEP = {
@@ -348,7 +360,7 @@ function track_(r) {
   if (!acc.full) return base;   // ยังไม่ยืนยันตัวตน → เห็นแค่สถานะ/ขั้นตอน
   return Object.assign(base, {
     customer: str_(t.customer, 120), note: str_(t.note, 1000), classInfo: str_(t.classInfo, 200),
-    docs: TRK_DOCS[unit].map(d => ({ label: d[1], url: okUrl_(t.docs && t.docs[d[0]]) })),
+    docs: TRK_DOCS[unit].map(d => ({ label: d[1], url: docUrl_(t, d[0]) })),
     ship: unit === 'academy' ? null : {
       carrier: str_(t.ship && t.ship.carrier, 60), no: str_(t.ship && t.ship.no, 60), url: okUrl_(t.ship && t.ship.url)
     },

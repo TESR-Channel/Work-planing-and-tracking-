@@ -691,14 +691,24 @@ const T = { mrows:'tb_members', boards:'tb_boards', lists:'tb_lists', cards:'tb_
 const KEYS = Object.keys(T);
 const LS_DATA='tesrboard_demo_v2', LS_CFG='tesrboard_cfg', LS_SES='tesrboard_session', LS_BOARD='tesrboard_board', LS_THEME='tesrboard_theme';
 const PALETTE=['#d71f33','#d4a72c','#2fbf71','#3b82f6','#a855f7','#ec4899','#14b8a6','#f97316','#64748b','#84cc16'];
-const APP_VER='v3.14'; // เพิ่มเลขทุกครั้งที่อัปเดตหน้าเว็บ · ดูที่มุมโลโก้ว่าเครื่องโหลดเวอร์ชันใหม่แล้ว
+const APP_VER='v3.15'; // เพิ่มเลขทุกครั้งที่อัปเดตหน้าเว็บ · ดูที่มุมโลโก้ว่าเครื่องโหลดเวอร์ชันใหม่แล้ว
 const PRIO={low:'ต่ำ',normal:'ปกติ',high:'สูง',urgent:'ด่วนมาก'};
 /* 🚚 ลิงก์ติดตามสำหรับลูกค้า (หน้า track.html) — ต้องตรงกับ TRK_DOCS ใน Code.gs */
 const TRK_UNITS={shop:'TESR Shop',academy:'TESR Academy',logistics:'TESR Logistics'};
 const TRK_DOCS={
-  shop:[['q','ใบเสนอราคา'],['inv','ใบแจ้งหนี้ / ใบวางบิล'],['tax','ใบกำกับภาษี / ใบส่งสินค้า / ใบเสร็จรับเงิน']],
-  academy:[['inv','ใบแจ้งหนี้'],['tax','ใบเสร็จรับเงิน / ใบกำกับภาษี'],['guide','คู่มือเตรียมตัวก่อนเรียน']],
-  logistics:[['inv','ใบแจ้งหนี้ค่าบริการ'],['tax','ใบเสร็จรับเงิน / ใบกำกับภาษี']]};
+  shop:[['q','ใบเสนอราคา'],['inv','ใบแจ้งหนี้ / ใบวางบิล'],['tax','ใบกำกับภาษี / ใบส่งสินค้า'],['rcpt','ใบเสร็จรับเงิน']],
+  academy:[['inv','ใบแจ้งหนี้'],['tax','ใบกำกับภาษี'],['rcpt','ใบเสร็จรับเงิน'],['guide','คู่มือเตรียมตัวก่อนเรียน']],
+  logistics:[['inv','ใบแจ้งหนี้ค่าบริการ'],['tax','ใบกำกับภาษี'],['rcpt','ใบเสร็จรับเงิน']]};
+/* วางลิงก์หลายอันในช่องเดียว (เช่น "ใบกำกับภาษี https://… ใบเสร็จ https://…") → แยกลงช่องให้เองตามชนิดเอกสาร FlowAccount */
+const FA_KIND=[['/qt/','q'],['/bl/','inv'],['/inv/','tax'],['/re/','rcpt']];
+function splitDocs(t,k){
+  const v=String(getP(t,k)||''), us=v.match(/https?:\/\/[^\s<>"']+/g)||[]; if(!us.length) return;
+  const key=k.split('.')[1], kind=u=>(FA_KIND.find(([p])=>u.includes(p))||[])[1];
+  if(us.length===1&&v.trim()===us[0]) return;
+  let mine=us.find(u=>kind(u)===key)||us.find(u=>!kind(u)||!(['q','inv','tax','rcpt'].includes(kind(u))))||us[0];
+  us.forEach(u=>{const kk=kind(u); if(u!==mine&&kk&&kk!==key&&!String(t.docs?.[kk]||'').trim()) setP(t,'docs.'+kk,u)});
+  setP(t,k,mine);
+}
 /* ===== KPI POINTS (ปรับตัวเลขได้ตรงนี้) ===== */
 const SIZES={s:{label:'งานทั่วไป',pts:1,icon:'●'},m:{label:'งานกลาง',pts:3,icon:'◆'},l:{label:'โปรเจกต์ / งานใหญ่-ยาก',pts:5,icon:'⭐'}};
 const SCORE={solo:1.0, team:0.6, onTime:1.0, late:0.5, initiator:1};  // เดี่ยว 100% · ทีม คนละ 60% · ส่งช้า ×0.5 · ผู้ริเริ่ม +1
@@ -1017,9 +1027,9 @@ const OS={
   q:['q','ออกใบเสนอราคา',[['docs.q','วางลิงก์ใบเสนอราคา FlowAccount']]],
   po:['po','ลูกค้ายืนยันสั่งซื้อ / ได้ PO',[['docs.po','ลิงก์หรือเลข PO ลูกค้า (ภายใน ลูกค้าไม่เห็น)']]],
   inv:['inv','ออกใบแจ้งหนี้ (แจ้งยอดชำระ)',[['docs.inv','วางลิงก์ใบแจ้งหนี้ FlowAccount']]],
-  bill:['bill','ออกเอกสารวางบิล',[['docs.inv','ลิงก์ใบวางบิล / ใบแจ้งหนี้'],['docs.tax','ลิงก์ใบกำกับภาษี / ใบส่งสินค้า / ใบเสร็จรับเงิน']]],
+  bill:['bill','ออกเอกสารวางบิล',[['docs.inv','ลิงก์ใบวางบิล / ใบแจ้งหนี้'],['docs.tax','ลิงก์ใบกำกับภาษี / ใบส่งสินค้า'],['docs.rcpt','ลิงก์ใบเสร็จรับเงิน']]],
   pay:['pay','รับชำระเงิน (ตรวจสลิปแล้ว)',[]],
-  tax:['tax','ออกใบกำกับภาษี / ใบเสร็จรับเงิน',[['docs.tax','วางลิงก์ใบกำกับภาษี / ใบเสร็จ FlowAccount']]],
+  tax:['tax','ออกใบกำกับภาษี / ใบเสร็จรับเงิน',[['docs.tax','ลิงก์ใบกำกับภาษี FlowAccount'],['docs.rcpt','ลิงก์ใบเสร็จรับเงิน FlowAccount']]],
   ship:['ship','จัดส่ง + เลขพัสดุ (Tracking)',[['ship.carrier','ขนส่ง EMS / Flash / Kerry'],['ship.no','เลขพัสดุ'],['ship.url','ลิงก์ติดตามพัสดุ https://']]],
   evi:['evi','หลักฐานการส่งมอบ (รูป / วิดีโอ)',[['inv','เลข INV · ดึงจากแอป Handover'],['evidence','หรือวางลิงก์ Drive เอง']]],
   class:['class','ยืนยันวัน / รายละเอียดการเรียน',[['classInfo','เช่น เรียนสด 2 วัน ที่ TESR นนทบุรี 09:00–17:00']]],
@@ -1570,7 +1580,7 @@ function renderCardModal(){
   if($('#cSize'))$('#cSize').onchange=e=>{c.size=e.target.value;saveCard(c,'ขนาดงาน → '+SIZES[c.size].label+' ('+SIZES[c.size].pts+' แต้ม)').then(renderCardModal)};
   $('#cFile').onchange=e=>uploadFiles(c.id,[...e.target.files]);
   $$('.payUp').forEach(el=>el.onchange=e=>uploadPays(c,[...e.target.files]));
-  $$('[data-trk]').forEach(el=>el.onchange=()=>{const k=el.dataset.trk;setP(c.trk,k,el.value.trim());saveCard(c,k==='unit'?'🚚 หน่วยธุรกิจ → '+TRK_UNITS[el.value]:k==='credit'?'💳 เงื่อนไขชำระ → '+(el.value?'ลูกค้าเครดิต':'ชำระก่อนส่ง'):null);if(['unit','credit','eta','tax','phone','customer','title','ref','int.paid','int.used','inv','evidence','classInfo'].includes(k)||/^(docs|ship)\./.test(k))renderCardModal()});
+  $$('[data-trk]').forEach(el=>el.onchange=()=>{const k=el.dataset.trk;setP(c.trk,k,el.value.trim());if(/^docs\./.test(k))splitDocs(c.trk,k);saveCard(c,k==='unit'?'🚚 หน่วยธุรกิจ → '+TRK_UNITS[el.value]:k==='credit'?'💳 เงื่อนไขชำระ → '+(el.value?'ลูกค้าเครดิต':'ชำระก่อนส่ง'):null);if(['unit','credit','eta','tax','phone','customer','title','ref','int.paid','int.used','inv','evidence','classInfo'].includes(k)||/^(docs|ship)\./.test(k))renderCardModal()});
   if($('#intNoteIn'))$('#intNoteIn').onkeydown=e=>{if(e.key==='Enter'&&!e.isComposing){e.preventDefault();act('intNote')}};
   initModalSort(c);
   $('#cmt').onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();act('addComment')}};
