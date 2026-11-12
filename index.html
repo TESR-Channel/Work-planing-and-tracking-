@@ -637,6 +637,15 @@ button.lstat{cursor:pointer;transition:filter .15s,transform .15s}button.lstat:h
 .histbox td.n,.histbox th.n{text-align:right;font-variant-numeric:tabular-nums}.histbox td.z{color:var(--mut);opacity:.5}
 .histbox td.tot{font-weight:700;color:var(--gold)}.histbox tr.me td{background:color-mix(in srgb,var(--gold) 8%,transparent)}
 .pendtag{color:var(--yel)}
+/* 🖱 เลื่อนบอร์ด: ลูกกลิ้ง = ซ้าย/ขวา · คลิกค้างที่ว่างแล้วลาก · ปุ่มกลาง = เลื่อนอัตโนมัติ · iPad ลากที่ว่าง */
+.board{cursor:grab;overscroll-behavior-x:contain}
+.board .card,.board button,.board input,.board select,.board a,.board .lhead{cursor:auto}
+.board .card{cursor:pointer}.board button{cursor:pointer}
+.board.panning,.board.panning *{cursor:grabbing!important;user-select:none!important;-webkit-user-select:none!important}
+@media (min-width:701px){.board,.board .list,.board .cards,.board .card{touch-action:pan-y}}
+#autoscr{position:fixed;z-index:300;width:34px;height:34px;margin:-17px 0 0 -17px;border-radius:50%;pointer-events:none;
+  background:rgba(20,20,24,.82);border:2px solid var(--gold);box-shadow:0 0 12px rgba(212,167,44,.6);display:flex;align-items:center;justify-content:center;color:var(--gold);font-size:14px}
+#autoscr::before{content:"◀ ▶";letter-spacing:-1px;font-size:10px}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 
 @media (max-width:700px){
@@ -707,7 +716,7 @@ const T = { mrows:'tb_members', boards:'tb_boards', lists:'tb_lists', cards:'tb_
 const KEYS = Object.keys(T);
 const LS_DATA='tesrboard_demo_v2', LS_CFG='tesrboard_cfg', LS_SES='tesrboard_session', LS_BOARD='tesrboard_board', LS_THEME='tesrboard_theme';
 const PALETTE=['#d71f33','#d4a72c','#2fbf71','#3b82f6','#a855f7','#ec4899','#14b8a6','#f97316','#64748b','#84cc16'];
-const APP_VER='v3.16'; // เพิ่มเลขทุกครั้งที่อัปเดตหน้าเว็บ · ดูที่มุมโลโก้ว่าเครื่องโหลดเวอร์ชันใหม่แล้ว
+const APP_VER='v3.17'; // เพิ่มเลขทุกครั้งที่อัปเดตหน้าเว็บ · ดูที่มุมโลโก้ว่าเครื่องโหลดเวอร์ชันใหม่แล้ว
 const PRIO={low:'ต่ำ',normal:'ปกติ',high:'สูง',urgent:'ด่วนมาก'};
 /* 🚚 ลิงก์ติดตามสำหรับลูกค้า (หน้า track.html) — ต้องตรงกับ TRK_DOCS ใน Code.gs */
 const TRK_UNITS={shop:'TESR Shop',academy:'TESR Academy',logistics:'TESR Logistics'};
@@ -1195,7 +1204,8 @@ function openNewCard(listId){
 }
 function renderBoard(){
   const lists=boardLists(ui.board);
-  $('#main').innerHTML=`<div class="board" id="boardEl">${lists.map(l=>{
+  const ob=$('#boardEl'), keep=ob&&ob.dataset.board===ui.board?{x:ob.scrollLeft,y:Object.fromEntries([...ob.querySelectorAll('.cards')].map(e=>[e.dataset.list,e.scrollTop]))}:null;
+  $('#main').innerHTML=`<div class="board" id="boardEl" data-board="${ui.board}">${lists.map(l=>{
     const cs=S.cards.filter(c=>c.list_id===l.id&&!isArch(c)&&matches(c)).sort(byPos);
     const waitN=l.is_done&&isAdmin()?cs.length:0;
     const lc=lcolor(l);
@@ -1209,7 +1219,77 @@ function renderBoard(){
   $$('.cards').forEach(el=>Sortable.create(el,{...opt,group:'cards',onEnd:onCardDrop}));
   Sortable.create($('#boardEl'),{...opt,handle:'.lhead',draggable:isAdmin()?'.list':'.list.own',filter:'input,.ren,.lstat',preventOnFilter:false,onEnd:onListDrop});
   $$('.lname.editable').forEach(el=>el.ondblclick=()=>renameListInline(el.dataset.lid));
+  const nb=$('#boardEl'); if(keep){ nb.scrollLeft=keep.x; nb.querySelectorAll('.cards').forEach(e=>{if(keep.y[e.dataset.list])e.scrollTop=keep.y[e.dataset.list]}) }
+  initBoardNav(nb);
 }
+/* ===== 🖱 การเลื่อนบอร์ด (เมาส์ / ทัชแพด / iPad) ===== */
+function initBoardNav(el){
+  if(!el) return;
+  const NO='.card,button,input,select,textarea,a,label,.lstat,.lname.editing,[contenteditable],.addlist,.lren';
+  const maxX=()=>el.scrollWidth-el.clientWidth;
+  // ลูกกลิ้งเมาส์ขึ้น/ลง → เลื่อนซ้าย/ขวา (นุ่มนวล) · ถ้าชี้ในคอลัมน์ที่มีการ์ดยาวเกินจอ จะเลื่อนในคอลัมน์ตามปกติ
+  let tx=null, raf=0;
+  const glide=()=>{ if(tx==null){raf=0;return} const d=tx-el.scrollLeft; if(Math.abs(d)<1){el.scrollLeft=tx;tx=null;raf=0;return} el.scrollLeft+=d*.22; raf=requestAnimationFrame(glide) };
+  el.addEventListener('wheel',e=>{
+    if(e.ctrlKey||maxX()<=0) return;
+    if(Math.abs(e.deltaX)>Math.abs(e.deltaY)){ tx=null; return }            // ทัชแพดปัดซ้าย/ขวา หรือ Shift+ล้อ → ให้เบราว์เซอร์จัดการ
+    const sc=e.target.closest('.cards');
+    if(sc&&!e.shiftKey&&sc.scrollHeight>sc.clientHeight+2) return;              // อยู่ในคอลัมน์ที่เลื่อนขึ้นลงได้
+    const step=e.deltaY*(e.deltaMode===1?40:e.deltaMode===2?el.clientWidth:1);
+    e.preventDefault();
+    tx=Math.max(0,Math.min(maxX(),(tx??el.scrollLeft)+step*1.1));
+    if(!raf) raf=requestAnimationFrame(glide);
+  },{passive:false});
+  // คลิกค้าง/แตะค้างที่ว่างแล้วลาก → เลื่อนบอร์ด (มีแรงเฉื่อยตอนปล่อย)
+  let pan=null, mom=0, blockClick=false;
+  const stopMom=()=>{cancelAnimationFrame(mom);mom=0};
+  el.addEventListener('pointerdown',e=>{
+    if(ui._as){ endAuto(); e.preventDefault(); return }
+    if(e.button===1&&e.pointerType==='mouse'){ if(e.target.closest('a'))return; e.preventDefault(); startAuto(e); return }
+    if(e.button!==0||e.target.closest(e.pointerType==='touch'?NO.replace('.card,',''):NO)) return;
+    if(e.pointerType==='mouse'&&e.target.closest('.lhead')) return;                // หัวคอลัมน์ใช้ลากย้ายคอลัมน์
+    if(e.pointerType==='touch'&&matchMedia('(max-width:700px)').matches) return;   // มือถือใช้การปัดแบบเดิม (เลื่อนทีละคอลัมน์)
+    stopMom(); tx=null; cancelAnimationFrame(raf); raf=0;
+    pan={id:e.pointerId,x:e.clientX,y:e.clientY,sl:el.scrollLeft,sc:e.target.closest('.cards'),st:0,moved:false,lx:e.clientX,lt:performance.now(),v:0,type:e.pointerType};
+    if(pan.sc) pan.st=pan.sc.scrollTop;
+    if(e.pointerType==='mouse') e.preventDefault();
+  },true);
+  el.addEventListener('pointermove',e=>{
+    if(!pan||e.pointerId!==pan.id) return;
+    const dx=e.clientX-pan.x, dy=e.clientY-pan.y;
+    if(!pan.moved){ if(Math.hypot(dx,dy)<5) return; if(pan.type==='touch'&&Math.abs(dy)>Math.abs(dx)){pan=null;return}
+      pan.moved=true; ui.dragging=true; el.classList.add('panning'); try{el.setPointerCapture(e.pointerId)}catch(_){} }
+    el.scrollLeft=pan.sl-dx;
+    if(pan.sc&&pan.type==='mouse') pan.sc.scrollTop=pan.st-dy;                       // ลากในคอลัมน์ = เลื่อนขึ้นลงได้ด้วย
+    const t=performance.now(), dt=t-pan.lt; if(dt>0){ pan.v=.8*((e.clientX-pan.lx)/dt)+.2*pan.v; pan.lx=e.clientX; pan.lt=t }
+  },true);
+  const end=e=>{
+    if(!pan||(e&&e.pointerId!==pan.id)) return;
+    const p=pan; pan=null; el.classList.remove('panning'); ui.dragging=false;
+    if(!p.moved) return;
+    blockClick=true; setTimeout(()=>blockClick=false,0);
+    let v=-p.v*16; if(performance.now()-p.lt>80) v=0;
+    const run=()=>{ if(Math.abs(v)<.5){mom=0;return} el.scrollLeft+=v; v*=.93; mom=requestAnimationFrame(run) }; if(v) mom=requestAnimationFrame(run);
+  };
+  el.addEventListener('pointerup',end,true); el.addEventListener('pointercancel',end,true); el.addEventListener('lostpointercapture',e=>{ if(e.target===el) end(e) });
+  el.addEventListener('click',e=>{ if(blockClick){e.stopPropagation();e.preventDefault()} },true);
+  // ปุ่มกลาง (ลูกกลิ้ง) คลิก = โหมดเลื่อนอัตโนมัติ เหมือน Windows · กดค้างแล้วลาก = เลื่อนจนกว่าจะปล่อย
+  function startAuto(e){
+    const a={x:e.clientX,y:e.clientY,cx:e.clientX,cy:e.clientY,sc:e.target.closest('.cards'),held:true,moved:false,raf:0};
+    const ic=document.createElement('div'); ic.id='autoscr'; ic.style.left=a.x+'px'; ic.style.top=a.y+'px'; document.body.appendChild(ic);
+    const mv=ev=>{a.cx=ev.clientX;a.cy=ev.clientY;if(Math.hypot(a.cx-a.x,a.cy-a.y)>12)a.moved=true};
+    const up=ev=>{ if(ev.button===1){ a.held=false; if(a.moved) endAuto() } };
+    const tick=()=>{ const sp=d=>Math.abs(d)<10?0:Math.sign(d)*Math.pow(Math.abs(d)-10,1.25)/8;
+      el.scrollLeft+=sp(a.cx-a.x); if(a.sc) a.sc.scrollTop+=sp(a.cy-a.y); else window.scrollBy(0,sp(a.cy-a.y)); a.raf=requestAnimationFrame(tick) };
+    a.raf=requestAnimationFrame(tick);
+    addEventListener('pointermove',mv); addEventListener('pointerup',up); addEventListener('keydown',endAuto); addEventListener('wheel',endAuto,{passive:true});
+    a.cleanup=()=>{cancelAnimationFrame(a.raf);ic.remove();removeEventListener('pointermove',mv);removeEventListener('pointerup',up);removeEventListener('keydown',endAuto);removeEventListener('wheel',endAuto)};
+    ui._as=a; ui.dragging=true;
+  }
+}
+function endAuto(){ const a=ui._as; if(!a) return; ui._as=null; ui.dragging=false; a.cleanup() }
+addEventListener('mousedown',e=>{ if(ui._as&&!e.target.closest('#boardEl')) endAuto() },true);
+addEventListener('auxclick',e=>{ if(e.button===1&&e.target.closest&&e.target.closest('#boardEl')) e.preventDefault() });
 const canL=l=>!!l&&(isAdmin()||(!!l.owner&&l.owner===session?.id));   // แก้ลิสต์ได้: Admin ทุกลิสต์ · พนักงานเฉพาะลิสต์ที่ตัวเองสร้าง
 const LSTAT={none:{t:'ไม่ระบุ',c:''},todo:{t:'รอทำ',i:'⏳',c:'#64748b'},doing:{t:'กำลังทำ',i:'🔧',c:'#3b82f6'},review:{t:'รอตรวจ',i:'👀',c:'#a855f7'},hold:{t:'ติดปัญหา',i:'⛔',c:'#d71f33'},done:{t:'เสร็จ',i:'✅',c:'#2fbf71'}};
 const lstat=l=>LSTAT[l.status]?l.status:(l.is_done?'done':'none');
