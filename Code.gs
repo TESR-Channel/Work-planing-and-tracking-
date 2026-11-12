@@ -214,6 +214,11 @@ function upsert_(u, t, rows) {
   if (t === 'kudos') rows.forEach(r => {   // 🙏 ส่งในนามตัวเองเท่านั้น · บันทึก Safety ได้เฉพาะ Admin
     if (r.type === 'safety' ? !isAdmin_(u) : (r.from !== u.id || r.to === u.id)) throw new Error('forbidden');
   });
+  if (t === 'cards' && !isAdmin_(u)) {   // 📦 Archive / แต้มที่บันทึก — เปลี่ยนได้เฉพาะ Admin
+    const cur = {}; readTable_('cards').forEach(c => cur[c.id] = c);
+    rows.forEach(r => { const o = cur[r && r.id] || {};
+      if ((o.archived_at || null) !== (r.archived_at || null) || JSON.stringify(o.arch || null) !== JSON.stringify(r.arch || null)) throw new Error('forbidden'); });
+  }
   const names = {}; getStaff_().forEach(s => names[s.id] = s.name); names.admin = 'Admin';
   if (t === 'cards' || t === 'lists') readTable_('lists').concat(readTable_('boards')).forEach(x => names[x.id] = x.name);
   return writeRows_(t, rows, names);
@@ -243,7 +248,7 @@ function remove_(u, t, ids) {
     if (bad.length) throw new Error('forbidden');
   }
   if (t === 'cards' && !isAdmin_(u)) {
-    const own = readTable_('cards').filter(c => ids.indexOf(c.id) >= 0 && c.created_by !== u.id);
+    const own = readTable_('cards').filter(c => ids.indexOf(c.id) >= 0 && (c.created_by !== u.id || c.archived_at));
     if (own.length) throw new Error('forbidden');
   }
   const lock = LockService.getScriptLock(); lock.waitLock(20000);

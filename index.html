@@ -621,6 +621,22 @@ button.lstat{cursor:pointer;transition:filter .15s,transform .15s}button.lstat:h
 #loginForm .remember{display:flex;align-items:center;gap:8px;font-size:13px;margin:4px 0 10px;cursor:pointer;color:var(--txt)}
 #loginForm .remember input{width:18px;height:18px;margin:0;accent-color:var(--gold);flex:none}
 #loginForm .remember .muted{font-size:12px}
+/* 📦 Archive */
+.archbtn{width:100%;margin-top:6px;padding:8px;border:1px dashed var(--ok);background:color-mix(in srgb,var(--ok) 10%,transparent);color:var(--ok);border-radius:8px;cursor:pointer;font:inherit;font-size:13px}
+.archbtn:hover{background:color-mix(in srgb,var(--ok) 20%,transparent)}
+.archbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:8px 0 4px;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--card2);font-size:13px}
+.archbar.done{border-color:color-mix(in srgb,var(--ok) 55%,transparent);background:color-mix(in srgb,var(--ok) 10%,transparent)}
+.archbar.wait{border-color:color-mix(in srgb,var(--yel) 55%,transparent);background:color-mix(in srgb,var(--yel) 9%,transparent)}
+.archbar .sp{flex:1}.archbar b.ptsv{color:var(--gold)}
+.alist{display:flex;flex-direction:column;gap:6px;max-height:60vh;overflow:auto;margin-top:10px}
+.arow{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--card2);cursor:pointer}
+.arow:hover{border-color:var(--gold)}.arow .t{flex:1;min-width:0}.arow .t b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.arow .pts{color:var(--gold);font-weight:700;white-space:nowrap}
+.afilter{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.afilter input{flex:1;min-width:140px}
+.histbox{margin-top:16px}.histbox h3{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 8px}
+.histbox td.n,.histbox th.n{text-align:right;font-variant-numeric:tabular-nums}.histbox td.z{color:var(--mut);opacity:.5}
+.histbox td.tot{font-weight:700;color:var(--gold)}.histbox tr.me td{background:color-mix(in srgb,var(--gold) 8%,transparent)}
+.pendtag{color:var(--yel)}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 
 @media (max-width:700px){
@@ -691,7 +707,7 @@ const T = { mrows:'tb_members', boards:'tb_boards', lists:'tb_lists', cards:'tb_
 const KEYS = Object.keys(T);
 const LS_DATA='tesrboard_demo_v2', LS_CFG='tesrboard_cfg', LS_SES='tesrboard_session', LS_BOARD='tesrboard_board', LS_THEME='tesrboard_theme';
 const PALETTE=['#d71f33','#d4a72c','#2fbf71','#3b82f6','#a855f7','#ec4899','#14b8a6','#f97316','#64748b','#84cc16'];
-const APP_VER='v3.15'; // เพิ่มเลขทุกครั้งที่อัปเดตหน้าเว็บ · ดูที่มุมโลโก้ว่าเครื่องโหลดเวอร์ชันใหม่แล้ว
+const APP_VER='v3.16'; // เพิ่มเลขทุกครั้งที่อัปเดตหน้าเว็บ · ดูที่มุมโลโก้ว่าเครื่องโหลดเวอร์ชันใหม่แล้ว
 const PRIO={low:'ต่ำ',normal:'ปกติ',high:'สูง',urgent:'ด่วนมาก'};
 /* 🚚 ลิงก์ติดตามสำหรับลูกค้า (หน้า track.html) — ต้องตรงกับ TRK_DOCS ใน Code.gs */
 const TRK_UNITS={shop:'TESR Shop',academy:'TESR Academy',logistics:'TESR Logistics'};
@@ -738,7 +754,7 @@ const KPI_DEFS=[
   ['💼','ปิดดีล','ข้อมูลประกอบ','สัดส่วนใบเสนอราคาที่ลูกค้าตอบรับ (สำหรับงานขาย)'],
   ['⏱','Cycle time','ข้อมูลประกอบ','เวลาเฉลี่ยตั้งแต่เริ่มทำจนปิดงาน (วัน)']
 ];
-const PERIODS=[['today','วันนี้'],['7','7 วัน'],['month','เดือนนี้'],['30','30 วัน'],['90','90 วัน'],['365','1 ปี'],['custom','📅 ช่วงวันที่…'],['cmonth','🗓 ช่วงเดือน…']];
+const PERIODS=[['today','วันนี้'],['7','7 วัน'],['month','เดือนนี้'],['30','30 วัน'],['90','90 วัน'],['year','ปีนี้'],['365','1 ปี'],['custom','📅 ช่วงวันที่…'],['cmonth','🗓 ช่วงเดือน…']];
 
 let S={staff:[],mrows:[],members:[],boards:[],lists:[],cards:[],activity:[],kudos:[],payments:[],customers:[]};
 let store, session=null;
@@ -858,8 +874,12 @@ const member=id=>S.members.find(m=>m.id===id);
 const card=id=>S.cards.find(c=>c.id===id);
 const list=id=>S.lists.find(l=>l.id===id);
 const boardLists=b=>S.lists.filter(l=>l.board_id===b).sort(byPos);
-const liveCards=()=>S.cards.filter(c=>list(c.list_id));
-const isDone=c=>!!list(c.list_id)?.is_done;
+const ARCH_SINCE='2026-11-12';
+const isArch=c=>!!c.archived_at;   // 📦 ตรวจรับแล้ว — ซ่อนจากบอร์ด เก็บไว้หลังบ้าน แต้มถูกบันทึก
+const liveCards=()=>S.cards.filter(c=>list(c.list_id)||isArch(c));
+const isDone=c=>isArch(c)||!!list(c.list_id)?.is_done;
+const lname=c=>isArch(c)?'📦 Archive':(list(c.list_id)?.name||'');
+const fmtDY=iso=>iso?new Date(iso).toLocaleDateString('th-TH-u-ca-gregory',{day:'numeric',month:'short',year:'numeric'}):'';
 const me=()=>member(session?.id)||{id:session?.id,name:session?.name||'?',color:'#d4a72c'};
 const isAdmin=()=>session?.role==='admin'||member(session?.id)?.board_role==='admin';
 const activeMembers=()=>S.members.filter(m=>m.active!==false);
@@ -1176,14 +1196,15 @@ function openNewCard(listId){
 function renderBoard(){
   const lists=boardLists(ui.board);
   $('#main').innerHTML=`<div class="board" id="boardEl">${lists.map(l=>{
-    const cs=S.cards.filter(c=>c.list_id===l.id&&matches(c)).sort(byPos);
+    const cs=S.cards.filter(c=>c.list_id===l.id&&!isArch(c)&&matches(c)).sort(byPos);
+    const waitN=l.is_done&&isAdmin()?cs.length:0;
     const lc=lcolor(l);
     const ed=canL(l), ow=l.owner&&member(l.owner);
     return `<section class="list ${l.is_done?'done':''} ${lc?'tinted':''} ${ed?'own':''}" data-id="${l.id}" ${lc?`style="--lc:${lc}"`:''}>
       <div class="lhead"><span class="lname ${ed?'editable':''}" data-lid="${l.id}" ${ed?'title="ดับเบิลคลิก (หรือกด ✏️) เพื่อเปลี่ยนชื่อ"':''}>${esc(l.name)}</span>${ow?`<span class="lown" title="ลิสต์ส่วนตัวของ ${esc(ow.name)}">👤 ${esc(ow.name.split(' ')[0])}</span>`:''}${ed?`<button class="icon ren" data-act="renameList" data-id="${l.id}" title="เปลี่ยนชื่อคอลัมน์">✏️</button>`:''}${l.pub?`<span class="lpub" title="ลูกค้าเห็นเป็น: ${esc(l.pub)}">👁</span>`:''}${lstatChip(l)}<span class="cnt">${cs.length}</span>${ed?`<button class="icon" data-act="listMenu" data-id="${l.id}">⋯</button>`:''}</div>
       <div class="cards" data-list="${l.id}">${cs.map(cardHTML).join('')}</div>
-      <button class="addcard" data-act="addCard" data-id="${l.id}">+ เพิ่มการ์ด</button></section>`}).join('')}
-    ${session?'<div class="addlist"><button data-act="addList">+ เพิ่มลิสต์</button></div>':''}</div>`;
+      <button class="addcard" data-act="addCard" data-id="${l.id}">+ เพิ่มการ์ด</button>${waitN?`<button class="archbtn" data-act="archList" data-id="${l.id}" title="ตรวจรับงานในคอลัมน์นี้ → เก็บออกจากบอร์ด + บันทึกแต้ม">📦 ตรวจรับ & Archive ทั้งคอลัมน์ (${waitN})</button>`:''}</section>`}).join('')}
+    ${session?`<div class="addlist"><button data-act="addList">+ เพิ่มลิสต์</button><button data-act="archView" style="margin-top:8px">📦 คลังงาน Archive (${S.cards.filter(c=>isArch(c)&&c.board_id===ui.board).length})</button></div>`:''}</div>`;
   const opt={animation:150,delay:180,delayOnTouchOnly:true,ghostClass:'ghost',chosenClass:'chosen',onStart:()=>ui.dragging=true};
   $$('.cards').forEach(el=>Sortable.create(el,{...opt,group:'cards',onEnd:onCardDrop}));
   Sortable.create($('#boardEl'),{...opt,handle:'.lhead',draggable:isAdmin()?'.list':'.list.own',filter:'input,.ren,.lstat',preventOnFilter:false,onEnd:onListDrop});
@@ -1309,16 +1330,23 @@ function cardScore(c){
   return {each:Math.round(base*mult*100)/100,base,mult,team,late,people,imp,starters,bonus:SCORE.initiator};
 }
 const ptsOf=(sc,id)=>sc.people.includes(id)?sc.each+(sc.starters.includes(id)?sc.bonus:0):0;
+// แต้มที่บันทึกตอน Archive (คงที่ ไม่เปลี่ยนตามการตั้งค่าภายหลัง)
+const archIds=c=>c.arch?.pts?Object.keys(c.arch.pts):cardScore(c).people;
+const archPts=(c,id)=>c.arch?.pts?(+c.arch.pts[id]||0):ptsOf(cardScore(c),id);
+function archSnapshot(c){const sc=cardScore(c),pts={};if(isTask(c))sc.people.forEach(id=>pts[id]=Math.round(ptsOf(sc,id)*100)/100);return {pts,each:sc.each,team:sc.team,late:!!sc.late}}
 function pointsFor(id,cards){
   let pts=0,solo=0,team=0,soloN=0,teamN=0,grow=0,growN=0,initN=0;
-  cards.forEach(c=>{ if(!isTask(c)||!isDone(c)||!inPeriod(c.done_at)) return;
-    const sc=cardScore(c); if(!sc.people.includes(id)) return;
-    const v=ptsOf(sc,id); pts+=v; if(sc.team){team+=v;teamN++} else {solo+=v;soloN++}
+  let pend=0,pendN=0;
+  cards.forEach(c=>{ if(!isTask(c)||!isDone(c)) return;
+    if(!isArch(c)){ const sc=cardScore(c); if(sc.people.includes(id)){pend+=ptsOf(sc,id);pendN++} return }   // ⏳ เสร็จแล้วแต่ยังไม่ Archive = แต้มรอตรวจรับ
+    if(!inPeriod(c.archived_at)) return;
+    const ids=archIds(c); if(!ids.includes(id)) return;
+    const sc=cardScore(c), v=archPts(c,id), isTeam=ids.length>1; pts+=v; if(isTeam){team+=v;teamN++} else {solo+=v;soloN++}
     if(sc.imp.dev){grow+=v;growN++} if(sc.starters.includes(id)) initN++; });
   const kudosN=(S.kudos||[]).filter(k=>k.type!=='safety'&&k.to===id&&inPeriod(k.at)).length, kudos=kudosN*SCORE.kudos;
   pts+=kudos;
   const r=x=>Math.round(x*10)/10;
-  return {pts:r(pts),solo:r(solo),team:r(team),soloN,teamN,grow:r(grow),growN,initN,kudosN,kudos:r(kudos)};
+  return {pts:r(pts),solo:r(solo),team:r(team),soloN,teamN,grow:r(grow),growN,initN,kudosN,kudos:r(kudos),pend:r(pend),pendN};
 }
 const fmtPts=x=>(Math.round(x*10)/10).toLocaleString('th-TH',{maximumFractionDigits:1});
 function pushTrail(c,e){c.trail=trailOf(c).slice();c.trail.push({at:now(),by:session.id,...e})}
@@ -1366,6 +1394,7 @@ async function moveCard(c,to,{ask=true,reopen=false}={}){
 }
 async function toggleDone(c){
   if(!isTask(c)&&!isDone(c)&&!confirm('การ์ดนี้เป็นประเภทข้อมูล/ไฟล์ ต้องการย้ายไปคอลัมน์เสร็จไหม?')) return;
+  if(isArch(c)) return toast('การ์ดนี้ Archive แล้ว — นำกลับมาก่อนจึงเปิดงานใหม่ได้');
   if(isDone(c)){
     const back=[...trailOf(c)].reverse().find(t=>t.list_id&&!list(t.list_id)?.is_done&&list(t.list_id));
     const to=back?list(back.list_id):boardLists(c.board_id)[0];
@@ -1379,10 +1408,90 @@ async function toggleDone(c){
     }
     c.pos=Math.max(0,...S.cards.filter(x=>x.list_id===to.id).map(x=>x.pos||0))+1024;
     await moveCard(c,to,{ask:false});
-    const sc=cardScore(card(c.id)||c); if(isTask(c)) toast(`🏆 ปิดงานแล้ว · ${sc.people.length} คน ได้คนละ ${fmtPts(sc.each)} แต้ม${sc.starters.length?' · ผู้ริเริ่ม +'+sc.bonus:''}`);
+    const sc=cardScore(card(c.id)||c); if(isTask(c)) toast(`✓ ปิดงานแล้ว · รอตรวจรับ (📦 Archive) จึงจะได้แต้ม คนละ ${fmtPts(sc.each)}${sc.starters.length?' · ผู้ริเริ่ม +'+sc.bonus:''}`);
   }
   if(ui.openCard===c.id) renderCardModal();
 }
+/* ===== 📦 ARCHIVE — ตรวจรับงาน → เก็บหลังบ้าน + บันทึกแต้ม ===== */
+async function archiveCard(c,{bulk=false}={}){
+  if(!isAdmin()) { toast('เฉพาะหัวหน้า / Admin ที่ตรวจรับงานและ Archive ได้'); return false }
+  if(isArch(c)) return false;
+  const ck=ckProgress(c);
+  if(!bulk&&ck.total&&ck.done<ck.total&&!confirm(`เช็คลิสต์ยังไม่ครบ (${ck.done}/${ck.total})\nต้องการตรวจรับและ Archive เลยไหม?`)) return false;
+  if(!isDone(c)){
+    if(bulk) return false;
+    if(!confirm('การ์ดนี้ยังไม่ได้ปิดงาน — ปิดงานและ Archive เลยไหม?')) return false;
+    await toggleDone(c); c=card(c.id)||c;
+  }
+  // งานที่ปิดก่อนมีระบบ Archive (ก่อน 12 พ.ย. 2026) → ลงแต้มตามเดือนที่ปิดงานจริง ประวัติย้อนหลังจะได้ตรง
+  c.archived_at=(c.done_at&&c.done_at<ARCH_SINCE)?c.done_at:now(); c.arch={at:now(),by:session.id,...archSnapshot(c)};
+  const ppl=Object.entries(c.arch.pts);
+  await saveCard(c,'📦 ตรวจรับ & Archive'+(ppl.length?' · บันทึกแต้ม '+ppl.map(([id,v])=>`${member(id)?.name||'?'} ${fmtPts(v)}`).join(', '):''));
+  if(!bulk) toast(ppl.length?`📦 Archive แล้ว · บันทึกแต้ม ${ppl.length} คน เข้าคะแนนสะสมปี ${new Date().getFullYear()}`:'📦 Archive แล้ว');
+  return true;
+}
+async function unarchiveCard(c){
+  if(!isAdmin()||!isArch(c)) return;
+  if(!confirm('นำการ์ดกลับมาที่บอร์ด? แต้มที่บันทึกไว้จะถูกถอนออกจนกว่าจะ Archive ใหม่')) return;
+  if(!list(c.list_id)){ const to=doneList(c.board_id)||boardLists(c.board_id)[0]; if(!to) return toast('บอร์ดนี้ไม่มีคอลัมน์ให้ย้ายกลับ'); c.list_id=to.id }
+  c.archived_at=null; c.arch=null; await saveCard(c,'↩ นำกลับจาก Archive (ถอนแต้ม)'); toast('↩ นำกลับมาที่บอร์ดแล้ว');
+}
+function archBarHTML(c){
+  if(!isTask(c)&&!isArch(c)) return isDone(c)&&isAdmin()?`<div class="archbar"><span>📁 เก็บการ์ดข้อมูลนี้ออกจากบอร์ด</span><span class="sp"></span><button class="sm" data-act="archive">📦 Archive</button></div>`:'';
+  if(isArch(c)){ const a=c.arch||{}, pp=Object.entries(a.pts||{});
+    return `<div class="archbar done"><span>📦 <b>Archive แล้ว</b> · ${fmtDY(c.archived_at)} · ตรวจรับโดย ${esc(member(a.by)?.name||'Admin')}</span>
+      ${pp.length?`<span>🏆 ${pp.map(([id,v])=>`${esc(member(id)?.name||'?')} <b class="ptsv">${fmtPts(v)}</b>`).join(' · ')}</span>`:''}<span class="sp"></span>
+      ${isAdmin()?'<button class="sm" data-act="unarchive">↩ นำกลับมา</button>':''}</div>` }
+  if(!isDone(c)) return '';
+  const sc=cardScore(c), ck=ckProgress(c), full=!ck.total||ck.done===ck.total;
+  return `<div class="archbar wait"><span>⏳ <b>รอตรวจรับ</b> · แต้มจะเข้าคะแนนสะสมเมื่อ Archive (คนละ <b class="ptsv">${fmtPts(sc.each)}</b>)${full?'':` · <span style="color:var(--late)">เช็คลิสต์ ${ck.done}/${ck.total}</span>`}</span><span class="sp"></span>
+    ${isAdmin()?'<button class="pri sm" data-act="archive">📦 ตรวจรับ & Archive</button>':'<span class="muted">หัวหน้าจะตรวจรับและ Archive</span>'}</div>`;
+}
+function archYears(){const ys=new Set([new Date().getFullYear()]);S.cards.forEach(c=>{if(c.archived_at)ys.add(new Date(c.archived_at).getFullYear())});return [...ys].sort((a,b)=>b-a)}
+function renderArchive(){
+  const f=ui.arch||(ui.arch={y:String(new Date().getFullYear()),m:'',q:'',all:false});
+  const q=f.q.trim().toLowerCase(), admin=isAdmin();
+  let cs=S.cards.filter(c=>isArch(c)&&(f.all||c.board_id===ui.board)&&(admin||c.assignees.includes(session.id)||archIds(c).includes(session.id)));
+  cs=cs.filter(c=>{const d=new Date(c.archived_at);return (!f.y||d.getFullYear()===+f.y)&&(!f.m||d.getMonth()+1===+f.m)&&(!q||(c.title+' '+c.labels.join(' ')).toLowerCase().includes(q))})
+    .sort((a,b)=>String(b.archived_at).localeCompare(String(a.archived_at)));
+  const mon=i=>new Date(2026,i,1).toLocaleDateString('th-TH',{month:'short'});
+  const sheet=$('#sheet');sheet.classList.add('wide');
+  sheet.innerHTML=`<div class="mhead"><h3 style="margin:0;flex:1">📦 คลังงาน Archive <span class="muted" style="font-size:13px">(${cs.length} งาน)</span></h3><button class="icon" data-act="closeModal">✕</button></div>
+    <div class="muted" style="font-size:12px;margin:-4px 0 8px">งานที่ตรวจรับแล้ว ถูกเก็บออกจากบอร์ด · แต้มบันทึกเข้าคะแนนสะสมรายปีของแต่ละคน${admin?' · กด ↩ เพื่อนำกลับมา (ถอนแต้ม)':''}</div>
+    <div class="afilter"><input id="aQ" placeholder="🔎 ค้นหางานใน Archive" value="${esc(f.q)}">
+      <select id="aY">${archYears().map(y=>`<option value="${y}" ${String(y)===f.y?'selected':''}>ปี ${y}</option>`).join('')}<option value="" ${f.y===''?'selected':''}>ทุกปี</option></select>
+      <select id="aM"><option value="">ทุกเดือน</option>${[...Array(12)].map((_,i)=>`<option value="${i+1}" ${String(i+1)===f.m?'selected':''}>${mon(i)}</option>`).join('')}</select>
+      <select id="aAll"><option value="0">บอร์ดนี้</option><option value="1" ${f.all?'selected':''}>ทุกบอร์ด</option></select></div>
+    <div class="alist">${cs.map(c=>{const pp=archIds(c), tot=pp.reduce((a,id)=>a+archPts(c,id),0);
+      return `<div class="arow" data-act="openCard" data-id="${c.id}"><div class="t"><b>${esc(c.title)}</b><span class="muted" style="font-size:12px">📦 ${fmtDY(c.archived_at)}${f.all?' · '+esc(S.boards.find(b=>b.id===c.board_id)?.name||''):''}</span></div>
+        <span>${pp.map(id=>avatar(member(id))).join('')}</span>${isTask(c)?`<span class="pts">🏆 ${fmtPts(tot)}</span>`:'<span class="muted">📁</span>'}
+        ${admin?`<button class="sm" data-act="unarchiveId" data-id="${c.id}" title="นำกลับมาที่บอร์ด">↩</button>`:''}</div>`}).join('')||'<div class="muted" style="padding:20px;text-align:center">ยังไม่มีงานใน Archive ตามตัวกรองนี้</div>'}</div>`;
+  ui.openCard=null; showModal();
+  const re=()=>renderArchive();
+  $('#aQ').oninput=e=>{f.q=e.target.value;clearTimeout(ui._aqT);ui._aqT=setTimeout(()=>{re();const i=$('#aQ');i.focus();i.setSelectionRange(i.value.length,i.value.length)},250)};
+  $('#aY').onchange=e=>{f.y=e.target.value;re()};$('#aM').onchange=e=>{f.m=e.target.value;re()};$('#aAll').onchange=e=>{f.all=e.target.value==='1';re()};
+}
+/* คะแนนสะสมรายเดือน / รายปี — ข้ามปีเริ่มนับใหม่ ดูย้อนหลังได้ */
+function withPeriod(p,fn){const k=['period','mFrom','mTo'],o={};k.forEach(x=>o[x]=ui[x]);Object.assign(ui,p);try{return fn()}finally{Object.assign(ui,o)}}
+function histHTML(people){
+  const yNow=new Date().getFullYear(), Y=+(ui.histY||yNow), mode=ui.histMode||'pts', all=liveCards();
+  const lastM=Y<yNow?12:Y>yNow?0:new Date().getMonth()+1, ym=m=>Y+'-'+String(m).padStart(2,'0');
+  const mon=i=>new Date(2026,i,1).toLocaleDateString('th-TH',{month:'short'});
+  const rows=people.map(m=>{
+    const cells=[...Array(12)].map((_,i)=>i+1>lastM?null:withPeriod({period:'cmonth',mFrom:ym(i+1),mTo:ym(i+1)},()=>{const s=memberStats(m.id,all);return {pts:s.P.pts,n:s.P.soloN+s.P.teamN,k:kpiOf(s,m.id)}}));
+    const yr=lastM?withPeriod({period:'cmonth',mFrom:ym(1),mTo:ym(lastM)},()=>{const s=memberStats(m.id,all);return {pts:s.P.pts,n:s.P.soloN+s.P.teamN,k:kpiOf(s,m.id)}}):null;
+    return {m,cells,yr};
+  }).sort((a,b)=>(b.yr?.pts||0)-(a.yr?.pts||0));
+  const cell=x=>x==null?'<td class="n z">—</td>':mode==='pts'?`<td class="n ${x.pts?'':'z'}" title="${x.n} งาน · KPI ${x.k.score}">${x.pts?fmtPts(x.pts):'0'}</td>`:`<td class="n ${x.pts?'':'z'}" title="${fmtPts(x.pts)} แต้ม · ${x.n} งาน">${x.k.score} <small>${x.k.grade}</small></td>`;
+  return `<div class="histbox chartbox"><h3>🏆 คะแนนสะสมปี <select id="histY">${archYears().map(y=>`<option value="${y}" ${y===Y?'selected':''}>${y}</option>`).join('')}</select>
+      <select id="histMode"><option value="pts" ${mode==='pts'?'selected':''}>แต้ม (จากงานที่ Archive)</option><option value="kpi" ${mode==='kpi'?'selected':''}>KPI Score รายเดือน</option></select>
+      <span class="muted" style="font-size:12px;font-weight:400">เริ่มนับใหม่ทุกต้นปี · เลือกปีเพื่อดูย้อนหลัง</span></h3>
+    <div class="tblwrap"><table><thead><tr><th>พนักงาน</th>${[...Array(12)].map((_,i)=>`<th class="n">${mon(i)}</th>`).join('')}<th class="n">รวมปี ${Y}</th><th class="n">งาน</th><th class="n">KPI ปี</th></tr></thead><tbody>
+    ${rows.map(({m,cells,yr})=>`<tr class="${m.id===session.id?'me':''} ${isAdmin()?'click':''}" ${isAdmin()?`data-act="dashPerson" data-id="${m.id}"`:''}><td>${avatar(m)} ${esc(m.name)}</td>${cells.map(cell).join('')}
+      <td class="n tot">${yr?fmtPts(yr.pts):'—'}</td><td class="n">${yr?yr.n:'—'}</td><td class="n">${yr?`${yr.k.score} <small>${yr.k.grade}</small>`:'—'}</td></tr>`).join('')}
+    </tbody></table></div></div>`;
+}
+function bindHist(){const y=$('#histY');if(y)y.onchange=e=>{ui.histY=e.target.value;renderMain()};const h=$('#histMode');if(h)h.onchange=e=>{ui.histMode=e.target.value;renderMain()}}
 function scoreHelp(){
   ui.openCard=null;$('#sheet').classList.remove('wide');
   $('#sheet').innerHTML=`<div class="mhead"><b class="kanit" style="flex:1;font-size:18px">🏆 วิธีคิดคะแนน KPI</b><button class="icon" data-act="closeModal">✕</button></div>
@@ -1445,6 +1554,7 @@ function kpiHelp(){
    <div class="kscore-eq">📊 <b>KPI Score (0–100)</b> = 🏆 ผลงาน ${KPI_W.out*100}% + ✅ คุณภาพ ${KPI_W.qual*100}% + 🤝 ทีมเวิร์ก ${KPI_W.team*100}% · เกรด A ≥85 · B ≥70 · C ≥50</div>
    <div class="kdefs">${KPI_DEFS.map(([i,n,w,d])=>`<div class="kdef"><span class="ki">${i}</span><div><b>${n}</b> <span class="kw">${w}</span><div class="muted">${d}</div></div></div>`).join('')}</div>
    <div class="sec"><h4>ทำยังไงให้ KPI ดี</h4>
+    <div class="rule">📦 <b>แต้มเข้าเมื่อหัวหน้าตรวจรับ (Archive)</b> — ปิดงานแล้วจะขึ้น ⏳ รอตรวจรับ · คะแนนสะสมเริ่มนับใหม่ทุกต้นปี ดูย้อนหลังได้ที่แดชบอร์ด</div>
     <div class="rule">✔ ปิดงานให้ตรงเวลา และทำให้ผ่านรอบแรก</div>
     <div class="rule">✔ ตั้งกำหนดส่งให้สมจริงตั้งแต่ต้น — เลื่อนบ่อยจะเสียคะแนนคุณภาพ</div>
     <div class="rule">✔ ช่วยเพื่อน ส่งต่องานให้ครบขั้นตอน และกด 🙏 ขอบคุณคนที่ช่วยเรา</div>
@@ -1495,7 +1605,7 @@ function workflowHTML(c){
   return `<div class="sec"><h4>🔁 เส้นทางงาน & คะแนน <button class="sm" data-act="scoreHelp">ℹ️ วิธีคิดแต้ม</button></h4>
     <div class="trail">${tr.map(t=>`<div class="tstep ${t.t}"><span class="tdot">${ic[t.t]||'•'}</span><div><b>${tx[t.t]||t.t}</b>${t.list?` · ${esc(t.list)}`:''} <span class="muted">${fmtDT(t.at)}</span>
       <div class="muted">${t.t==='done'?'โดย ':''}${t.t==='done'?esc(nm(t.by)):`${esc(nm(t.by))}${(t.to||[]).length?' → '+t.to.map(id=>`<span class="who2">${avatar(member(id))}${esc(nm(id))}</span>`).join(' '):''}`}${t.note?` · “${esc(t.note)}”`:''}</div></div></div>`).join('')}</div>
-    ${sc?`<div class="scorebox ${isDone(c)?'got':''}">${isDone(c)?'🏆 ได้แต้มแล้ว':'🎯 แต้มเมื่อปิดงาน'} · ${SIZES[c.size||'s'].icon} ${SIZES[c.size||'s'].label} ${sc.base} แต้ม${sc.imp.mult>1?` × ${sc.imp.icon} ${sc.imp.label.split(' /')[0]} ×${sc.imp.mult}`:''} × ${sc.team?'ทีม '+SCORE.team*100+'%':'เดี่ยว 100%'}${sc.late?' × ส่งช้า '+SCORE.late:''}
+    ${sc?`<div class="scorebox ${isArch(c)?'got':''}">${isArch(c)?'🏆 ได้แต้มแล้ว (Archive)':isDone(c)?'⏳ แต้มที่จะได้เมื่อตรวจรับ (Archive)':'🎯 แต้มเมื่อปิดงาน + ตรวจรับ'} · ${SIZES[c.size||'s'].icon} ${SIZES[c.size||'s'].label} ${sc.base} แต้ม${sc.imp.mult>1?` × ${sc.imp.icon} ${sc.imp.label.split(' /')[0]} ×${sc.imp.mult}`:''} × ${sc.team?'ทีม '+SCORE.team*100+'%':'เดี่ยว 100%'}${sc.late?' × ส่งช้า '+SCORE.late:''}
       = <b>คนละ ${fmtPts(sc.each)} แต้ม</b>${sc.starters.length?` <span class="muted">· 💡 ผู้ริเริ่ม +${sc.bonus}</span>`:''}
       <div class="ppl">${ppl.map(id=>`<span class="who2">${avatar(member(id))}${esc(nm(id))}${sc.starters.includes(id)?' 💡':''} <b>${fmtPts(ptsOf(sc,id))}</b></span>`).join('')}</div></div>`:''}
   </div>`;
@@ -1512,6 +1622,7 @@ function renderCardModal(){
   ${cv?`<div class="cover"><img src="${esc(cv)}" alt="" referrerpolicy="no-referrer" onerror="this.parentNode.remove()"></div>`:''}
   <div class="mhead"><button class="ring ${isDone(c)?'on':''}" data-act="toggleDone" title="${isDone(c)?'เสร็จแล้ว — กดเพื่อเปิดงานใหม่':'กดเพื่อปิดงาน (ทำเครื่องหมายว่าเสร็จ)'}">${isDone(c)?'✓':''}</button><input class="mtitle" id="cTitle" value="${esc(c.title)}"><button class="icon" data-act="closeModal">✕</button></div>
   <div class="mmeta">${!isTask(c)?'<span class="badge" style="color:#3b82f6">📁 ข้อมูล / ไฟล์</span>':''}<span class="pill">อยู่ใน ${esc(list(c.list_id)?.name||'')}</span>${d?`<span class="badge ${d.cls}">📅 ${d.text}</span>`:''}</div>
+  ${archBarHTML(c)}
   ${pct!=null?`<div class="prog"><span class="muted">ความคืบหน้า</span><div class="bar big"><i style="width:${pct}%"></i></div><b>${pct}%</b></div>`:''}
   <div class="cgrid">
    <div class="cleft">
@@ -1596,6 +1707,7 @@ function periodRange(){
   const t=today(),end=Date.now()+DAY;
   if(ui.period==='today') return [+t,end];
   if(ui.period==='month'){const d=new Date(t);d.setDate(1);return [+d,end]}
+  if(ui.period==='year'){return [+new Date(t.getFullYear(),0,1),end]}
   if(ui.period==='custom'){const a=+new Date(ui.from+'T00:00:00'),b=+new Date(ui.to+'T23:59:59');return [a,b]}
   if(ui.period==='cmonth'){const [y1,m1]=ui.mFrom.split('-').map(Number),[y2,m2]=ui.mTo.split('-').map(Number);return [+new Date(y1,m1-1,1),+new Date(y2,m2,0,23,59,59)]}
   return [Date.now()-(+ui.period)*DAY,end];
@@ -1663,7 +1775,7 @@ function memberStats(id,cards){
   const ps=periodStart();
   const contrib=id===null?mine:cards.filter(c=>isTask(c)&&contributors(c).includes(id));
   const doneP=contrib.filter(c=>isDone(c)&&inPeriod(c.done_at));
-  const P=id===null?{pts:0,solo:0,team:0,soloN:0,teamN:0,grow:0,growN:0,initN:0,kudosN:0,kudos:0}:pointsFor(id,cards);
+  const P=id===null?{pts:0,solo:0,team:0,soloN:0,teamN:0,grow:0,growN:0,initN:0,kudosN:0,kudos:0,pend:0,pendN:0}:pointsFor(id,cards);
   const handoffs=id===null?0:cards.reduce((n,c)=>n+trailOf(c).filter(t=>t.t==='handoff'&&t.by===id&&inPeriod(t.at)).length,0);
   const withDue=doneP.filter(c=>c.due);
   const onTime=withDue.filter(c=>new Date(c.done_at)<=new Date(c.due+'T23:59:59')).length;
@@ -1691,10 +1803,10 @@ function renderTeam(){
     const sorted=[...s.open].sort((a,b)=>String(a.due||'0').localeCompare(String(b.due||'0')));
     return `<div class="mcard ${id===session.id?'me':''}"><div class="mtop">${avatar(m,'lg')}<div><div class="nm ${admin&&id?'link':''}" ${admin&&id?`data-act="dashPerson" data-id="${id}" title="ดูแดชบอร์ดรายบุคคล"`:''}>${esc(m.name)}${id===session.id?' <span class="muted">(ฉัน)</span>':''}</div><div class="muted">${esc([m.role,m.dept].filter(Boolean).join(' · '))}</div></div></div>
       <div class="stats"><div class="stat green"><b>${s.dd.ok}</b><span>ตามแผน</span></div><div class="stat" style="--x:1"><b style="color:var(--yel)">${s.dd.soon}</b><span>ใกล้กำหนด</span></div><div class="stat red"><b>${s.dd.late}</b><span>เลยกำหนด</span></div><div class="stat gold"><b>${id===null?s.doneP.length:fmtPts(s.P.pts)}</b><span>${id===null?'เสร็จ':'🏆 แต้ม'} (${periodLabel()})</span></div></div>
-      ${id!==null?`<div class="muted" style="margin:-4px 0 8px">เสร็จ ${s.doneP.length} งาน · เดี่ยว ${s.P.soloN} · ทีม ${s.P.teamN} · ส่งต่อ ${s.handoffs} · 🙏 ${s.P.kudosN} · KPI <b class="ptsv">${kpiOf(s,id).score}</b>
+      ${id!==null?`<div class="muted" style="margin:-4px 0 8px">เสร็จ ${s.doneP.length} งาน · เดี่ยว ${s.P.soloN} · ทีม ${s.P.teamN} · ส่งต่อ ${s.handoffs} · 🙏 ${s.P.kudosN} · KPI <b class="ptsv">${kpiOf(s,id).score}</b>${s.P.pendN?` · <span class="pendtag" title="งานเสร็จแล้ว รอหัวหน้าตรวจรับ (Archive) จึงเข้าคะแนน">⏳ รอตรวจรับ ${s.P.pendN} งาน (${fmtPts(s.P.pend)} แต้ม)</span>`:''}
         ${id!==session.id?` <button class="sm" data-act="kudos" data-id="${id}">🙏 ขอบคุณ</button>`:''}</div>`:''}
       <div class="muted">งานค้าง ${s.open.length} งาน${s.progress!=null?` · เช็คลิสต์คืบหน้า ${s.progress}%`:''}</div><div class="bar"><i style="width:${s.open.length/maxOpen*100}%"></i></div>
-      ${sorted.slice(0,8).map(c=>{const d=dueInfo(c);return `<div class="mini" data-act="openCard" data-id="${c.id}"><span class="t">${esc(c.title)}</span><span class="pill">${esc(list(c.list_id).name)}</span>${d?`<span class="badge ${d.cls}">${d.text}</span>`:''}</div>`}).join('')||'<div class="muted">ว่าง ไม่มีงานค้าง 🎉</div>'}
+      ${sorted.slice(0,8).map(c=>{const d=dueInfo(c);return `<div class="mini" data-act="openCard" data-id="${c.id}"><span class="t">${esc(c.title)}</span><span class="pill">${esc(lname(c))}</span>${d?`<span class="badge ${d.cls}">${d.text}</span>`:''}</div>`}).join('')||'<div class="muted">ว่าง ไม่มีงานค้าง 🎉</div>'}
       ${sorted.length>8?`<div class="muted">+ อีก ${sorted.length-8} งาน</div>`:''}</div>`}).join('')}</div></div>`;
   bindScope();
 }
@@ -1726,7 +1838,7 @@ function renderDash(){
   $('#main').innerHTML=`<div class="wrap">${scopeBar(title,picker+`<button class="sm" data-act="kpiHelp">📖 KPI วัดอะไร</button><button class="sm" data-act="exportReport">⬇ รายงาน CSV</button>`)}
     ${person?`<div class="phead">${avatar(person,'lg')}<div><div class="nm">${esc(person.name)}</div><div class="muted">${esc([person.code,person.role,person.dept].filter(Boolean).join(' · '))}</div></div><div class="spacer"></div>${admin?'<button class="sm" data-act="dashPerson" data-id="">← ทั้งทีม</button>':''}</div>${scorecardHTML(person,s1)}`:''}
     <div class="kpis">
-      ${person?`<div class="kpi pts"><b>${fmtPts(s1.P.pts)}</b><span>🏆 แต้ม KPI (${periodLabel()})</span></div>
+      ${person?`<div class="kpi pts"><b>${fmtPts(s1.P.pts)}</b><span>🏆 แต้ม KPI (${periodLabel()})${s1.P.pendN?`<br><span class="pendtag">⏳ รอตรวจรับ ${s1.P.pendN} งาน · ${fmtPts(s1.P.pend)} แต้ม</span>`:''}</span></div>
         <div class="kpi"><b>${s1.P.soloN} / ${s1.P.teamN}</b><span>งานเดี่ยว / งานทีม</span></div>
         <div class="kpi"><b>${s1.handoffs}</b><span>🔁 ส่งต่องาน</span></div>
         <div class="kpi grow"><b>${fmtPts(s1.P.grow)}</b><span>🚀 แต้มพัฒนาบริษัท (${s1.P.growN} งาน · ริเริ่ม ${s1.P.initN})</span></div>`
@@ -1756,15 +1868,16 @@ function renderDash(){
       <div class="chartbox kfeed"><h3>🙏 คำขอบคุณล่าสุด <button class="sm" data-act="kudos">+ ส่งคำขอบคุณ</button></h3><div class="kscroll">${(S.kudos||[]).filter(k=>k.type!=='safety'&&inPeriod(k.at)).sort((a,b)=>b.at.localeCompare(a.at)).slice(0,20).map(kudosItem).join('')||'<div class="muted">ยังไม่มี — เป็นคนแรกที่ขอบคุณเพื่อนสิ!</div>'}</div></div></div>`:''}
     ${person?`<div class="tblwrap"><table><thead><tr><th>งาน</th><th>สถานะ</th><th>กำหนดส่ง</th><th>ขนาด</th><th>บทบาท</th><th>แต้ม</th><th>เสร็จเมื่อ</th></tr></thead><tbody>
       ${[...cards].sort((a,b)=>(isDone(a)-isDone(b))||String(a.due||'').localeCompare(String(b.due||''))).map(c=>{const d=dueInfo(c),p=ckProgress(c);const sc=cardScore(c),tr=trailOf(c),role=[tr[0]&&(tr[0].to||[]).includes(pid)?(sc.starters.includes(pid)?'💡 ผู้ริเริ่ม':'เริ่มงาน'):'',tr.some((t,i)=>i>0&&t.t==='handoff'&&(t.to||[]).includes(pid))?'รับช่วง':'',c.done_by===pid?'ปิดงาน':''].filter(Boolean).join(' · ')||(c.assignees.includes(pid)?'ผู้รับผิดชอบ':'-');
-        return `<tr class="click" data-act="openCard" data-id="${c.id}"><td>${esc(c.title)}</td><td>${esc(list(c.list_id).name)}</td><td>${d?`<span class="badge ${d.cls}">${d.text}</span>`:'-'}</td><td>${SIZES[c.size||'s'].icon} ${SIZES[c.size||'s'].pts}${(c.impact&&c.impact!=='op')?` ${IMPACT[c.impact].icon}×${IMPACT[c.impact].mult}`:''}</td><td>${role}${sc.team?' <span class="muted">(ทีม)</span>':''}</td><td><b>${isDone(c)&&sc.people.includes(pid)?fmtPts(ptsOf(sc,pid)):'-'}</b></td><td>${c.done_at?fmtD(c.done_at):'-'}</td></tr>`}).join('')||'<tr><td colspan="7" class="muted">ยังไม่มีงาน</td></tr>'}
+        return `<tr class="click" data-act="openCard" data-id="${c.id}"><td>${esc(c.title)}</td><td>${esc(lname(c))}</td><td>${d?`<span class="badge ${d.cls}">${d.text}</span>`:'-'}</td><td>${SIZES[c.size||'s'].icon} ${SIZES[c.size||'s'].pts}${(c.impact&&c.impact!=='op')?` ${IMPACT[c.impact].icon}×${IMPACT[c.impact].mult}`:''}</td><td>${role}${sc.team?' <span class="muted">(ทีม)</span>':''}</td><td><b>${isDone(c)&&sc.people.includes(pid)?fmtPts(ptsOf(sc,pid)):'-'}</b></td><td>${c.done_at?fmtD(c.done_at):'-'}</td></tr>`}).join('')||'<tr><td colspan="7" class="muted">ยังไม่มีงาน</td></tr>'}
     </tbody></table></div>`
     :`<div class="tblwrap"><table><thead><tr><th>พนักงาน</th><th>ตำแหน่ง</th><th>📊 KPI</th><th>🏆 แต้ม</th><th>✅ คุณภาพ</th><th>🙏</th><th>🚀 พัฒนา</th><th>เดี่ยว/ทีม</th><th>🔁 ส่งต่อ</th><th>🟢</th><th>🟡</th><th>🔴</th><th>เสร็จ</th><th>สำเร็จ</th><th>ตรงเวลา</th><th>Cycle (วัน)</th><th>เช็คลิสต์</th></tr></thead><tbody>
       ${[...st].sort((a,b)=>b.s.P.pts-a.s.P.pts||b.s.doneP.length-a.s.doneP.length).map(({m,s},i)=>`<tr class="click" data-act="dashPerson" data-id="${m.id}" title="ดูรายบุคคล"><td>${['🥇','🥈','🥉'][i]||''} ${avatar(m)} ${esc(m.name)}</td><td>${esc(m.role||'')}</td><td>${(k=>`<span class="gr grade-${k.grade}">${k.grade}</span> ${k.score}${k.safe?'':' 🦺'}`)(kpiOf(s,m.id))}</td><td><b class="ptsv">${fmtPts(s.P.pts)}</b></td><td>${s.quality==null?'-':s.quality+'%'}</td><td>${s.P.kudosN||'-'}</td><td>${s.P.grow?fmtPts(s.P.grow)+(s.P.initN?` <span class="muted">💡${s.P.initN}</span>`:''):'-'}</td><td>${s.P.soloN} / ${s.P.teamN}</td><td>${s.handoffs}</td><td>${s.dd.ok}</td><td>${s.dd.soon}</td><td style="color:${s.dd.late?'var(--late)':'inherit'}">${s.dd.late}</td><td><b>${s.doneP.length}</b></td><td>${s.success==null?'-':s.success+'%'}</td><td>${s.onTime==null?'-':s.onTime+'%'}</td><td>${s.cycle==null?'-':s.cycle.toFixed(1)}</td><td>${s.progress==null?'-':s.progress+'%'}</td></tr>`).join('')}
     </tbody></table></div>`}</div>`;
+  $('#main .wrap').insertAdjacentHTML('beforeend',histHTML(people)); bindHist();
   bindScope();
   const ps2=$('#personSel');if(ps2)ps2.onchange=e=>{ui.dashPerson=e.target.value;renderMain()};
   ui._report=person
-    ?{name:person.name,rows:[['งาน','สถานะ','กำหนดส่ง','สถานะกำหนดส่ง','ขนาด','แต้มฐาน','หมวดผลงาน','ทีม/เดี่ยว','แต้มที่ได้','เช็คลิสต์%','เริ่ม','เสร็จ']].concat(cards.map(c=>{const d=dueInfo(c),p=ckProgress(c),sc=cardScore(c);return [c.title,list(c.list_id).name,c.due||'',d?d.text:'',SIZES[c.size||'s'].label,sc.base,sc.imp.label,sc.team?'ทีม':'เดี่ยว',isDone(c)&&sc.people.includes(pid)?ptsOf(sc,pid):'',p.total?Math.round(p.done/p.total*100):'',c.started_at?c.started_at.slice(0,10):'',c.done_at?c.done_at.slice(0,10):'']}))}
+    ?{name:person.name,rows:[['งาน','สถานะ','กำหนดส่ง','สถานะกำหนดส่ง','ขนาด','แต้มฐาน','หมวดผลงาน','ทีม/เดี่ยว','แต้มที่ได้','เช็คลิสต์%','เริ่ม','เสร็จ']].concat(cards.map(c=>{const d=dueInfo(c),p=ckProgress(c),sc=cardScore(c);return [c.title,lname(c),c.due||'',d?d.text:'',SIZES[c.size||'s'].label,sc.base,sc.imp.label,sc.team?'ทีม':'เดี่ยว',isDone(c)&&sc.people.includes(pid)?ptsOf(sc,pid):'',p.total?Math.round(p.done/p.total*100):'',c.started_at?c.started_at.slice(0,10):'',c.done_at?c.done_at.slice(0,10):'']}))}
     :{name:'ทั้งทีม',rows:[['พนักงาน','ตำแหน่ง','KPI Score','เกรด','ผลงาน%','คุณภาพ%','ทีมเวิร์ก%','Safety','แต้ม KPI','แต้มเดี่ยว','แต้มทีม','🙏 ได้รับ','ผ่านรอบแรก%','ไม่เลื่อนกำหนด%','CSAT','ปิดดีล%','แต้มพัฒนาบริษัท','งานริเริ่ม','งานเดี่ยว','งานทีม','ส่งต่อ','ตามแผน','ใกล้กำหนด','เลยกำหนด','เสร็จ','อัตราสำเร็จ%','ตรงเวลา%','Cycle(วัน)','เช็คลิสต์%']].concat(st.map(({m,s})=>{const k=kpiOf(s,m.id);return [m.name,m.role||'',k.score,k.grade,k.out,k.qual,k.team,k.safe?'OK':'⚠ '+s.safety.length,s.P.pts,s.P.solo,s.P.team,s.P.kudosN,s.firstPass??'',s.noSlip??'',s.csat??'',s.winRate??'',s.P.grow,s.P.initN,s.P.soloN,s.P.teamN,s.handoffs,s.dd.ok,s.dd.soon,s.dd.late,s.doneP.length,s.success??'',s.onTime??'',s.cycle==null?'':s.cycle.toFixed(1),s.progress??'']}))};
   const tx=cssv('--mut'),ln=cssv('--line'),gold=cssv('--gold'),red=cssv('--late'),ok=cssv('--ok'),yel=cssv('--yel'),bg2=cssv('--bg2');
   Chart.defaults.color=tx;Chart.defaults.borderColor=ln;Chart.defaults.font.family='"Noto Sans Thai",sans-serif';
@@ -1773,15 +1886,15 @@ function renderDash(){
   if(person) charts.push(new Chart($('#ch1'),{type:'bar',data:{labels:['ตามแผน','ใกล้กำหนด','เลยกำหนด','ไม่มีกำหนด'],datasets:[{label:'งานค้าง',data:[dd.ok,dd.soon,dd.late,dd.none],backgroundColor:[ok,yel,red,'#64748b']}]},options:{...base,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}}}}}));
   else { const rk=[...st].sort((a,b)=>b.s.P.pts-a.s.P.pts);
     charts.push(new Chart($('#ch1'),{type:'bar',data:{labels:rk.map(x=>x.m.name.split(' ')[0]),datasets:[{label:'แต้มงานเดี่ยว',data:rk.map(x=>x.s.P.solo),backgroundColor:gold},{label:'แต้มงานทีม',data:rk.map(x=>x.s.P.team),backgroundColor:'#3b82f6'},{label:'🙏 ขอบคุณ',data:rk.map(x=>x.s.P.kudos),backgroundColor:'#a855f7'}]},options:{...base,indexAxis:'y',scales:{x:{stacked:true,beginAtZero:true},y:{stacked:true}}}})); }
-  const byStatus={};cards.forEach(c=>{const n=list(c.list_id).name;byStatus[n]=(byStatus[n]||0)+1});
+  const byStatus={};cards.forEach(c=>{const n=lname(c);byStatus[n]=(byStatus[n]||0)+1});
   charts.push(new Chart($('#ch2'),{type:'doughnut',data:{labels:Object.keys(byStatus),datasets:[{data:Object.values(byStatus),backgroundColor:[gold,'#3b82f6',red,ok,'#a855f7','#64748b'],borderColor:bg2}]},options:{...base,cutout:'60%'}}));
   const wk=[...Array(8)].map((_,i)=>{const e=Date.now()-(7-i)*7*DAY;return {s:e-7*DAY,e,l:fmtD(new Date(e-6*DAY).toISOString())}});
   const inW=(iso,w)=>iso&&+new Date(iso)>=w.s&&+new Date(iso)<w.e;
   charts.push(new Chart($('#ch3'),{type:'line',data:{labels:wk.map(w=>w.l),datasets:[{label:'เสร็จ',data:wk.map(w=>cards.filter(c=>isDone(c)&&inW(c.done_at,w)).length),borderColor:ok,backgroundColor:'rgba(47,191,113,.15)',fill:true,tension:.3},{label:'งานใหม่',data:wk.map(w=>cards.filter(c=>inW(c.created_at,w)).length),borderColor:gold,tension:.3}]},options:{...base,scales:{y:{beginAtZero:true,ticks:{precision:0}}}}}));
   if(person){
     const mo=[...Array(6)].map((_,i)=>{const d=new Date();d.setDate(1);d.setMonth(d.getMonth()-(5-i));return {y:d.getFullYear(),m:d.getMonth(),l:d.toLocaleDateString('th-TH',{month:'short'})}});
-    const inM=(c,x)=>isDone(c)&&c.done_at&&new Date(c.done_at).getFullYear()===x.y&&new Date(c.done_at).getMonth()===x.m;
-    const ptsM=(x,team)=>Math.round(cards.filter(c=>inM(c,x)).reduce((a,c)=>{const sc=cardScore(c);return a+(sc.team===team?ptsOf(sc,pid):0)},0)*10)/10;
+    const inM=(c,x)=>isArch(c)&&new Date(c.archived_at).getFullYear()===x.y&&new Date(c.archived_at).getMonth()===x.m;
+    const ptsM=(x,team)=>Math.round(cards.filter(c=>inM(c,x)).reduce((a,c)=>a+((archIds(c).length>1)===team?archPts(c,pid):0),0)*10)/10;
     charts.push(new Chart($('#ch4'),{type:'bar',data:{labels:mo.map(x=>x.l),datasets:[{label:'แต้มเดี่ยว',data:mo.map(x=>ptsM(x,false)),backgroundColor:gold},{label:'แต้มทีม',data:mo.map(x=>ptsM(x,true)),backgroundColor:'#3b82f6'}]},options:{...base,scales:{x:{stacked:true},y:{stacked:true,beginAtZero:true}}}}));
   } else {
     const stg=stageTimes(cards), cv5=$('#ch5');
@@ -1847,6 +1960,16 @@ async function act(a,d={}){
   const c=card(ui.openCard);
   switch(a){
     case 'openCard': openCard(d.id);break;
+    case 'archive': if(c&&await archiveCard(c)) closeModal(); break;
+    case 'unarchive': if(c){await unarchiveCard(c); renderCardModal()} break;
+    case 'unarchiveId':{const x=card(d.id); if(x){await unarchiveCard(x); renderArchive()} break}
+    case 'archView': renderArchive(); break;
+    case 'archList':{ if(!isAdmin())return; const l=list(d.id); const cs=S.cards.filter(x=>x.list_id===l.id&&!isArch(x));
+      const ok=cs.filter(x=>{const k=ckProgress(x);return !k.total||k.done===k.total}), skip=cs.length-ok.length;
+      if(!ok.length) return toast(`ยังไม่มีการ์ดที่เช็คลิสต์ครบ (${skip} ใบยังไม่ครบ) — เปิดการ์ดเพื่อ Archive ทีละใบได้`);
+      if(!confirm(`ตรวจรับ & Archive ${ok.length} การ์ดในคอลัมน์ "${l.name}"?${skip?`\n(ข้าม ${skip} ใบที่เช็คลิสต์ยังไม่ครบ)`:''}\n\nแต้มจะถูกบันทึกเข้าคะแนนสะสมของแต่ละคน`)) return;
+      let n=0; for(const x of ok) if(await archiveCard(x,{bulk:true})) n++;
+      toast(`📦 Archive แล้ว ${n} การ์ด · บันทึกแต้มเรียบร้อย${skip?` · ข้าม ${skip} ใบ`:''}`); scheduleRender(); break }
     case 'closeModal': closeModal();break;
     case 'toggleTheme': applyTheme(document.documentElement.dataset.theme==='dark'?'light':'dark');if(session)renderMain();break;
     case 'logout': if(session?.email) lsSet('tesrboard_last_user',session.email); localStorage.removeItem(LS_SES);localStorage.removeItem('tesrboard_cache_v1');location.reload();break;
@@ -1895,7 +2018,7 @@ async function act(a,d={}){
         ${isAdmin()?`<label class="fl">👤 เจ้าของลิสต์ (แก้ไข/ลบได้)<select id="lOwner"><option value="">ทีม · เฉพาะ Admin</option>${S.members.filter(m=>m.id!=='admin'&&m.active!==false).map(m=>`<option value="${m.id}" ${m.id===l.owner?'selected':''}>${esc(m.name)}</option>`).join('')}</select></label>`:''}
         <div class="mfoot"><button class="danger sm" data-act="delList" data-id="${l.id}">ลบลิสต์</button><button class="pri" data-act="saveList" data-id="${l.id}">บันทึก</button></div>`;showModal();break}
     case 'saveList':{const l=list(d.id);if(!canL(l))return;if($('#lOwner')){const o=$('#lOwner').value;if(o)l.owner=o;else delete l.owner}l.name=$('#lName').value.trim()||l.name;l.status=$('#lStat').value;l.pub=$('#lPub').value.trim();l.pub_desc=$('#lPubDesc').value.trim();l.is_done=l.status==='done';await store.upsert('lists',l);closeModal();scheduleRender();break}
-    case 'delList':{const l=list(d.id),n=S.cards.filter(x=>x.list_id===l.id);if(!canL(l))return;
+    case 'delList':{const l=list(d.id),n=S.cards.filter(x=>x.list_id===l.id&&!isArch(x));if(!canL(l))return;
       if(!isAdmin()&&n.some(x=>x.created_by!==session.id))return toast('ลิสต์นี้มีการ์ดที่คนอื่นสร้าง — ย้ายการ์ดเหล่านั้นออกก่อนจึงลบได้');if(!confirm(`ลบลิสต์ "${l.name}"${n.length?` และการ์ด ${n.length} ใบ`:''}?`))return;
       for(const x of n)await store.remove('cards',x.id);await store.remove('lists',l.id);closeModal();scheduleRender();break}
     case 'toggleAssignee':{const i=c.assignees.indexOf(d.id);i>=0?c.assignees.splice(i,1):c.assignees.push(d.id);await saveCard(c,(i>=0?'เอาออก ':'มอบหมายให้ ')+member(d.id).name);renderCardModal();break}
@@ -2001,7 +2124,7 @@ $('#boardMenu').onclick=async()=>{
   if(ch==='1'){const n=prompt('ชื่อบอร์ดใหม่');if(n?.trim()){const nb=await createBoard(n.trim());ui.board=nb.id;lsSet(LS_BOARD,nb.id);renderMain()}}
   else if(ch==='2'){const n=prompt('ชื่อใหม่',b.name);if(n?.trim()){b.name=n.trim();await store.upsert('boards',b);renderMain()}}
   else if(ch==='3'){if(S.boards.length<2)return toast('ต้องมีอย่างน้อย 1 บอร์ด');if(!confirm(`ลบบอร์ด "${b.name}" และงานทั้งหมดในบอร์ด?`))return;
-    for(const c of S.cards.filter(c=>c.board_id===b.id))await store.remove('cards',c.id);for(const l of boardLists(b.id))await store.remove('lists',l.id);await store.remove('boards',b.id);ui.board=S.boards[0].id;renderMain()}
+    for(const c of S.cards.filter(c=>c.board_id===b.id&&!isArch(c)))await store.remove('cards',c.id);for(const l of boardLists(b.id))await store.remove('lists',l.id);await store.remove('boards',b.id);ui.board=S.boards[0].id;renderMain()}
 };
 
 /* ===== LOGIN & BOOT ===== */
