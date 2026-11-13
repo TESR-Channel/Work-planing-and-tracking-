@@ -385,6 +385,7 @@ th{font-family:Orbitron,sans-serif;font-size:11px;letter-spacing:1px;background:
 .ostep .on2{flex:0 0 auto;width:20px;height:20px;border-radius:50%;display:inline-grid;place-items:center;font-size:11px;background:var(--bg2);border:1px solid var(--edge)}
 .ostep.on .on2{background:var(--ok);color:#fff;border-color:var(--ok)}.onext{font-size:11px;color:var(--gold);border:1px solid var(--gold);border-radius:20px;padding:0 8px}
 .oins{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 0 28px}.oins input{flex:1 1 200px;min-width:0}
+.omore .oins select{flex:0 0 auto;max-width:170px}.omore .oins input{flex:1 1 220px}.omore .omadd{margin:6px 0 0 28px;border-style:dashed}
 .ometa{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:6px 0 0 28px}.ometa select{max-width:130px;font-size:12px;padding:2px 4px}
 .onote{margin:6px 0 0 28px;font-size:13px;color:var(--gold);word-break:break-word}.ostep>.muted{margin:4px 0 0 28px;font-size:12px}
 .trksend{display:flex;flex-direction:column;gap:6px;margin:8px 0 10px}
@@ -724,7 +725,7 @@ const T = { mrows:'tb_members', boards:'tb_boards', lists:'tb_lists', cards:'tb_
 const KEYS = Object.keys(T);
 const LS_DATA='tesrboard_demo_v2', LS_CFG='tesrboard_cfg', LS_SES='tesrboard_session', LS_BOARD='tesrboard_board', LS_THEME='tesrboard_theme';
 const PALETTE=['#d71f33','#d4a72c','#2fbf71','#3b82f6','#a855f7','#ec4899','#14b8a6','#f97316','#64748b','#84cc16'];
-const APP_VER='v3.18'; // เพิ่มเลขทุกครั้งที่อัปเดตหน้าเว็บ · ดูที่มุมโลโก้ว่าเครื่องโหลดเวอร์ชันใหม่แล้ว
+const APP_VER='v3.19'; // เพิ่มเลขทุกครั้งที่อัปเดตหน้าเว็บ · ดูที่มุมโลโก้ว่าเครื่องโหลดเวอร์ชันใหม่แล้ว
 const PRIO={low:'ต่ำ',normal:'ปกติ',high:'สูง',urgent:'ด่วนมาก'};
 /* 🚚 ลิงก์ติดตามสำหรับลูกค้า (หน้า track.html) — ต้องตรงกับ TRK_DOCS ใน Code.gs */
 const TRK_UNITS={shop:'TESR Shop',academy:'TESR Academy',logistics:'TESR Logistics'};
@@ -739,9 +740,15 @@ function splitDocs(t,k){
   const key=k.split('.')[1], kind=u=>(FA_KIND.find(([p])=>u.includes(p))||[])[1];
   if(us.length===1&&v.trim()===us[0]) return;
   let mine=us.find(u=>kind(u)===key)||us.find(u=>!kind(u)||!(['q','inv','tax','rcpt'].includes(kind(u))))||us[0];
-  us.forEach(u=>{const kk=kind(u); if(u!==mine&&kk&&kk!==key&&!String(t.docs?.[kk]||'').trim()) setP(t,'docs.'+kk,u)});
+  us.forEach(u=>{ if(u===mine) return; const kk=kind(u);
+    if(kk&&kk!==key&&!String(t.docs?.[kk]||'').trim()) setP(t,'docs.'+kk,u);
+    else if(!docMore(t).some(m=>m.url===u)&&!Object.values(t.docs).some(v=>typeof v==='string'&&v.trim()===u)) docMore(t).push({k:kk&&DOC_MORE_K.includes(kk)?kk:key,url:u}) });   // ใบที่ 2, 3 … ไม่หาย
   setP(t,k,mine);
 }
+/* ➕ เอกสารหลายใบ (เช่น ออกใบเสร็จ 2 ใบ) — เก็บใน trk.docs.more = [{k:'tax'|'rcpt'|'inv', url}] · ลูกค้าเห็นครบในหน้าติดตาม */
+const DOC_MORE_K=['inv','tax','rcpt'];
+const DOC_MORE_L={inv:'ใบแจ้งหนี้ / ใบวางบิล',tax:'ใบกำกับภาษี',rcpt:'ใบเสร็จรับเงิน'};
+function docMore(t){ t.docs=t.docs||{}; if(!Array.isArray(t.docs.more)) t.docs.more=[]; return t.docs.more }
 /* ===== KPI POINTS (ปรับตัวเลขได้ตรงนี้) ===== */
 const SIZES={s:{label:'งานทั่วไป',pts:1,icon:'●'},m:{label:'งานกลาง',pts:3,icon:'◆'},l:{label:'โปรเจกต์ / งานใหญ่-ยาก',pts:5,icon:'⭐'}};
 const SCORE={solo:1.0, team:0.6, onTime:1.0, late:0.5, initiator:1};  // เดี่ยว 100% · ทีม คนละ 60% · ส่งช้า ×0.5 · ผู้ริเริ่ม +1
@@ -1113,11 +1120,19 @@ function orderHTML(c){
       return `<div class="ostep ${it.done?'on':''} ${it===nextIt?'next':''} ${open?'open':''}"><div class="oh"><input type="checkbox" data-act="toggleItem" data-cl="${cl.id}" data-it="${it.id}" ${it.done?'checked':''}>
         <span class="on2">${ix+1}</span><button class="otg" data-act="oTog" data-it="${it.id}"><b class="${it.done?'strike':''}">${esc(it.text)}</b>${it===nextIt?'<span class="onext">ขั้นถัดไป</span>':''}<span class="oar">${open?'▾':'▸'}</span></button></div>
         ${sub?`<div class="osub">${sub}</div>`:''}
-        ${open?`${ins.length?`<div class="oins">${ins.map(([k,ph])=>`<input data-trk="${k}" value="${esc(getP(t,k)||'')}" placeholder="${esc(ph)}">`).join('')}</div>`:''}${pay?`<div class="osub">${pay}</div>`:''}${it.k==='pay'?`<div class="opay"><label class="upl sm opup">📎 แนบสลิป / หลักฐานโอนเงิน<input type="file" class="payUp" accept="image/*,application/pdf" multiple hidden></label>${payListHTML(c)}</div>`:''}
+        ${open?`${ins.length?`<div class="oins">${ins.map(([k,ph])=>`<input data-trk="${k}" value="${esc(getP(t,k)||'')}" placeholder="${esc(ph)}">`).join('')}</div>`:''}${moreDocsHTML(t,ins)}${pay?`<div class="osub">${pay}</div>`:''}${it.k==='pay'?`<div class="opay"><label class="upl sm opup">📎 แนบสลิป / หลักฐานโอนเงิน<input type="file" class="payUp" accept="image/*,application/pdf" multiple hidden></label>${payListHTML(c)}</div>`:''}
         <div class="ometa"><input type="date" class="itdue ${due}" data-itdue data-cl="${cl.id}" data-it="${it.id}" value="${it.due||''}" title="กำหนดของขั้นนี้"><select data-itemassign data-cl="${cl.id}" data-it="${it.id}">${memberOpts(it.assignee,'ใครทำ?')}</select>
           <button class="sm" data-act="itNote" data-cl="${cl.id}" data-it="${it.id}">📝 ${it.note?'แก้โน้ต':'โน้ตภายใน'}</button></div>
         ${it.note?`<div class="onote">📝 ${linkify(it.note)}</div>`:''}`:''}</div>`}).join('')}
   </div>`;
+}
+function moreDocsHTML(t,ins){
+  const ks=ins.map(([k])=>k.split('.')[1]).filter(k=>DOC_MORE_K.includes(k)); if(!ks.length) return '';
+  const more=(t.docs?.more||[]).map((m,i)=>({...m,i})).filter(m=>ks.includes(m.k));
+  const cnt={}; ks.forEach(k=>cnt[k]=String(t.docs?.[k]||'').trim()?1:0);
+  return `<div class="omore">${more.map(m=>{cnt[m.k]=(cnt[m.k]||0)+1;
+    return `<div class="oins"><select data-dmk="${m.i}">${ks.map(k=>`<option value="${k}" ${k===m.k?'selected':''}>${DOC_MORE_L[k]}</option>`).join('')}</select><input data-dmu="${m.i}" value="${esc(m.url||'')}" placeholder="ลิงก์${DOC_MORE_L[m.k]} ใบที่ ${cnt[m.k]} (FlowAccount)"><button class="icon sm" data-act="docMoreDel" data-i="${m.i}" title="ลบบรรทัดนี้">✕</button></div>`}).join('')}
+    <button class="sm omadd" data-act="docMoreAdd" data-k="${ks[ks.length-1]}" title="ออกเอกสารหลายใบ เช่น ใบเสร็จ 2 ใบ">＋ เพิ่มลิงก์${ks.map(k=>DOC_MORE_L[k].replace(' / ใบวางบิล','')).join(' / ')}อีกใบ</button></div>`;
 }
 function trkNew(c,extra={}){ // ค่าเริ่มต้นตอนเปิดลิงก์ติดตาม
   const bn=S.boards.find(b=>b.id===c.board_id)?.name||'',ref=(c.title.match(/\b(QT|INV|IV|RE|RC|PO|AC)[-\s]?\d{3,}\b/i)||[''])[0].replace(/\s/g,'').toUpperCase();
@@ -1807,6 +1822,8 @@ function renderCardModal(){
   if($('#cSize'))$('#cSize').onchange=e=>{c.size=e.target.value;saveCard(c,'ขนาดงาน → '+SIZES[c.size].label+' ('+SIZES[c.size].pts+' แต้ม)').then(renderCardModal)};
   $('#cFile').onchange=e=>uploadFiles(c.id,[...e.target.files]);
   $$('.payUp').forEach(el=>el.onchange=e=>uploadPays(c,[...e.target.files]));
+  $$('[data-dmu]').forEach(el=>el.onchange=()=>{const m=docMore(c.trk)[+el.dataset.dmu];if(!m)return;m.url=el.value.trim();saveCard(c,'🧾 แก้ลิงก์'+DOC_MORE_L[m.k]+' (เพิ่มเติม)')});
+  $$('[data-dmk]').forEach(el=>el.onchange=()=>{const m=docMore(c.trk)[+el.dataset.dmk];if(!m)return;m.k=el.value;saveCard(c);renderCardModal()});
   $$('[data-trk]').forEach(el=>el.onchange=()=>{const k=el.dataset.trk;setP(c.trk,k,el.value.trim());if(/^docs\./.test(k))splitDocs(c.trk,k);saveCard(c,k==='unit'?'🚚 หน่วยธุรกิจ → '+TRK_UNITS[el.value]:k==='credit'?'💳 เงื่อนไขชำระ → '+(el.value?'ลูกค้าเครดิต':'ชำระก่อนส่ง'):null);if(['unit','credit','eta','tax','phone','customer','title','ref','int.paid','int.used','inv','evidence','classInfo'].includes(k)||/^(docs|ship)\./.test(k))renderCardModal()});
   if($('#intNoteIn'))$('#intNoteIn').onkeydown=e=>{if(e.key==='Enter'&&!e.isComposing){e.preventDefault();act('intNote')}};
   initModalSort(c);
@@ -2139,6 +2156,8 @@ async function act(a,d={}){
       for(const x of n)await store.remove('cards',x.id);await store.remove('lists',l.id);closeModal();scheduleRender();break}
     case 'toggleAssignee':{const i=c.assignees.indexOf(d.id);i>=0?c.assignees.splice(i,1):c.assignees.push(d.id);await saveCard(c,(i>=0?'เอาออก ':'มอบหมายให้ ')+member(d.id).name);renderCardModal();break}
     case 'tplSave': if(c) await tplSave(c,d.cl); break;
+    case 'docMoreAdd':{ if(!c?.trk) return; docMore(c.trk).push({k:d.k,url:''}); renderCardModal(); const ins=$$('[data-dmu]'); ins[ins.length-1]?.focus(); break }
+    case 'docMoreDel':{ if(!c?.trk) return; const a=docMore(c.trk), m=a[+d.i]; if(!m) return; if(m.url&&!confirm('ลบลิงก์นี้?')) return; a.splice(+d.i,1); await saveCard(c,'🧾 ลบลิงก์'+DOC_MORE_L[m.k]+' (เพิ่มเติม)'); renderCardModal(); break }
     case 'tplPick': openTplPop($('[data-act=tplPick]')); break;
     case 'tplUse':{ const t=tplAll().find(x=>x.id===d.id); closeTplPop(); if(!c||!t) return;
       c.checklists.push({id:uid(),title:t.name,items:(t.items||[]).map(it=>({id:uid(),text:it.text,done:false,assignee:null,...(it.note?{note:it.note}:{})}))});

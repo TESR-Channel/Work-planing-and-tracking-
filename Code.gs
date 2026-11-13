@@ -373,7 +373,12 @@ function track_(r) {
   if (!acc.full) return base;   // ยังไม่ยืนยันตัวตน → เห็นแค่สถานะ/ขั้นตอน
   return Object.assign(base, {
     customer: str_(t.customer, 120), note: str_(t.note, 1000), classInfo: str_(t.classInfo, 200),
-    docs: TRK_DOCS[unit].map(d => ({ label: d[1], url: docUrl_(t, d[0]) })),
+    docs: TRK_DOCS[unit].reduce((a, d) => {   // ➕ เอกสารหลายใบ (trk.docs.more) แสดงต่อท้ายชนิดเดียวกัน
+      a.push({ label: d[1], url: docUrl_(t, d[0]) });
+      const more = (t.docs && Array.isArray(t.docs.more) ? t.docs.more : []).filter(m => m && m.k === d[0] && okUrl_(m.url));
+      more.forEach((m, i) => a.push({ label: d[1] + ' (ใบที่ ' + (i + 2) + ')', url: okUrl_(m.url) }));
+      return a;
+    }, []),
     ship: unit === 'academy' ? null : {
       carrier: str_(t.ship && t.ship.carrier, 60), no: str_(t.ship && t.ship.no, 60), url: okUrl_(t.ship && t.ship.url)
     },
