@@ -20,7 +20,8 @@ const TABLES = {
   activity: { tab: 'Activity', show: ['at', 'member', 'action', 'card_id'] },
   kudos:    { tab: 'Kudos',    show: ['at', 'type', 'from', 'to', 'text'] },
   payments: { tab: 'Payments', show: ['at', 'card_id', 'by', 'status', 'name', 'url'] },  // 💳 หลักฐานการชำระเงิน
-  customers:{ tab: 'Customers',show: ['name', 'tax', 'phone', 'pin'] }                       // 👤 PIN ลูกค้าสำหรับหน้ารวมออเดอร์
+  customers:{ tab: 'Customers',show: ['name', 'tax', 'phone', 'pin'] },                      // 👤 PIN ลูกค้าสำหรับหน้ารวมออเดอร์
+  templates:{ tab: 'Templates',show: ['name', 'by', 'n'] }                                    // 📋 เทมเพลตเช็คลิสต์ (ใช้ซ้ำได้ทั้งทีม)
 };
 const HEAD = ['id', 'updated_at', 'json'];
 const ADMIN_ONLY_WRITE = { mrows: 1, boards: 1 };   // lists: พนักงานเพิ่ม/แก้/ลบได้เฉพาะลิสต์ที่ตัวเองเป็นเจ้าของ (owner) — ตรวจใน ownLists_
@@ -214,6 +215,10 @@ function upsert_(u, t, rows) {
   if (t === 'kudos') rows.forEach(r => {   // 🙏 ส่งในนามตัวเองเท่านั้น · บันทึก Safety ได้เฉพาะ Admin
     if (r.type === 'safety' ? !isAdmin_(u) : (r.from !== u.id || r.to === u.id)) throw new Error('forbidden');
   });
+  if (t === 'templates' && !isAdmin_(u)) {   // 📋 แก้ได้เฉพาะเทมเพลตของตัวเอง
+    const cur = {}; readTable_('templates').forEach(x => cur[x.id] = x);
+    rows.forEach(r => { if (r.by !== u.id || (cur[r.id] && cur[r.id].by !== u.id)) throw new Error('forbidden'); });
+  }
   if (t === 'cards' && !isAdmin_(u)) {   // 📦 Archive / แต้มที่บันทึก — เปลี่ยนได้เฉพาะ Admin
     const cur = {}; readTable_('cards').forEach(c => cur[c.id] = c);
     rows.forEach(r => { const o = cur[r && r.id] || {};
@@ -246,6 +251,9 @@ function remove_(u, t, ids) {
   if (t === 'kudos' && !isAdmin_(u)) {
     const bad = readTable_('kudos').filter(k => ids.indexOf(k.id) >= 0 && k.from !== u.id);
     if (bad.length) throw new Error('forbidden');
+  }
+  if (t === 'templates' && !isAdmin_(u)) {
+    if (readTable_('templates').filter(x => ids.indexOf(x.id) >= 0 && x.by !== u.id).length) throw new Error('forbidden');
   }
   if (t === 'cards' && !isAdmin_(u)) {
     const own = readTable_('cards').filter(c => ids.indexOf(c.id) >= 0 && (c.created_by !== u.id || c.archived_at));

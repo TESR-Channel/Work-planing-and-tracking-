@@ -646,6 +646,14 @@ button.lstat{cursor:pointer;transition:filter .15s,transform .15s}button.lstat:h
 #autoscr{position:fixed;z-index:300;width:34px;height:34px;margin:-17px 0 0 -17px;border-radius:50%;pointer-events:none;
   background:rgba(20,20,24,.82);border:2px solid var(--gold);box-shadow:0 0 12px rgba(212,167,44,.6);display:flex;align-items:center;justify-content:center;color:var(--gold);font-size:14px}
 #autoscr::before{content:"◀ ▶";letter-spacing:-1px;font-size:10px}
+/* 📋 เทมเพลตเช็คลิสต์ */
+#tplpop{position:fixed;z-index:400;width:300px;max-height:60vh;overflow:auto;background:var(--bg2);border:1px solid var(--line);border-radius:12px;box-shadow:0 12px 32px rgba(0,0,0,.45);padding:10px}
+#tplpop h5{margin:2px 4px 8px;font-size:12px;color:var(--mut);font-weight:600}
+#tplpop .tp{display:flex;align-items:center;gap:6px;border:1px solid transparent;border-radius:8px;padding:6px 8px;cursor:pointer}
+#tplpop .tp:hover{background:var(--card2);border-color:var(--line)}
+#tplpop .tp .t{flex:1;min-width:0}#tplpop .tp .t b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#tplpop .tp .t small{color:var(--mut);font-size:11px}
+#tplpop .empty{padding:12px 6px;color:var(--mut);font-size:13px;line-height:1.5}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 
 @media (max-width:700px){
@@ -712,11 +720,11 @@ button.lstat{cursor:pointer;transition:filter .15s,transform .15s}button.lstat:h
 /* ===== CONFIG: วาง URL ของ Apps Script Web App ตรงนี้ (หรือใส่ผ่าน ⚙️ ขั้นสูง) ===== */
 const CONFIG = { API_URL: 'https://script.google.com/macros/s/AKfycbwKGxHAZ2inWEdPmK7eY7GvLL5cE_CN7kzVWKxXFeHL8X63Vu4Afg1bH4dokXhcTDmQsw/exec' };
 
-const T = { mrows:'tb_members', boards:'tb_boards', lists:'tb_lists', cards:'tb_cards', activity:'tb_activity', kudos:'tb_kudos', payments:'tb_payments', customers:'tb_customers' };
+const T = { mrows:'tb_members', boards:'tb_boards', lists:'tb_lists', cards:'tb_cards', activity:'tb_activity', kudos:'tb_kudos', payments:'tb_payments', customers:'tb_customers', templates:'tb_templates' };
 const KEYS = Object.keys(T);
 const LS_DATA='tesrboard_demo_v2', LS_CFG='tesrboard_cfg', LS_SES='tesrboard_session', LS_BOARD='tesrboard_board', LS_THEME='tesrboard_theme';
 const PALETTE=['#d71f33','#d4a72c','#2fbf71','#3b82f6','#a855f7','#ec4899','#14b8a6','#f97316','#64748b','#84cc16'];
-const APP_VER='v3.17'; // เพิ่มเลขทุกครั้งที่อัปเดตหน้าเว็บ · ดูที่มุมโลโก้ว่าเครื่องโหลดเวอร์ชันใหม่แล้ว
+const APP_VER='v3.18'; // เพิ่มเลขทุกครั้งที่อัปเดตหน้าเว็บ · ดูที่มุมโลโก้ว่าเครื่องโหลดเวอร์ชันใหม่แล้ว
 const PRIO={low:'ต่ำ',normal:'ปกติ',high:'สูง',urgent:'ด่วนมาก'};
 /* 🚚 ลิงก์ติดตามสำหรับลูกค้า (หน้า track.html) — ต้องตรงกับ TRK_DOCS ใน Code.gs */
 const TRK_UNITS={shop:'TESR Shop',academy:'TESR Academy',logistics:'TESR Logistics'};
@@ -765,7 +773,7 @@ const KPI_DEFS=[
 ];
 const PERIODS=[['today','วันนี้'],['7','7 วัน'],['month','เดือนนี้'],['30','30 วัน'],['90','90 วัน'],['year','ปีนี้'],['365','1 ปี'],['custom','📅 ช่วงวันที่…'],['cmonth','🗓 ช่วงเดือน…']];
 
-let S={staff:[],mrows:[],members:[],boards:[],lists:[],cards:[],activity:[],kudos:[],payments:[],customers:[]};
+let S={staff:[],mrows:[],members:[],boards:[],lists:[],cards:[],activity:[],kudos:[],payments:[],customers:[],templates:[]};
 let store, session=null;
 const _t0=new Date(),_ym=_t0.toISOString().slice(0,7);
 const ui={board:null,view:'board',member:'',search:'',period:'month',scope:'board',openCard:null,dragging:false,from:_ym+'-01',to:_t0.toISOString().slice(0,10),mFrom:_ym,mTo:_ym,hideChecked:false,showActs:true};
@@ -821,7 +829,7 @@ function makeGasStore(url){
   const put=(k,row)=>{const a=S[k];const i=a.findIndex(x=>x.id===row.id);if(i>=0)a[i]=row;else a.push(row)};
   return {
     mode:'sheet',
-    async load(){const d=await call('load');ver=d.ver;return {staff:d.staff||[],mrows:d.mrows||[],boards:d.boards||[],lists:d.lists||[],cards:d.cards||[],activity:d.activity||[],kudos:d.kudos||[],payments:d.payments||[],customers:d.customers||[],_noKudos:!Array.isArray(d.kudos),_noPay:!Array.isArray(d.payments)}},
+    async load(){const d=await call('load');ver=d.ver;return {staff:d.staff||[],mrows:d.mrows||[],boards:d.boards||[],lists:d.lists||[],cards:d.cards||[],activity:d.activity||[],kudos:d.kudos||[],payments:d.payments||[],customers:d.customers||[],templates:d.templates||[],_noTpl:!Array.isArray(d.templates),_noKudos:!Array.isArray(d.kudos),_noPay:!Array.isArray(d.payments)}},
     async login(user,pass,remember=true){
       const r=await fetch(url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'login',user,pass,remember})});
       const j=await r.json();
@@ -876,6 +884,7 @@ function norm(){
   if(!Array.isArray(S.kudos)) S.kudos=[];
   if(!Array.isArray(S.payments)) S.payments=[];
   if(!Array.isArray(S.customers)) S.customers=[];
+  if(!Array.isArray(S.templates)) S.templates=[];
   S.cards.forEach(c=>{['assignees','labels','checklists','links','attachments','comments'].forEach(f=>{if(!Array.isArray(c[f]))c[f]=[]})});
   buildMembers();
 }
@@ -1572,6 +1581,33 @@ function histHTML(people){
     </tbody></table></div></div>`;
 }
 function bindHist(){const y=$('#histY');if(y)y.onchange=e=>{ui.histY=e.target.value;renderMain()};const h=$('#histMode');if(h)h.onchange=e=>{ui.histMode=e.target.value;renderMain()}}
+/* ===== 📋 เทมเพลตเช็คลิสต์ — เซฟแล้วใช้ซ้ำ ===== */
+const TPL_LS='tesrboard_tpl_v1';
+const tplAll=()=>S._noTpl?lsGet(TPL_LS,[]):(S.templates||[]);
+async function tplPut(t){ if(S._noTpl){const a=lsGet(TPL_LS,[]).filter(x=>x.id!==t.id);a.push(t);lsSet(TPL_LS,a);return} await store.upsert('templates',t) }
+async function tplDel(id){ if(S._noTpl){lsSet(TPL_LS,lsGet(TPL_LS,[]).filter(x=>x.id!==id));return} await store.remove('templates',id) }
+async function tplSave(c,clId){
+  const cl=c.checklists.find(x=>x.id===clId); if(!cl) return;
+  if(!cl.items.length) return toast('เช็คลิสต์นี้ยังไม่มีรายการ');
+  const name=(prompt(`ตั้งชื่อเทมเพลต (${cl.items.length} รายการ)`,cl.title)||'').trim(); if(!name) return;
+  const same=tplAll().find(x=>x.name===name&&(x.by===session.id||isAdmin()));
+  if(same&&!confirm(`มีเทมเพลตชื่อ "${name}" อยู่แล้ว — เขียนทับไหม?`)) return;
+  const t={id:same?.id||uid(),name,by:session.id,at:now(),n:cl.items.length,title:cl.title,items:cl.items.map(it=>({text:it.text,...(it.note?{note:it.note}:{})}))};
+  await tplPut(t); toast(`💾 เซฟเทมเพลต "${name}" แล้ว${S._noTpl?' (เก็บในเครื่องนี้ — อัปเดต Code.gs เพื่อแชร์ทั้งทีม)':' · ทุกคนในทีมใช้ได้'}`);
+}
+function closeTplPop(){ $('#tplpop')?.remove() }
+function openTplPop(anchor){
+  closeTplPop(); const all=tplAll().slice().sort((a,b)=>a.name.localeCompare(b.name,'th'));
+  const d=document.createElement('div'); d.id='tplpop';
+  d.innerHTML=`<h5>📋 เลือกเทมเพลตเพื่อเพิ่มเป็นเช็คลิสต์ใหม่</h5>`+(all.length?all.map(t=>`<div class="tp" data-act="tplUse" data-id="${t.id}"><div class="t"><b>${esc(t.name)}</b><small>${t.items?.length||t.n||0} รายการ · โดย ${esc(member(t.by)?.name||'?')}</small></div>${t.by===session.id||isAdmin()?`<button class="icon sm" data-act="tplDel" data-id="${t.id}" title="ลบเทมเพลต">🗑</button>`:''}</div>`).join('')
+    :'<div class="empty">ยังไม่มีเทมเพลต<br>กด 💾 ที่หัวเช็คลิสต์ในการ์ดไหนก็ได้ เพื่อเซฟไว้ใช้ซ้ำ</div>');
+  document.body.appendChild(d);
+  const r=anchor.getBoundingClientRect(), w=d.offsetWidth, h=d.offsetHeight;
+  d.style.left=Math.max(8,Math.min(innerWidth-w-8,r.left))+'px';
+  d.style.top=(r.bottom+6+h>innerHeight-8?Math.max(8,r.top-h-6):r.bottom+6)+'px';
+}
+document.addEventListener('mousedown',e=>{if($('#tplpop')&&!e.target.closest('#tplpop,[data-act=tplPick]'))closeTplPop()},true);
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeTplPop()});
 function scoreHelp(){
   ui.openCard=null;$('#sheet').classList.remove('wide');
   $('#sheet').innerHTML=`<div class="mhead"><b class="kanit" style="flex:1;font-size:18px">🏆 วิธีคิดคะแนน KPI</b><button class="icon" data-act="closeModal">✕</button></div>
@@ -1730,9 +1766,9 @@ function renderCardModal(){
       <div id="sLinks">${c.links.map((l,i)=>`<div class="att" data-i="${i}"><span class="grip" title="ลากเพื่อจัดลำดับ">⋮⋮</span>🔗<a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.title||l.url)}</a><button class="icon sm" data-act="delLink" data-i="${i}">✕</button></div>`).join('')}</div>
       <div class="row"><input id="lnkUrl" placeholder="https://drive / github / canva ..."><input id="lnkTitle" placeholder="ชื่อลิงก์ (ไม่บังคับ)"><button class="sm" data-act="addLink">เพิ่ม</button></div>
     </div>
-    <div class="sec"><h4>☑ เช็คลิสต์ / Checkpoint <button class="sm" data-act="addChecklist">+ เพิ่มเช็คลิสต์</button>${ck.done?`<button class="sm" data-act="toggleHideChecked">${ui.hideChecked?'แสดงที่ทำแล้ว ('+ck.done+')':'ซ่อนที่ทำแล้ว'}</button>`:''}</h4>
+    <div class="sec"><h4>☑ เช็คลิสต์ / Checkpoint <button class="sm" data-act="addChecklist">+ เพิ่มเช็คลิสต์</button><button class="sm" data-act="tplPick" title="เพิ่มเช็คลิสต์จากเทมเพลตที่เซฟไว้">📋 ใช้เทมเพลต</button>${ck.done?`<button class="sm" data-act="toggleHideChecked">${ui.hideChecked?'แสดงที่ทำแล้ว ('+ck.done+')':'ซ่อนที่ทำแล้ว'}</button>`:''}</h4>
       <div id="sCks">${c.checklists.filter(cl=>!cl.order).map(cl=>{const dn=cl.items.filter(i=>i.done).length,t=cl.items.length,p=t?Math.round(dn/t*100):0;
-        return `<div class="ck" data-cl="${cl.id}"><div class="ckhead"><span class="grip ckgrip" title="ลากเพื่อย้ายทั้งเช็คลิสต์">⋮⋮</span><b class="cked" data-act="editCl" data-cl="${cl.id}" title="แตะเพื่อแก้ชื่อเช็คลิสต์">${esc(cl.title)}</b>${c.trk?.on?`<button class="sm ckpub ${cl.pub?'on':''}" data-act="ckPub" data-cl="${cl.id}" title="ให้ลูกค้าเห็นเช็คลิสต์นี้ในหน้าติดตามหรือไม่">${cl.pub?'👁 ลูกค้าเห็น':'🔒 ภายใน'}</button>`:''}<button class="icon sm" data-act="delChecklist" data-cl="${cl.id}" title="ลบเช็คลิสต์">🗑</button></div>
+        return `<div class="ck" data-cl="${cl.id}"><div class="ckhead"><span class="grip ckgrip" title="ลากเพื่อย้ายทั้งเช็คลิสต์">⋮⋮</span><b class="cked" data-act="editCl" data-cl="${cl.id}" title="แตะเพื่อแก้ชื่อเช็คลิสต์">${esc(cl.title)}</b>${c.trk?.on?`<button class="sm ckpub ${cl.pub?'on':''}" data-act="ckPub" data-cl="${cl.id}" title="ให้ลูกค้าเห็นเช็คลิสต์นี้ในหน้าติดตามหรือไม่">${cl.pub?'👁 ลูกค้าเห็น':'🔒 ภายใน'}</button>`:''}<button class="icon sm" data-act="tplSave" data-cl="${cl.id}" title="เซฟเช็คลิสต์นี้เป็นเทมเพลต เอาไปใช้กับการ์ดอื่นได้">💾</button><button class="icon sm" data-act="delChecklist" data-cl="${cl.id}" title="ลบเช็คลิสต์">🗑</button></div>
         <div class="prog sm"><span class="muted">${p}%</span><div class="bar"><i style="width:${p}%"></i></div><span class="muted">${dn}/${t}</span></div>
         <div class="ckitems" data-cl="${cl.id}">${cl.items.filter(it=>!(ui.hideChecked&&it.done)).map(it=>{const st=it.done?'done':!it.due?'':(new Date(it.due+'T00:00:00')<today()?'late':(new Date(it.due+'T00:00:00')-today())/DAY<=2?'soon':'ok');
           return `<div class="ckitem" data-it="${it.id}"><span class="grip igrip" title="ลากเพื่อจัดลำดับ">⋮⋮</span><input type="checkbox" data-act="toggleItem" data-cl="${cl.id}" data-it="${it.id}" ${it.done?'checked':''}>
@@ -2102,6 +2138,12 @@ async function act(a,d={}){
       if(!isAdmin()&&n.some(x=>x.created_by!==session.id))return toast('ลิสต์นี้มีการ์ดที่คนอื่นสร้าง — ย้ายการ์ดเหล่านั้นออกก่อนจึงลบได้');if(!confirm(`ลบลิสต์ "${l.name}"${n.length?` และการ์ด ${n.length} ใบ`:''}?`))return;
       for(const x of n)await store.remove('cards',x.id);await store.remove('lists',l.id);closeModal();scheduleRender();break}
     case 'toggleAssignee':{const i=c.assignees.indexOf(d.id);i>=0?c.assignees.splice(i,1):c.assignees.push(d.id);await saveCard(c,(i>=0?'เอาออก ':'มอบหมายให้ ')+member(d.id).name);renderCardModal();break}
+    case 'tplSave': if(c) await tplSave(c,d.cl); break;
+    case 'tplPick': openTplPop($('[data-act=tplPick]')); break;
+    case 'tplUse':{ const t=tplAll().find(x=>x.id===d.id); closeTplPop(); if(!c||!t) return;
+      c.checklists.push({id:uid(),title:t.name,items:(t.items||[]).map(it=>({id:uid(),text:it.text,done:false,assignee:null,...(it.note?{note:it.note}:{})}))});
+      await saveCard(c,`📋 เพิ่มเช็คลิสต์จากเทมเพลต "${t.name}"`); renderCardModal(); toast(`📋 เพิ่ม "${t.name}" ${t.items.length} รายการ`); break }
+    case 'tplDel':{ const t=tplAll().find(x=>x.id===d.id); if(!t||!confirm(`ลบเทมเพลต "${t.name}"? (การ์ดที่ใช้ไปแล้วไม่กระทบ)`)) return; await tplDel(t.id); openTplPop($('[data-act=tplPick]')); break }
     case 'addChecklist':{const t=prompt('ชื่อเช็คลิสต์','เช็คลิสต์');if(!t)return;c.checklists.push({id:uid(),title:t,items:[]});await saveCard(c,'เพิ่มเช็คลิสต์ "'+t+'"');renderCardModal();break}
     case 'delChecklist':{if(!confirm('ลบเช็คลิสต์นี้?'))return;c.checklists=c.checklists.filter(x=>x.id!==d.cl);await saveCard(c);renderCardModal();break}
     case 'addItem':{const inp=$(`[data-additem="${d.cl}"]`),t=inp.value.trim();if(!t)return;c.checklists.find(x=>x.id===d.cl).items.push({id:uid(),text:t,done:false,assignee:null,due:null});await saveCard(c);renderCardModal();$(`[data-additem="${d.cl}"]`)?.focus();break}
