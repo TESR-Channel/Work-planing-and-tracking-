@@ -374,9 +374,10 @@ function track_(r) {
   return Object.assign(base, {
     customer: str_(t.customer, 120), note: str_(t.note, 1000), classInfo: str_(t.classInfo, 200),
     docs: TRK_DOCS[unit].reduce((a, d) => {   // ➕ เอกสารหลายใบ (trk.docs.more) แสดงต่อท้ายชนิดเดียวกัน
-      a.push({ label: d[1], url: docUrl_(t, d[0]) });
-      const more = (t.docs && Array.isArray(t.docs.more) ? t.docs.more : []).filter(m => m && m.k === d[0] && okUrl_(m.url));
-      more.forEach((m, i) => a.push({ label: d[1] + ' (ใบที่ ' + (i + 2) + ')', url: okUrl_(m.url) }));
+      const urls = [docUrl_(t, d[0])].concat((t.docs && Array.isArray(t.docs.more) ? t.docs.more : [])
+        .filter(m => m && m.k === d[0]).map(m => okUrl_(m.url))).filter(Boolean);
+      if (!urls.length) a.push({ label: d[1], url: '' });
+      urls.forEach((u, i) => a.push({ label: d[1] + (urls.length > 1 ? ' (ใบที่ ' + (i + 1) + ')' : ''), url: u }));
       return a;
     }, []),
     ship: unit === 'academy' ? null : {

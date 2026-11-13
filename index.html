@@ -725,7 +725,7 @@ const T = { mrows:'tb_members', boards:'tb_boards', lists:'tb_lists', cards:'tb_
 const KEYS = Object.keys(T);
 const LS_DATA='tesrboard_demo_v2', LS_CFG='tesrboard_cfg', LS_SES='tesrboard_session', LS_BOARD='tesrboard_board', LS_THEME='tesrboard_theme';
 const PALETTE=['#d71f33','#d4a72c','#2fbf71','#3b82f6','#a855f7','#ec4899','#14b8a6','#f97316','#64748b','#84cc16'];
-const APP_VER='v3.19'; // เพิ่มเลขทุกครั้งที่อัปเดตหน้าเว็บ · ดูที่มุมโลโก้ว่าเครื่องโหลดเวอร์ชันใหม่แล้ว
+const APP_VER='v3.20'; // เพิ่มเลขทุกครั้งที่อัปเดตหน้าเว็บ · ดูที่มุมโลโก้ว่าเครื่องโหลดเวอร์ชันใหม่แล้ว
 const PRIO={low:'ต่ำ',normal:'ปกติ',high:'สูง',urgent:'ด่วนมาก'};
 /* 🚚 ลิงก์ติดตามสำหรับลูกค้า (หน้า track.html) — ต้องตรงกับ TRK_DOCS ใน Code.gs */
 const TRK_UNITS={shop:'TESR Shop',academy:'TESR Academy',logistics:'TESR Logistics'};
@@ -746,8 +746,8 @@ function splitDocs(t,k){
   setP(t,k,mine);
 }
 /* ➕ เอกสารหลายใบ (เช่น ออกใบเสร็จ 2 ใบ) — เก็บใน trk.docs.more = [{k:'tax'|'rcpt'|'inv', url}] · ลูกค้าเห็นครบในหน้าติดตาม */
-const DOC_MORE_K=['inv','tax','rcpt'];
-const DOC_MORE_L={inv:'ใบแจ้งหนี้ / ใบวางบิล',tax:'ใบกำกับภาษี',rcpt:'ใบเสร็จรับเงิน'};
+const DOC_MORE_K=['q','po','inv','tax','rcpt','guide'];
+const DOC_MORE_L={q:'ใบเสนอราคา',po:'PO ลูกค้า',inv:'ใบแจ้งหนี้ / ใบวางบิล',tax:'ใบกำกับภาษี',rcpt:'ใบเสร็จรับเงิน',guide:'คู่มือ / เอกสารประกอบ'};
 function docMore(t){ t.docs=t.docs||{}; if(!Array.isArray(t.docs.more)) t.docs.more=[]; return t.docs.more }
 /* ===== KPI POINTS (ปรับตัวเลขได้ตรงนี้) ===== */
 const SIZES={s:{label:'งานทั่วไป',pts:1,icon:'●'},m:{label:'งานกลาง',pts:3,icon:'◆'},l:{label:'โปรเจกต์ / งานใหญ่-ยาก',pts:5,icon:'⭐'}};
@@ -1090,7 +1090,8 @@ function ostepFilled(c,k){ const t=c.trk||{};
   if(k==='pay') return (S.payments||[]).some(p=>p.card_id===c.id&&p.status==='ok');
   if(k==='ship') return !!String(getP(t,'ship.no')||'').trim();
   if(k==='evi') return !!String(t.inv||t.evidence||'').trim();
-  const st=ostep(c,k); return !!st&&st[2].some(([f])=>String(getP(t,f)||'').trim());
+  const st=ostep(c,k); if(!st) return false;
+  return st[2].some(([f])=>String(getP(t,f)||'').trim())||(t.docs?.more||[]).some(m=>String(m.url||'').trim()&&st[2].some(([f])=>f==='docs.'+m.k));
 }
 function trkSync(c){ // ใส่เช็คลิสต์ขั้นตอนออเดอร์ (ถ้ายังไม่มี) + ติ๊กอัตโนมัติตามข้อมูลที่กรอกแล้ว
   if(!c.trk?.on) return;
@@ -1131,8 +1132,8 @@ function moreDocsHTML(t,ins){
   const more=(t.docs?.more||[]).map((m,i)=>({...m,i})).filter(m=>ks.includes(m.k));
   const cnt={}; ks.forEach(k=>cnt[k]=String(t.docs?.[k]||'').trim()?1:0);
   return `<div class="omore">${more.map(m=>{cnt[m.k]=(cnt[m.k]||0)+1;
-    return `<div class="oins"><select data-dmk="${m.i}">${ks.map(k=>`<option value="${k}" ${k===m.k?'selected':''}>${DOC_MORE_L[k]}</option>`).join('')}</select><input data-dmu="${m.i}" value="${esc(m.url||'')}" placeholder="ลิงก์${DOC_MORE_L[m.k]} ใบที่ ${cnt[m.k]} (FlowAccount)"><button class="icon sm" data-act="docMoreDel" data-i="${m.i}" title="ลบบรรทัดนี้">✕</button></div>`}).join('')}
-    <button class="sm omadd" data-act="docMoreAdd" data-k="${ks[ks.length-1]}" title="ออกเอกสารหลายใบ เช่น ใบเสร็จ 2 ใบ">＋ เพิ่มลิงก์${ks.map(k=>DOC_MORE_L[k].replace(' / ใบวางบิล','')).join(' / ')}อีกใบ</button></div>`;
+    return `<div class="oins">${ks.length>1?`<select data-dmk="${m.i}">${ks.map(k=>`<option value="${k}" ${k===m.k?'selected':''}>${DOC_MORE_L[k]}</option>`).join('')}</select>`:''}<input data-dmu="${m.i}" value="${esc(m.url||'')}" placeholder="ลิงก์${DOC_MORE_L[m.k]} ใบที่ ${cnt[m.k]}${m.k==='po'?' (ภายใน ลูกค้าไม่เห็น)':m.k==='guide'?'':' (FlowAccount)'}"><button class="icon sm" data-act="docMoreDel" data-i="${m.i}" title="ลบบรรทัดนี้">✕</button></div>`}).join('')}
+    <button class="sm omadd" data-act="docMoreAdd" data-k="${ks[ks.length-1]}" title="เพิ่มเอกสารได้ไม่จำกัด เช่น ใบเสนอราคา 5 ใบ ใบเสร็จ 2 ใบ">＋ เพิ่ม${ks.length>2?'เอกสาร':ks.map(k=>DOC_MORE_L[k].replace(' / ใบวางบิล','').replace(' / เอกสารประกอบ','')).join(' / ')}อีกใบ</button></div>`;
 }
 function trkNew(c,extra={}){ // ค่าเริ่มต้นตอนเปิดลิงก์ติดตาม
   const bn=S.boards.find(b=>b.id===c.board_id)?.name||'',ref=(c.title.match(/\b(QT|INV|IV|RE|RC|PO|AC)[-\s]?\d{3,}\b/i)||[''])[0].replace(/\s/g,'').toUpperCase();
